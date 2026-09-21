@@ -2411,55 +2411,62 @@ C
       COMPLEX U11,UB11,A11,B11,C11,UC11
 C
       CALL cpu_time(t1)
+C *** For every time slice
       DO 1 I4=1,LX4
 C
          DO 3 IBL=1,IBLOK
 C
+C *** For the first blocking level
+
             IF(IBL.EQ.1)THEN
-            DO MU=1,3
-               DO NN=1,LSIZEB
-                  DO IJ=1,NCOL2
-                     UB11(IJ,NN,MU,1)=U11(IJ,NN,I4,MU)
-                  ENDDO
+                DO MU=1,3
+                    DO NN=1,LSIZEB
+                        DO IJ=1,NCOL2
+C
+C *** First blocking level: a copy of the configuration ***
+C                  
+                            UB11(IJ,NN,MU,1)=U11(IJ,NN,I4,MU)
+                        ENDDO
+                    ENDDO
+                ENDDO
+C *** Calculate the thermal line and go to next blocking level                
+            GOTO11
+            ENDIF
+C
+         IBLM=IBL-1
+         DO KK=1,3
+            DO NN=1,LSIZEB
+               IUP(NN,KK)=IUPB(NN,KK,IBLM)
+               IDN(NN,KK)=IDNB(NN,KK,IBLM)
+               DO IJ=1,NCOL2
+                  UC11(IJ,NN,KK)=UB11(IJ,NN,KK,IBLM)
                ENDDO
             ENDDO
-            GOTO11
-         ENDIF
+         ENDDO
+         CALL SMEAR1
 C
-      IBLM=IBL-1
-      DO KK=1,3
-         DO NN=1,LSIZEB
-            IUP(NN,KK)=IUPB(NN,KK,IBLM)
-            IDN(NN,KK)=IDNB(NN,KK,IBLM)
-            DO IJ=1,NCOL2
-               UC11(IJ,NN,KK)=UB11(IJ,NN,KK,IBLM)
+         DO MU=1,3
+            DO NN=1,LSIZEB
+               M1=NN
+               M2=IUP(M1,MU)
+C
+               DO 22 IJ=1,NCOL2
+                  A11(IJ)=UC11(IJ,M1,MU)
+                  B11(IJ)=UC11(IJ,M2,MU)
+ 22            CONTINUE
+               CALL VMX(1,A11,B11,C11,1)
+               DO 24 IJ=1,NCOL2
+                  UB11(IJ,NN,MU,IBL)=C11(IJ)
+ 24            CONTINUE
+C
             ENDDO
          ENDDO
-      ENDDO
-      CALL SMEAR1
+11       CONTINUE
 C
-      DO MU=1,3
-         DO NN=1,LSIZEB
-            M1=NN
-            M2=IUP(M1,MU)
-C
-            DO 22 IJ=1,NCOL2
-               A11(IJ)=UC11(IJ,M1,MU)
-               B11(IJ)=UC11(IJ,M2,MU)
- 22         CONTINUE
-            CALL VMX(1,A11,B11,C11,1)
-            DO 24 IJ=1,NCOL2
-               UB11(IJ,NN,MU,IBL)=C11(IJ)
- 24         CONTINUE
-C
-         ENDDO
-      ENDDO
-11    CONTINUE
-C
-      CALL THERML1(I4,IBL)
+         CALL THERML1(I4,IBL)
 C
 C************************************************
- 3    CONTINUE
+ 3       CONTINUE
  1    CONTINUE
       CALL cpu_time(t2)
       WRITE(6,901) sngl(t2-t1)
