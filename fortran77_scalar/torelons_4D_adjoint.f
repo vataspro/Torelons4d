@@ -1062,6 +1062,7 @@ c         DO 26 NT=1,MAXDTLS
 102      FORMAT('  DT=',I3,'   AV,ER COR = ',2F8.4,'    E=',2F8.4)
 26       CONTINUE
 20    CONTINUE
+      CLOSE(23)
 C
       RETURN
       END
