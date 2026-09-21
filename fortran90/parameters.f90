@@ -18,7 +18,7 @@ module parameters
     ! Read all parameters from file and set dependant parameters
     subroutine initialise_parameters(parameter_filename)
         implicit none
-        character(len=*) :: parameter_filename
+        character(len=*), intent(in) :: parameter_filename
 
         ! Define variables to read in from parameter file
         namelist /params/ NCOL, LX1, LX2, LX3, LX4
