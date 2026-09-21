@@ -679,6 +679,22 @@ C******************************************
       REWIND(52)
       WRITE(52) ACTN
       WRITE(52) TLINE,PLAQ,SQTLINE
+
+      CLOSE(11)
+      CLOSE(12)
+      CLOSE(13)
+      CLOSE(14)
+      CLOSE(15)
+      CLOSE(16)
+      CLOSE(17)
+      CLOSE(18)
+      CLOSE(19)
+      CLOSE(20)
+      CLOSE(21)
+      CLOSE(22)
+      CLOSE(23)
+      CLOSE(24)
+      CLOSE(25)
 C
       RETURN
       END
