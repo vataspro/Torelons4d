@@ -1,0 +1,102 @@
+program test_suite
+    use parameters
+    use read_field_config
+    implicit none
+
+    logical :: error_code
+
+    ! Read parameters from input file
+    call initialise_parameters("parameter_file.txt")
+
+    ! Test parameters
+    call test_dependant_parameters(error_code)
+    call check_success(error_code)
+
+
+
+    contains
+
+    ! Quit program if a test has failed
+    subroutine check_success(ierr)
+        implicit none
+
+        logical, intent(in) :: ierr
+
+        if (.not.ierr) then
+            error stop "Test failed. Program halting."
+        endif
+    end subroutine
+
+    ! Check parameters are correct for testing
+    subroutine check_parameters()
+        implicit none
+
+        ! Check loaded parameters
+        if (NCOL /= 2) then
+            error stop "NCOL must be equal to 2"
+        endif
+        if (LX1 /= 26) then
+            error stop "LX1 must be equal to 26"
+        endif
+        if (LX2 /= 26) then
+            error stop "LX2 must be equal to 26"
+        endif
+        if (LX3 /= 26) then
+            error stop "LX3 must be equal to 26"
+        endif
+        if (LX4 /= 52) then
+            error stop "LX4 must be equal to 52"
+        endif
+
+        ! Output success
+        write(*, '(a)') "Parameter check passed."
+    end subroutine
+
+    ! Test dependant parameters
+    subroutine test_dependant_parameters(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        ! Check dependant parameters
+        if (SLICE_VOLUME /= LX1 * LX2 * LX3) then
+            ierr = .false.
+            write(*, '(a)') "SLICE_VOLUME test failed"
+            return
+        endif
+        if (LATTICE_VOLUME /= SLICE_VOLUME * LX4) then
+            ierr = .false.
+            write(*, '(a)') "LATTICE_VOLUME test failed"
+            return
+        endif
+        if (NCOL2 /= NCOL * NCOL) then
+            ierr = .false.
+            write(*, '(a)') "NCOL2 test failed"
+            return
+        endif
+        if (MAX_DELTA_T /= LX4 / 2) then
+            ierr = .false.
+            write(*, '(a)') "MAX_DELTA_T test failed"
+            return
+        endif
+    end subroutine
+
+    ! Test loading of field configurations
+    subroutine test_read_gauge_field(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        character(len=256) :: homepath, conf_directory, conf_filename, directory
+        complex(real32) :: gauge_field_conf(NCOL, NCOL, LX1, LX2, LX3, LX4, 4)
+
+        ! Set directory path
+        homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
+        conf_directory=trim('m-1.0/26x26x26x52/confs/')
+        conf_filename=trim('run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n134780')
+        directory=trim(homepath//conf_directory//conf_filename)
+
+        ! Load gauge field into memory
+        call read_gauge_field(directory, gauge_field_conf)
+
+        ! Check first 5 elements
+    end subroutine
+end program

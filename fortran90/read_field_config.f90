@@ -61,7 +61,7 @@ module read_field_config
     subroutine read_gauge_field(gauge_field_filename, gauge_field)
         implicit none
         character(len=*), intent(in) :: gauge_field_filename
-        complex, intent(out) :: gauge_field(:,:,:,:,:,:,:)
+        complex(real32), intent(out) :: gauge_field(:,:,:,:,:,:,:)
 
         integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
         integer :: t, x, y, z, dir, dir_target, iun, iq
