@@ -1,0 +1,7 @@
+&params
+NCOL=2
+LX1=26
+LX2=26
+LX3=26
+LX4=52
+/
