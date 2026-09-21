@@ -1189,6 +1189,8 @@ c         DO 26 NT=1,MAXDTLS
 20    CONTINUE
 C
       ENDDO
+
+      CLOSE(24)
 C
       RETURN
       END
@@ -1694,7 +1696,9 @@ C
          DO NT=1,MAXDTLS
             WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
          ENDDO
- 29   CONTINUE      
+ 29   CONTINUE
+C
+      CLOSE(23)
 C*********************************************************************   
       RETURN
       END
@@ -2038,6 +2042,8 @@ C
             WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
          ENDDO
  24   CONTINUE
+C
+      CLOSE(23)
 C*********************************************************************   
       RETURN
       END
@@ -2381,6 +2387,8 @@ C
             WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
          ENDDO
  24   CONTINUE
+C
+      CLOSE(23)
 C*********************************************************************   
       RETURN
       END      
