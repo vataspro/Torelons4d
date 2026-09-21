@@ -1,0 +1,15 @@
+# Common temporary files
+thumbs.db
+.DS_Store
+
+# Python compiled objects
+*.pyc
+__pycache__/
+.mypy_cache/
+
+# Common editor temporary files
+*~
+.#*#
+
+# Keep all gitkeep files to retain directory structure
+!*/.gitkeep
