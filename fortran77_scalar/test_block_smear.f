@@ -206,7 +206,6 @@ C
          WRITE(6,902) sngl(t2-t1)
  902  FORMAT('[Info][Time]','    Configuration Read time:', F8.4)
 C     
-      CALL POLYLOOP()
       CALL MEASURE(ITER,NITER)
       call execute_command_line("rm conf", WAIT=.true.)
 C
@@ -369,67 +368,6 @@ C
       RETURN
       END            
 C***********************************************************************
-C***********************************************************************
-C***********************************************************************
-C                          THERMAL LINES
-C***********************************************************************
-C***********************************************************************
-      SUBROUTINE POLYLOOP()
-      IMPLICIT REAL*8 (A-H,O-Z)
-      PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
-      PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
-      PARAMETER(NITER=218,NUMBIN=2)
-      PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
-C
-      COMMON/ARRAYS/U11(NCOL2,LSIZE,4)
-      COMMON/NEXT/IUP(LSIZE,4),IDN(LSIZE,4)
-      DIMENSION DUM11(NCOL2)
-     &,A11(NCOL2),B11(NCOL2),C11(NCOL2),D11(NCOL2)
-      COMPLEX U11,A11,B11,C11,D11,DUM11,ACT
-C
-      DIMENSION AVAC(NUMBIN),AVACSQ(NUMBIN),AVACS(NUMBIN),AVACT(NUMBIN)
-      DIMENSION VAL(NUMBIN),AV(NUMBIN)
-      dimension icoordvect(4)
-      complex cpol1
-      complex*16 cpol(4)
-C
-      icoordvect(1) = LX1-1
-      icoordvect(2) = LX2-1
-      icoordvect(3) = LX3-1
-      icoordvect(4) = LX4-1
-C     
-      cpol(:) = dcmplx(0.0d0,0.0d0) 
-      dnorm = 1.0/dfloat(lsizeb*ncol)
-c
-      DO ipoint=1, lsizeb
-         do idir=1, 4
-            a11(:) = u11(:,ipoint,idir)
-            ipoint1 = ipoint
-            do icoord=2,icoordvect(idir) 
-               ipoint2 = iup(ipoint1,idir) 
-               b11 = u11(:,ipoint2,idir)
-               call vmx(1,a11,b11,c11,1)
-               a11(:) = c11(:)
-               ipoint2 = ipoint1
-            enddo
-            ipoint2 = iup(ipoint1,idir) 
-            b11 = u11(:,ipoint2,idir)
-            call trvmx(1,a11,b11,cpol1,1)
-            cpol(idir) = cpol(idir) + cpol1
-c            write (*,*) cpol1, cpol(idir)
-         enddo
-      enddo
-C
-      cpol(:) = cpol(:)*dnorm
-C
- 888  format('Poly(' ,i1, ')  =  (',f16.12,','f16.12')')
-      do idir=1,4
-         write (92,888) idir,dreal(cpol(idir)),dimag(cpol(idir))
-      enddo
-C
-      RETURN
-      END
-C*********************************************************************
 C***************************SUBROUTINE TODISK*************************
 C*********************************************************************
       SUBROUTINE TODISK1
