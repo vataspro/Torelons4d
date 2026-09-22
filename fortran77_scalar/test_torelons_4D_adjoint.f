@@ -28676,13 +28676,6 @@ C****************************************************************
 C
       COMMON/NEXT/IUP(LSIZE,4),IDN(LSIZE,4)
 
-      OPEN (11,FILE='NEIGHBS.DAT',FORM='UNFORMATTED',
-     &status='REPLACE',ACCESS='STREAM')
-
-      WRITE(11) IUP
-      WRITE(11) IDN
-
-      CLOSE(11)
 C
       LX12=LX1*LX2
       LX123=LX12*LX3
@@ -28728,6 +28721,14 @@ C
          ENDDO
       ENDDO
 C
+      OPEN (11,FILE='NEIGHBS.DAT',FORM='UNFORMATTED',
+     &status='REPLACE',ACCESS='STREAM')
+
+      WRITE(11) IUP
+      WRITE(11) IDN
+
+      CLOSE(11)
+
       RETURN
       END
 C***********************************************************************
