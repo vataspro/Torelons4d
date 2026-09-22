@@ -380,6 +380,13 @@ C
 C
             ENDDO
          ENDDO
+C *** SAVE BLOCKED 
+      OPEN (11,FILE='BLOCKED_SAVE.DAT',FORM='UNFORMATTED',
+     &status='REPLACE',ACCESS='STREAM')
+
+      WRITE(11) UB11
+
+      CLOSE(11)
 11       CONTINUE
 C
 C
