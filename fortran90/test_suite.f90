@@ -95,8 +95,8 @@ program test_suite
         ! Set directory path
         homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
         conf_directory=trim('m-1.0/26x26x26x52/confs/')
-        conf_filename=trim('run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n134780')
-        directory=trim(homepath//conf_directory//conf_filename)
+        conf_filename=trim('run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n34780')
+        directory=trim(homepath) // trim(conf_directory) // trim(conf_filename)
 
         ! Load gauge field into memory
         call read_gauge_field(directory, gauge_field_conf)
