@@ -17,6 +17,9 @@ program test_suite
     call test_read_gauge_field(error_code)
     call check_success(error_code)
 
+    ! Print success statement
+    if (error_code) write(*, '(a)') "All tests passed."
+
     contains
 
     ! Quit program if a test has failed
@@ -81,6 +84,9 @@ program test_suite
             write(*, '(a)') "MAX_DELTA_T test failed"
             return
         endif
+
+        ! Print success
+        write(*, '(a)') "test_dependant_parameters passed"
     end subroutine
 
     ! Test loading of field configurations
@@ -122,6 +128,8 @@ program test_suite
             write(*, '(a)') "read_gauge_field test failed"
             print *, gauge_field_check
             return
+        else
+            write(*, '(a)') "read_gaige_field test passed"
         endif
     end subroutine
 end program
