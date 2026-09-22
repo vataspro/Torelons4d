@@ -355,6 +355,14 @@ C
             ENDDO
          ENDDO
          CALL SMEAR1
+
+C **** SAVE THE SMEARED FUNCTION
+      OPEN (11,FILE='SMEARED_SAVE.DAT',FORM='UNFORMATTED',
+     &status='REPLACE',ACCESS='STREAM')
+
+      WRITE(11) UC11
+
+      CLOSE(11)
 C
          DO MU=1,3
             DO NN=1,LSIZEB
