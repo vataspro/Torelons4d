@@ -129,7 +129,7 @@ program test_suite
             print *, gauge_field_check
             return
         else
-            write(*, '(a)') "read_gaige_field test passed"
+            write(*, '(a)') "read_gauge_field test passed"
         endif
     end subroutine
 end program
