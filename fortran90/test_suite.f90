@@ -102,7 +102,12 @@ program test_suite
         call read_gauge_field(directory, gauge_field_conf)
 
         ! Set correct links
-        gauge_field_correct = [(0.545266926,0.530812383), (-0.632124960,-0.146082729), (0.632124960,-0.146082729), (0.545266926,-0.530812383), (-0.778977633,8.882141858E-02)]
+        gauge_field_correct = &
+        [(0.545266926,0.530812383), &
+        (-0.632124960,-0.146082729), &
+        (0.632124960,-0.146082729), &
+        (0.545266926,-0.530812383), &
+        (-0.778977633,8.882141858E-02)]
 
         ! Get links that should match the set links from the loaded gauge field
         gauge_field_check(1) = gauge_field_conf(1,1,1,1,1,1,1)
