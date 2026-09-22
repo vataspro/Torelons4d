@@ -63,6 +63,9 @@ module read_field_config
         character(len=*), intent(in) :: gauge_field_filename
         complex(real32), intent(out) :: gauge_field(:,:,:,:,:,:,:)
 
+        integer :: ios
+        character(len=256) :: iomsg
+
         integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
         integer :: t, x, y, z, dir, dir_target, iun, iq
         real(real64) :: plaquette_read
@@ -94,7 +97,10 @@ module read_field_config
 
         ! Open gauge field file
         open(newunit=iun, file=gauge_field_filename, access='stream', form='unformatted', &
-        status='old', action='read')
+        status='old', action='read', iostat=ios, iomsg=iomsg)
+        if (ios /= 0) then
+            error stop "Could not open gauge file: " // trim(iomsg)
+        endif
 
         ! Read file metadata
         nc_read      = read_be_int32(iun)
