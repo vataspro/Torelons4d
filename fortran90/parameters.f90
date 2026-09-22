@@ -2,14 +2,31 @@ module parameters
     use iso_fortran_env, only : int8, int32, int64, real32, real64
     implicit none
 
-    ! Declare lattice variables
+    !! Declare input parameters
+    ! Lattice parameters
     integer :: NCOL, LX1, LX2, LX3, LX4
 
-    ! Declare dependant variables
+    ! File access parameters
+    integer :: NCONFIG ! Number of configurations read, renamed from NITER
+    integer :: CONFIG_STEP ! Number of steps between configurations, renamed from ICALLG
+    integer :: CONFIG_START ! Index of first configuration to be read, renamed from ICMIN
+
+    ! Blocking parameters
+    integer :: MAX_BLOCKING_LEVEL ! Highest blocking level inclusive, renamed from IBLOK
+
+    ! Smearing parameters
+    real(real64) :: STAPLE_WEIGHT ! Weighting of staples in smearing procedure, renamed from PARBS
+    real(real64) :: DIAGONAL_STAPLE_WEIGHT ! Weighting of diagonal staples in smearing procedure, renamed from PARBDS
+
+    !! Declare dependant parameters
+    ! Lattice parameters
     integer :: SLICE_VOLUME ! Number of sites in one slice, renamed from LSIZEB
     integer :: LATTICE_VOLUME ! Total number of sites, renamed from LSIZE
     integer :: NCOL2 ! Square number of colours
     integer :: MAX_DELTA_T ! Maximum time extent of correlation functions, renamed from MAXDTLS
+
+    ! File access parameters
+    integer :: CONFIG_STOP ! Index of last configuration to be read, renamed from ICMAX
 
     !! TODO: implement all other global parameters
 
