@@ -743,7 +743,22 @@ end do
 REWIND(52)
 WRITE(52) ACTN
 WRITE(52) TLINE,PLAQ,SQTLINE
-!
+! Close all output files
+CLOSE(11) 
+CLOSE(12)
+CLOSE(13)
+CLOSE(14)
+CLOSE(15)
+CLOSE(16)
+CLOSE(17)
+CLOSE(18)
+CLOSE(19)
+CLOSE(20)
+CLOSE(21)
+CLOSE(22)
+CLOSE(23)
+CLOSE(24)
+CLOSE(25)
 RETURN
 end subroutine TODISK1
 !*********************************************************************
@@ -971,7 +986,27 @@ CALL MLINE3
 CALL MLINE4
 CALL MLINE5
 end if
-!
+! Close output files
+CLOSE(17)
+CLOSE(18)
+CLOSE(19)
+CLOSE(20)
+CLOSE(21)
+CLOSE(22)
+CLOSE(23)
+CLOSE(24)
+CLOSE(25)
+CLOSE(26)
+CLOSE(27)
+CLOSE(28)
+CLOSE(29)
+CLOSE(30)
+CLOSE(31)
+CLOSE(32)
+CLOSE(33)
+CLOSE(34)
+CLOSE(35)
+CLOSE(36) 
 RETURN
 end subroutine MEASURE
 !*********************************************************************
@@ -1099,6 +1134,7 @@ end do
 20 CONTINUE
 end do
 !
+CLOSE(23)
 RETURN
 end subroutine MLINE1
 !*********************************************************************
@@ -1231,6 +1267,7 @@ end do
 !
 end do
 !
+CLOSE(24)
 RETURN
 end subroutine MLINE2
 !*********************************************************************
@@ -1750,6 +1787,7 @@ WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
 end do
 29 CONTINUE
 end do
+CLOSE(23)
 !*********************************************************************   
 RETURN
 end subroutine MLINE3
@@ -2102,6 +2140,7 @@ WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
 end do
 24 CONTINUE
 end do
+CLOSE(23)
 !*********************************************************************   
 RETURN
 end subroutine MLINE4
@@ -2454,6 +2493,7 @@ WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
 end do
 24 CONTINUE
 end do
+CLOSE(23)
 !*********************************************************************   
 RETURN
 end subroutine MLINE5
