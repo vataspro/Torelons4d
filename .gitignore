@@ -11,5 +11,11 @@ __pycache__/
 *~
 .#*#
 
+# Modules and object files
+*.o
+*.mod
+
+exec
+
 # Keep all gitkeep files to retain directory structure
 !*/.gitkeep
