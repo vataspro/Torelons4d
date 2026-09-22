@@ -18,8 +18,8 @@ C***************************************************************
       PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
       PARAMETER(LMAX=LX4/2+1,MAXDTLS=LMAX-1)
 C
-      PARAMETER(ICALLG=1,NITER=218,NMEASL=NITER/ICALLG)
-      PARAMETER(ICMIN=1,ICMAX=NITER+ICMIN-1)     
+      PARAMETER(ICALLG=1,NITER=2,NMEASL=NITER/ICALLG)
+      PARAMETER(ICMIN=134764,ICMAX=NITER+ICMIN-1)     
       PARAMETER(IBLOK=5,IBING=109,NUMBIN=2)
       PARAMETER(PARBS=0.30,PARBDS=0.12)
 C
@@ -67,13 +67,16 @@ C
       CHARACTER :: file_name*120
       CHARACTER :: copy_file*256
       CHARACTER :: trnsf_file*256
-      CHARACTER :: confnum*5
+      CHARACTER :: confnum*12
       CHARACTER :: name_of_file*6
 C                    
-      homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
-      conf_directory1=trim('m-1.0/26x26x26x52/confs/')
-      conf_directory2=trim('run1_52x26x26x26nc2rADJnf2b2.300000')
-      directory=trim(homepath//conf_directory1//conf_directory2)
+C      homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
+      homepath='/gpfs/scratch/ehpc598/torelons/'
+      conf_directory1='cnfg/'
+C      conf_directory1=trim('m-1.0/26x26x26x52/confs/')
+      conf_directory2='run1_52x26x26x26nc2rADJnf2b2.300000'
+      directory=trim(homepath) // trim(conf_directory1) // 
+     &          trim(conf_directory2)
 C      
       CALL SETUP
       ISEED=3591
@@ -171,27 +174,15 @@ C
       WRITE(6,91)
       WRITE(6,90)
 C
-      IFILE = ICMIN - 1
+      IFILE = ICMIN
+      WRITE(6,*) ICMIN 
+C - 1
       DO 20 ITER=1,NITER
-         IFILE = IFILE + 1
+         IFILE = IFILE + 16
 C
          ist=IFILE
-         if (ist < 10) then
-            write(confnum,'(i1)') ist
-            file_name=trim(directory//'m1.000000n'//trim(confnum))
-         else if (ist < 100) then
-            write(confnum,'(i2)') ist
-            file_name=trim(directory//'m1.000000n'//trim(confnum))
-         else if (ist < 1000) then
-            write(confnum,'(i3)') ist
-            file_name=trim(directory//'m1.000000n'//trim(confnum))
-         else if (ist < 10000) then
-            write(confnum,'(i4)') ist
-            file_name=trim(directory//'m1.000000n'//trim(confnum))
-         else if (ist < 100000) then
-            write(confnum,'(i5)') ist
-            file_name=trim(directory//'m1.000000n'//trim(confnum))
-         end if
+         write(confnum, '(i0)') ist
+         file_name=trim(directory)//'m1.000000n'//trim(confnum)
 C     
          write(6,*) "------------------------------"
          write(6,*) "Execution of external commands"
@@ -688,6 +679,22 @@ C******************************************
       REWIND(52)
       WRITE(52) ACTN
       WRITE(52) TLINE,PLAQ,SQTLINE
+
+      CLOSE(11)
+      CLOSE(12)
+      CLOSE(13)
+      CLOSE(14)
+      CLOSE(15)
+      CLOSE(16)
+      CLOSE(17)
+      CLOSE(18)
+      CLOSE(19)
+      CLOSE(20)
+      CLOSE(21)
+      CLOSE(22)
+      CLOSE(23)
+      CLOSE(24)
+      CLOSE(25)
 C
       RETURN
       END
@@ -879,6 +886,27 @@ C
 C****************************************************
          ENDDO
       ENDDO
+C *** CLOSE OUTPUT FILES ***
+      CLOSE(17)
+      CLOSE(18)
+      CLOSE(19)
+      CLOSE(20)
+      CLOSE(21)
+      CLOSE(22)
+      CLOSE(23)
+      CLOSE(24)
+      CLOSE(25)
+      CLOSE(26)
+      CLOSE(27)
+      CLOSE(28)
+      CLOSE(29)
+      CLOSE(30)
+      CLOSE(31)
+      CLOSE(32)
+      CLOSE(33)
+      CLOSE(34)
+      CLOSE(35)
+      CLOSE(36)
 C*******************************************************************
       RETURN
       END
@@ -1034,6 +1062,7 @@ c         DO 26 NT=1,MAXDTLS
 102      FORMAT('  DT=',I3,'   AV,ER COR = ',2F8.4,'    E=',2F8.4)
 26       CONTINUE
 20    CONTINUE
+      CLOSE(23)
 C
       RETURN
       END
@@ -1160,6 +1189,8 @@ c         DO 26 NT=1,MAXDTLS
 20    CONTINUE
 C
       ENDDO
+
+      CLOSE(24)
 C
       RETURN
       END
@@ -1665,7 +1696,9 @@ C
          DO NT=1,MAXDTLS
             WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
          ENDDO
- 29   CONTINUE      
+ 29   CONTINUE
+C
+      CLOSE(23)
 C*********************************************************************   
       RETURN
       END
@@ -2009,6 +2042,8 @@ C
             WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
          ENDDO
  24   CONTINUE
+C
+      CLOSE(23)
 C*********************************************************************   
       RETURN
       END
@@ -2352,6 +2387,8 @@ C
             WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
          ENDDO
  24   CONTINUE
+C
+      CLOSE(23)
 C*********************************************************************   
       RETURN
       END      
@@ -2374,55 +2411,62 @@ C
       COMPLEX U11,UB11,A11,B11,C11,UC11
 C
       CALL cpu_time(t1)
+C *** For every time slice
       DO 1 I4=1,LX4
 C
          DO 3 IBL=1,IBLOK
 C
+C *** For the first blocking level
+
             IF(IBL.EQ.1)THEN
-            DO MU=1,3
-               DO NN=1,LSIZEB
-                  DO IJ=1,NCOL2
-                     UB11(IJ,NN,MU,1)=U11(IJ,NN,I4,MU)
-                  ENDDO
+                DO MU=1,3
+                    DO NN=1,LSIZEB
+                        DO IJ=1,NCOL2
+C
+C *** First blocking level: a copy of the configuration ***
+C                  
+                            UB11(IJ,NN,MU,1)=U11(IJ,NN,I4,MU)
+                        ENDDO
+                    ENDDO
+                ENDDO
+C *** Calculate the thermal line and go to next blocking level                
+            GOTO11
+            ENDIF
+C
+         IBLM=IBL-1
+         DO KK=1,3
+            DO NN=1,LSIZEB
+               IUP(NN,KK)=IUPB(NN,KK,IBLM)
+               IDN(NN,KK)=IDNB(NN,KK,IBLM)
+               DO IJ=1,NCOL2
+                  UC11(IJ,NN,KK)=UB11(IJ,NN,KK,IBLM)
                ENDDO
             ENDDO
-            GOTO11
-         ENDIF
+         ENDDO
+         CALL SMEAR1
 C
-      IBLM=IBL-1
-      DO KK=1,3
-         DO NN=1,LSIZEB
-            IUP(NN,KK)=IUPB(NN,KK,IBLM)
-            IDN(NN,KK)=IDNB(NN,KK,IBLM)
-            DO IJ=1,NCOL2
-               UC11(IJ,NN,KK)=UB11(IJ,NN,KK,IBLM)
+         DO MU=1,3
+            DO NN=1,LSIZEB
+               M1=NN
+               M2=IUP(M1,MU)
+C
+               DO 22 IJ=1,NCOL2
+                  A11(IJ)=UC11(IJ,M1,MU)
+                  B11(IJ)=UC11(IJ,M2,MU)
+ 22            CONTINUE
+               CALL VMX(1,A11,B11,C11,1)
+               DO 24 IJ=1,NCOL2
+                  UB11(IJ,NN,MU,IBL)=C11(IJ)
+ 24            CONTINUE
+C
             ENDDO
          ENDDO
-      ENDDO
-      CALL SMEAR1
+11       CONTINUE
 C
-      DO MU=1,3
-         DO NN=1,LSIZEB
-            M1=NN
-            M2=IUP(M1,MU)
-C
-            DO 22 IJ=1,NCOL2
-               A11(IJ)=UC11(IJ,M1,MU)
-               B11(IJ)=UC11(IJ,M2,MU)
- 22         CONTINUE
-            CALL VMX(1,A11,B11,C11,1)
-            DO 24 IJ=1,NCOL2
-               UB11(IJ,NN,MU,IBL)=C11(IJ)
- 24         CONTINUE
-C
-         ENDDO
-      ENDDO
-11    CONTINUE
-C
-      CALL THERML1(I4,IBL)
+         CALL THERML1(I4,IBL)
 C
 C************************************************
- 3    CONTINUE
+ 3       CONTINUE
  1    CONTINUE
       CALL cpu_time(t2)
       WRITE(6,901) sngl(t2-t1)
