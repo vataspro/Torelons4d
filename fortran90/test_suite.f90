@@ -7,12 +7,15 @@ program test_suite
 
     ! Read parameters from input file
     call initialise_parameters("parameter_file.txt")
+    error_code = .true.
 
     ! Test parameters
     call test_dependant_parameters(error_code)
     call check_success(error_code)
 
-
+    ! Test loading of gauge field
+    call test_read_gauge_field(error_code)
+    call check_success(error_code)
 
     contains
 
@@ -87,6 +90,7 @@ program test_suite
 
         character(len=256) :: homepath, conf_directory, conf_filename, directory
         complex(real32) :: gauge_field_conf(NCOL, NCOL, LX1, LX2, LX3, LX4, 4)
+        complex(real32) :: gauge_field_correct(5), gauge_field_check(5)
 
         ! Set directory path
         homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
@@ -97,6 +101,22 @@ program test_suite
         ! Load gauge field into memory
         call read_gauge_field(directory, gauge_field_conf)
 
-        ! Check first 5 elements
+        ! Set correct links
+        gauge_field_correct = [(0.545266926,0.530812383), (-0.632124960,-0.146082729), (0.632124960,-0.146082729), (0.545266926,-0.530812383), (-0.778977633,8.882141858E-02)]
+
+        ! Get links that should match the set links from the loaded gauge field
+        gauge_field_check(1) = gauge_field_conf(1,1,1,1,1,1,1)
+        gauge_field_check(2) = gauge_field_conf(2,1,1,1,1,1,1)
+        gauge_field_check(3) = gauge_field_conf(1,2,1,1,1,1,1)
+        gauge_field_check(4) = gauge_field_conf(2,2,1,1,1,1,1)
+        gauge_field_check(5) = gauge_field_conf(1,1,2,1,1,1,1)
+
+        ! Check first 5 elements of loaded gauge field against correct values
+        ierr = all(abs(gauge_field_check - gauge_field_correct) < 1e-8)
+        if (.not.ierr) then
+            write(*, '(a)') "read_gauge_field test failed"
+            print *, gauge_field_check
+            return
+        endif
     end subroutine
 end program
