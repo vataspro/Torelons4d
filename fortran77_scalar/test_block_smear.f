@@ -217,21 +217,6 @@ C
       STOP
       END
 C*********************************************************************
-      function quaternion_to_matrix(quaternion)
-      double precision, dimension(4) :: quaternion
-      complex, dimension(2, 2) :: quaternion_to_matrix
-
-      quaternion_to_matrix(1,1) = sngl(quaternion(1)) + 
-     &sngl(quaternion(4))*(0, 1)
-      quaternion_to_matrix(1,2) = -sngl(quaternion(3)) + 
-     &sngl(quaternion(2))*(0, 1)
-      quaternion_to_matrix(2,1) = sngl(quaternion(3)) + 
-     &sngl(quaternion(2))*(0, 1)
-      quaternion_to_matrix(2,2) = sngl(quaternion(1)) - 
-     &sngl(quaternion(4))*(0, 1)
-
-      return
-      end function quaternion_to_matrix
 C*********************************************************************
       SUBROUTINE READ_GF(filename)
       PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
@@ -296,77 +281,6 @@ C
       rewind(1)
       end subroutine READ_GF
 C*********************************************************************
-C*********************************************************************
-C*********************************************************************
-      SUBROUTINE READ_GAUGE_ETMC(filename) ! to be fixed !
-      IMPLICIT REAL*8 (A-H,O-Z)
-      PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
-      PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
-      PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
-      
-      COMMON/ARRAYS/U11(NCOL,NCOL,LX1,LX2,LX3,LX4,4)
-
-      COMPLEX U11
-      COMPLEX*16 UR11(LX4,LX3,LX2,LX1,4,NCOL,NCOL)
-      CHARACTER :: filename*6
-C
-      INQUIRE(IOLENGTH=l_rec) UR11(1,1,1,1,1,1,1)
-C
-      IUN=60
-C
-      OPEN(IUN,FILE=trim(filename),access="direct",form='unformatted',
-     &CONVERT='BIG_ENDIAN', RECL=l_rec)
-C
-c      REWIND(60)
-C
-      ICALL=1
-      DO L4=1, LX4
-         DO L3=1, LX3
-            DO L2=1, LX2
-               DO L1=1, LX1
-                  DO MU=1, 4
-                     DO IJ=1, NCOL
-                        DO IK=1, NCOL
-C     C
-                      READ(IUN,REC=ICALL) UR11(L4,L3,L2,L1,MU,IJ,IK)
-C     C
-                           ICALL=ICALL+1
-                        ENDDO
-                     ENDDO
-                  ENDDO
-               ENDDO
-            ENDDO
-         ENDDO
-      ENDDO     
-C
-      DO IJ=1, NCOL
-         DO IK=1, NCOL
-            DO L1=1, LX1
-               DO L2=1, LX2
-                  DO L3=1, LX3
-                     DO L4=1, LX4
-                        DO MU=1, 4
-C     
-                           DREALCONF=DREAL(UR11(L4,L3,L2,L1,MU,IJ,IK))
-                           DIMAGCONF=DIMAG(UR11(L4,L3,L2,L1,MU,IJ,IK))
-                           SREALCONF=sngl(DREALCONF)
-                           SIMAGCONF=sngl(DIMAGCONF)
-        U11(IJ,IK,L1,L2,L3,L4,MU)=complex(SREALCONF,SIMAGCONF)
-C
-C        write(*,*) U11(IJ,IK,L1,L2,L3,L4,MU)
-C                                                                                                                                                                        
-                        ENDDO
-                     ENDDO
-                  ENDDO
-               ENDDO
-            ENDDO
-         ENDDO
-      ENDDO      
-C
-      WRITE(6,*) 'Configuration read'
-C
-      RETURN
-      END            
 C***********************************************************************
 C***************************SUBROUTINE TODISK*************************
 C*********************************************************************
