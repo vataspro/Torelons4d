@@ -2,9 +2,9 @@ FC = gfortran
 ARCH := $(shell uname -m)
 
 ifeq ($(ARCH),x86_64)
-FFLAGS ?= -O2 -fopenmp -mcmodel=medium
+FFLAGS ?= -O2 -mcmodel=medium
 else
-FFLAGS ?= -O2 -fopenmp
+FFLAGS ?= -O2
 endif
 
 BUILD_DIR := build

@@ -17992,7 +17992,6 @@ end do
 !     FULL CORRELATOR
 !***************************************************************      
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1, NTOTAL
 DO ID1=1, NTOTAL
 !
@@ -18010,12 +18009,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=0, Pp=+, Pr=+, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ0PP
 DO ID1=1,NOPJ0PP
 !
@@ -18033,12 +18030,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=0, Pp=+, Pr=-, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ0PM
 DO ID1=1,NOPJ0PM
 !
@@ -18056,12 +18051,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=0, Pp=-, Pr=+, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ0MP
 DO ID1=1,NOPJ0MP
 !
@@ -18079,12 +18072,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=0, Pp=-, Pr=-, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ0MM
 DO ID1=1,NOPJ0MM
 !
@@ -18102,12 +18093,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=1, Pr=+, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ1P
 DO ID1=1,NOPJ1P
 !
@@ -18125,12 +18114,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=1, Pr=-, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ1M
 DO ID1=1,NOPJ1M
 !
@@ -18148,12 +18135,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=2, Pp=+, Pr=+, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ2PP
 DO ID1=1,NOPJ2PP
 !
@@ -18171,12 +18156,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=2, Pp=+, Pr=-, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ2PM
 DO ID1=1,NOPJ2PM
 !
@@ -18194,12 +18177,10 @@ end do
 !     
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=2, Pp=-, Pr=+, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ2MP
 DO ID1=1,NOPJ2MP
 !
@@ -18217,12 +18198,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=2, Pp=-, Pr=-, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ2MM
 DO ID1=1,NOPJ2MM
 !
@@ -18240,12 +18219,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=0 FULL, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPFULJ0
 DO ID1=1,NOPFULJ0
 !
@@ -18263,12 +18240,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=1 FULL, q=0 correlator
 !***************************************************************      
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPFULJ1
 DO ID1=1,NOPFULJ1
 !
@@ -18286,12 +18261,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=2 FULL, q=0 correlator
 !***************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPFULJ2
 DO ID1=1,NOPFULJ2
 !
@@ -18309,12 +18282,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !     J=ALL FULL, q=0 correlator
 !***************************************************************      
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NTOTAL
 DO ID1=1,NTOTAL
 !
@@ -18332,7 +18303,6 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !***************************************************************
 !***************************************************************      
 !***************************************************************
@@ -18342,7 +18312,6 @@ end do
 !***************************************************************      
 !     ID12=0
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1, NTOTALMOM
 DO ID1=1, NTOTALMOM
 !     ID12=ID12+1
@@ -18365,12 +18334,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=0, Pp=+, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ0PMOM
 DO ID1=1,NOPJ0PMOM
 !     
@@ -18392,12 +18359,10 @@ end do
 !               
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=0, Pp=-, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ0MMOM
 DO ID1=1,NOPJ0MMOM
 !     
@@ -18419,12 +18384,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=1, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ1MOM
 DO ID1=1,NOPJ1MOM
 !     
@@ -18446,12 +18409,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=2, Pp=+, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ2PMOM
 DO ID1=1,NOPJ2PMOM
 !     
@@ -18473,12 +18434,10 @@ end do
 !                
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=2, Pp=-, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPJ2MMOM
 DO ID1=1,NOPJ2MMOM
 !     
@@ -18500,12 +18459,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=0, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPFULJ0MOM
 DO ID1=1,NOPFULJ0MOM
 !     
@@ -18527,12 +18484,10 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=2, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1,NOPFULJ2MOM
 DO ID1=1,NOPFULJ2MOM
 !     
@@ -18554,12 +18509,10 @@ end do
 !  
 end do
 end do
-!$OMP END PARALLEL DO
 !****************************************************************
 !     J=ALL, q=1,2
 !****************************************************************
 INO=0
-!$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(ID1,ID2,N4,NT,N4X,IJ) SCHEDULE(STATIC)
 DO ID2=1, NTOTALMOM
 DO ID1=1, NTOTALMOM
 !     
@@ -18582,7 +18535,6 @@ end do
 !
 end do
 end do
-!$OMP END PARALLEL DO
 !********************************************************************
 !********************************************************************
 !********************************************************************
