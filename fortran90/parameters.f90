@@ -3,6 +3,9 @@ module parameters
     implicit none
 
     !! Declare input parameters
+    ! Configuration file path and file name (without configuration number)
+    character(len=256) :: FILEPATH, FILENAME
+
     ! Lattice parameters
     integer :: NCOL, LX1, LX2, LX3, LX4
 
@@ -38,7 +41,8 @@ module parameters
         character(len=*), intent(in) :: parameter_filename
 
         ! Define variables to read in from parameter file
-        namelist /params/ NCOL, LX1, LX2, LX3, LX4
+        namelist /params/ FILEPATH, FILENAME, NCOL, LX1, LX2, LX3, LX4, NCONFIG, CONFIG_STEP, CONFIG_START, &
+        MAX_BLOCKING_LEVEL, STAPLE_WEIGHT, DIAGONAL_STAPLE_WEIGHT
 
         ! Read parameters from parameter file
         open(10, file=trim(parameter_filename))
@@ -50,5 +54,6 @@ module parameters
         LATTICE_VOLUME = SLICE_VOLUME * LX4
         NCOL2 = NCOL * NCOL
         MAX_DELTA_T = LX4 / 2
+        CONFIG_STOP = CONFIG_START + (NCONFIG - 1) * CONFIG_STEP
     end subroutine
 end module

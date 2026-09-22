@@ -94,15 +94,14 @@ program test_suite
         implicit none
         logical, intent(out) :: ierr
 
-        character(len=256) :: homepath, conf_directory, conf_filename, directory
+        character(len=16) :: file_config_id
+        character(len=256) :: directory
         complex(real32) :: gauge_field_conf(NCOL, NCOL, LX1, LX2, LX3, LX4, 4)
         complex(real32) :: gauge_field_correct(5), gauge_field_check(5)
 
         ! Set directory path
-        homepath=trim('/mnt/lustre/tursafs1/home/dp208/dp208/shared/runs/axion/')
-        conf_directory=trim('nf2/beta2.3/m-1.0/26x26x26x52/cnfg/')
-        conf_filename=trim('run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n134780')
-        directory=trim(homepath) // trim(conf_directory) // trim(conf_filename)
+        write(file_config_id, '(i0)') CONFIG_START
+        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
 
         ! Load gauge field into memory
         call read_gauge_field(directory, gauge_field_conf)
