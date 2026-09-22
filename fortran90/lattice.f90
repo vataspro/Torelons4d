@@ -6,6 +6,11 @@ module lattice
     integer, allocatable :: lattice_pointers_up(:,:), lattice_pointers_down(:,:), &
     lattice_pointers_blocked_up(:,:,:), lattice_pointers_blocked_down(:,:,:)
 
+    interface herm
+        module procedure herm_real32
+        module procedure herm_real64
+    end interface
+
     contains
 
     ! Set up lattice pointers and blocked lattice pointers
@@ -146,4 +151,116 @@ module lattice
             endif
         endif
     end function move
+
+    ! Compute hermitian conjugate or matrix
+    function herm_real32(A)
+        implicit none
+        complex(real32), intent(in) :: A(:,:)
+        complex(real32), allocatable :: herm_real32(:,:)
+        integer :: n
+
+        n = size(A, 1)
+        if (size(A, 2) /= n) then
+            stop "Input matrix to herm function must be square"
+        endif
+
+        herm_real32 = conjg(transpose(A))
+    end function
+
+    function herm_real64(A)
+        implicit none
+        complex(real64), intent(in) :: A(:,:)
+        complex(real64), allocatable :: herm_real64(:,:)
+        integer :: n
+
+        n = size(A, 1)
+        if (size(A, 2) /= n) then
+            stop "Input matrix to herm function must be square"
+        endif
+
+        herm_real64 = conjg(transpose(A))
+    end function
+
+    ! Get diagonal links (diagonal_links) and lattice pointers to sites diagonal links end on (lattice_pointers_diagonal)
+    subroutine get_diagonal_links(gauge_field_slice, direction, blocking_level, diagonal_links, lattice_pointers_diagonal)
+        implicit none
+        complex(real32), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
+        integer, intent(in) :: direction, blocking_level
+        complex(real64), intent(out) :: diagonal_links(NCOL, NCOL, SLICE_VOLUME, 4)
+        integer, intent(out) :: lattice_pointers_diagonal(SLICE_VOLUME, 4)
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ! diagonal_links(n, nu_ku) (renamed from UDD) stores the diagonal link in the plane (nu, ku) orthogonal to the direction mu, where:
+        ! nu_ku = 1    -->    (nu, ku) = (+, +)
+        ! nu_ku = 2    -->    (nu, ku) = (+, -)
+        ! nu_ku = 3    -->    (nu, ku) = (-, -)
+        ! nu_ku = 4    -->    (nu, ku) = (-, +)
+        ! lattice_pointers_diagonal(n, nu_ku) (renamed from IDD) stores the lattice site index that the diagonal link diagonal_links(n, nu_ku) ends on
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        integer :: mu, nu, ku, site, path_1_site, path_2_site, path_site
+        complex(real64) :: path_1(NCOL, NCOL), path_2(NCOL, NCOL), path_sum(NCOL, NCOL)
+
+        ! Get orthogonal directions to the input direction, mu
+        ! ____mu|____nu|____ku|
+        !      1|     2|     3|
+        !      2|     3|     1|
+        !      3|     1|     2|
+        mu = direction
+        nu = mod(mu, 3) + 1
+        ku = 6 - mu - nu
+
+        do site = 1, SLICE_VOLUME
+            !! Compute diagonal links in (+, +) direction
+
+            ! Compute path_1, which starts in the +nu direction
+            path_1_site = move(site, nu, blocking_level)
+            path_1 = matmul(gauge_field_slice(:,:,site,nu), gauge_field_slice(:,:,path_1_site,ku))
+
+            ! Compute path_2, which starts in the +ku direction
+            path_2_site = move(site, ku, blocking_level)
+            path_2 = matmul(gauge_field_slice(:,:,site,ku), gauge_field_slice(:,:,path_2_site,nu))
+
+            ! Add sum to diagonal_links
+            path_sum = path_1 + path_2
+            diagonal_links(:, :, site, 1) = path_sum
+
+            ! Find site these paths point to and save in lattice_pointers_diagonal
+            path_site = move(path_1_site, ku, blocking_level)
+            lattice_pointers_diagonal(site, 1) = path_site
+
+            !! Compute diagonal links in (-, -) direction from path_site using matrices already calculated. This is the Hermitian conjugate of the (+, +) direction, but labelled from path_site rather than site.
+
+            ! Add Hermitian conjugate of path sum to diagonal links element 3 from path_site
+            diagonal_links(:, :, path_site, 3) = herm(path_sum)
+
+            ! Add lattice pointer to path_site, 3 index
+            lattice_pointers_diagonal(path_site, 3) = site
+
+            !! Compute diagonal links in (+, -) direction
+
+            ! Compute path 1, which starts in the +nu direction (path_1_site remains unchanged)
+            path_site = move(path_1_site, -ku, blocking_level)
+            path_1 = matmul(gauge_field_slice(:,:,site,nu), herm(gauge_field_slice(:,:,path_site,ku)))
+
+            ! Compute path 2, which starts in the -ku direction
+            path_2_site = move(site, -ku, blocking_level)
+            path_2 = matmul(herm(gauge_field_slice(:,:,path_2_site,ku)), gauge_field_slice(:,:,path_2_site,nu))
+
+            ! Add sum to diagonal links
+            path_sum = path_1 + path_2
+            diagonal_links(:, :, site, 2) = path_sum
+
+            ! Save path_site in lattice_pointers_diagonal
+            lattice_pointers_diagonal(site, 2) = path_site
+
+            !! Compute diagonal links in (-, +) direction from path_site using matrices already calculated. This is analagous to how the (-, -) direction is calculated from the results of the (+, +) direction
+
+            ! Add Hermitian conjugate of path sum to diagonal links element 4 from path_site
+            diagonal_links(:, :, path_site, 4) = herm(path_sum)
+
+            ! Add lattice pointer to path_site, 4 index
+            lattice_pointers_diagonal(path_site, 4) = site
+        enddo
+    end subroutine
 end module lattice
