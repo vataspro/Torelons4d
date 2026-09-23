@@ -56,5 +56,5 @@ module parameters
         NCOL2 = NCOL * NCOL
         MAX_DELTA_T = LX4 / 2
         CONFIG_STOP = CONFIG_START + (NCONFIG - 1) * CONFIG_STEP
-    end subroutine
-end module
+    end subroutine initialise_parameters
+end module parameters
