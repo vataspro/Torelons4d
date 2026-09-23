@@ -134,7 +134,7 @@ program test_suite
         gauge_field_check(5) = gauge_field_conf(1,1,2,1)
 
         ! Check first 5 elements of loaded gauge field against correct values
-        ierr = all(abs(gauge_field_check - gauge_field_correct) < 1e-8)
+        ierr = all(abs(gauge_field_check - gauge_field_correct) < epsilon(1.0))
         if (.not.ierr) then
             write(*, "(a)") "read_gauge_field test failed"
             print *, gauge_field_check
