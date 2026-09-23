@@ -13,6 +13,20 @@ module lattice
 
     contains
 
+    ! Return the site index, given a set of coordinates x, y, z, t
+    function site_index(x, y, z, t)
+        implicit none
+        integer, intent(in) :: x, y, z
+        integer, intent(in), optional :: t
+        integer :: site_index
+
+        if (present(t)) then
+            site_index = (t-1) * SLICE_VOLUME + (z-1) * LX1 * LX2 + (y-1) * LX1 + x
+        else
+            site_index = (z-1) * LX1 * LX2 + (y-1) * LX1 + x
+        endif
+    end function
+
     ! Set up lattice pointers and blocked lattice pointers
     subroutine setup_lattice()
         implicit none
@@ -524,5 +538,5 @@ module lattice
                 smear(:, :, site, mu) = smear(:, :, site, mu) / (determinant**(1.0/real(NCOL)))
             enddo
         enddo
-    end function
+    end function smear
 end module lattice

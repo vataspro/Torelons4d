@@ -96,8 +96,8 @@ program test_suite
 
         character(len=16) :: file_config_id
         character(len=256) :: directory
-        complex(real32) :: gauge_field_conf(NCOL, NCOL, LX1, LX2, LX3, LX4, 4)
-        complex(real32) :: gauge_field_correct(5), gauge_field_check(5)
+        complex(real64) :: gauge_field_conf(NCOL, NCOL, LATTICE_VOLUME, 4)
+        complex(real64) :: gauge_field_correct(5), gauge_field_check(5)
 
         ! Set directory path
         write(file_config_id, "(i0)") CONFIG_START
@@ -115,11 +115,11 @@ program test_suite
         (-0.778977633,8.882141858E-02)]
 
         ! Get links that should match the set links from the loaded gauge field
-        gauge_field_check(1) = gauge_field_conf(1,1,1,1,1,1,1)
-        gauge_field_check(2) = gauge_field_conf(2,1,1,1,1,1,1)
-        gauge_field_check(3) = gauge_field_conf(1,2,1,1,1,1,1)
-        gauge_field_check(4) = gauge_field_conf(2,2,1,1,1,1,1)
-        gauge_field_check(5) = gauge_field_conf(1,1,2,1,1,1,1)
+        gauge_field_check(1) = gauge_field_conf(1,1,1,1)
+        gauge_field_check(2) = gauge_field_conf(2,1,1,1)
+        gauge_field_check(3) = gauge_field_conf(1,2,1,1)
+        gauge_field_check(4) = gauge_field_conf(2,2,1,1)
+        gauge_field_check(5) = gauge_field_conf(1,1,2,1)
 
         ! Check first 5 elements of loaded gauge field against correct values
         ierr = all(abs(gauge_field_check - gauge_field_correct) < 1e-8)
