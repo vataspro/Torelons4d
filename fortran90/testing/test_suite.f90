@@ -14,6 +14,9 @@ program test_suite
     call test_dependant_parameters(error_code)
     call check_success(error_code)
 
+    ! Setup lattice pointers
+    call setup_lattice()
+
     ! Test loading of gauge field
     call test_read_gauge_field(error_code)
     call check_success(error_code)
@@ -89,6 +92,14 @@ program test_suite
         ! Print success
         write(*, "(a)") "test_dependant_parameters passed"
     end subroutine test_dependant_parameters
+
+    ! Test move function
+    subroutine test_move(ierr)
+        implicit none
+        logical, intent(in) :: ierr
+
+        
+    end subroutine
 
     ! Test loading of field configurations
     subroutine test_read_gauge_field(ierr)
