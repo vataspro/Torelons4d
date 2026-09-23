@@ -2462,6 +2462,7 @@ end subroutine MLINE5
 !*********************************************************************
 SUBROUTINE BLOCK
 use iso_fortran_env, only : real32, real64, int32
+use correlator_construction_mod, only : pot
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
@@ -12716,7 +12717,7 @@ end subroutine THERML1
 !   COR^+(J,I)=F^+(J,T+DT)*F(I,T)+F(I,T+DT)*F^+(J,T)           
 !   => COR(I,J)=COR^+(J,I)!!                                   
 !*********************************************************************
-SUBROUTINE POT
+SUBROUTINE POT_OLD
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52,IBLOK=5)
@@ -18540,7 +18541,7 @@ end do
 !********************************************************************
 !********************************************************************
 RETURN
-end subroutine POT
+end subroutine POT_OLD
 !*********************************************************************
 !*********************************************************************
 !  Here we set up blocked link pointers...
