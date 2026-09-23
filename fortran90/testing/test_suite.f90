@@ -216,7 +216,8 @@ program test_suite
         implicit none
         logical, intent(out) :: ierr
 
-        complex(real32) :: smear_check(NCOL, NCOL, SLICE_VOLUME, 3), blok_check(NCOL, NCOL, SLICE_VOLUME, 3)
+        complex(real32) :: smear_check(NCOL, NCOL, SLICE_VOLUME, 3), &
+        blok_check(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         complex(real64) :: gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4), &
         gauge_field_smeared(NCOL, NCOL, SLICE_VOLUME, 3), &
         gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
