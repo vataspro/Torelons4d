@@ -497,8 +497,10 @@ module lattice
                     ! Get staple in +nu direction
                     ! To do this, we need (site + nu) -> store in temp_site1
                     temp_site1 = move(site, nu, blocking_level)
-                    staple = matmul(matmul(gauge_field_slice(:,:,site,nu), gauge_field_slice(:,:,temp_site1,mu)), &
-                    herm(gauge_field_slice(:,:,site_plus_mu,nu)))
+                    staple = matmul(matmul(&
+                        gauge_field_slice(:,:,site,nu), &
+                        gauge_field_slice(:,:,temp_site1,mu)), &
+                        herm(gauge_field_slice(:,:,site_plus_mu,nu)))
 
                     ! Add staple to smeared link with appropriate weight
                     smear(:, :, site, mu) = smear(:, :, site, mu) + STAPLE_WEIGHT * staple
@@ -507,8 +509,10 @@ module lattice
                     ! To do this, we need (site - nu) -> store in temp_site1, and (site - nu + mu) -> store in temp_site2
                     temp_site1 = move(site, -nu, blocking_level)
                     temp_site2 = move(site_plus_mu, -nu, blocking_level)
-                    staple = matmul(matmul(herm(gauge_field_slice(:,:,temp_site1,nu)), gauge_field_slice(:,:,temp_site1,mu)), &
-                    herm(gauge_field_slice(:,:,temp_site2,nu)))
+                    staple = matmul(matmul(&
+                        herm(gauge_field_slice(:,:,temp_site1,nu)), &
+                        gauge_field_slice(:,:,temp_site1,mu)), &
+                        gauge_field_slice(:,:,temp_site2,nu))
 
                     ! Add staple to smeared link with appropriate weight
                     smear(:, :, site, mu) = smear(:, :, site, mu) + STAPLE_WEIGHT * staple
@@ -521,8 +525,10 @@ module lattice
                     temp_site1 = diagonal_pointers_mu(site, nu_ku)
 
                     ! Get diagonal staple
-                    staple = matmul(matmul(diagonal_links_mu(:,:,site,nu_ku), gauge_field_slice(:,:,temp_site1,mu)), &
-                    herm(diagonal_links_mu(:,:,site_plus_mu,nu_ku)))
+                    staple = matmul(matmul(&
+                        diagonal_links_mu(:,:,site,nu_ku), &
+                        gauge_field_slice(:,:,temp_site1,mu)), &
+                        herm(diagonal_links_mu(:,:,site_plus_mu,nu_ku)))
 
                     ! Add staple to smeared link with appropriate weight
                     smear(:, :, site, mu) = smear(:, :, site, mu) + DIAGONAL_STAPLE_WEIGHT * staple
