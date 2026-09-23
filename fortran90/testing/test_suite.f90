@@ -4,40 +4,51 @@ program test_suite
     use read_field_config
     implicit none
 
-    logical :: error_code
-
     ! Read parameters from input file
     call initialise_parameters("parameter_file.txt")
-    error_code = .true.
+
+    ! Check parameters are correct
+    call check_parameters()
 
     ! Test parameters
-    call test_dependant_parameters(error_code)
-    call check_success(error_code)
+    call check_success(test_dependant_parameters)
 
     ! Setup lattice pointers
     call setup_lattice()
 
     ! Test move function
-    call test_move(error_code)
-    call check_success(error_code)
+    call check_success(test_move)
 
     ! Test loading of gauge field
-    call test_read_gauge_field(error_code)
-    call check_success(error_code)
+    call check_success(test_read_gauge_field)
+
+    ! Test smearing and blocking procedures
+    call check_success(test_blocking_smearing)
 
     ! Print success statement
-    if (error_code) write(*, "(a)") "----------ALL TESTS PASSED----------"
+    write(*, "(a)") "----------ALL TESTS PASSED----------"
 
     contains
 
     ! Quit program if a test has failed
-    subroutine check_success(ierr)
+    subroutine check_success(test_function)
         implicit none
 
-        logical, intent(in) :: ierr
+        interface
+            subroutine test_function(ierr)
+                use parameters
+                use lattice
+                use read_field_config
+                implicit none
+                logical, intent(out) :: ierr
+            end subroutine
+        end interface
 
-        if (.not.ierr) then
-            error stop "Test failed. Program halting."
+        logical :: error_code
+
+        call test_function(error_code)
+        if (.not.error_code) then
+            stop "Test failed. Program halting."
         end if
     end subroutine check_success
 
@@ -64,6 +75,7 @@ program test_suite
 
         ! Output success
         write(*, "(a)") "Parameter check PASSED."
+        print *, ""
     end subroutine check_parameters
 
     ! Test dependant parameters
@@ -94,13 +106,14 @@ program test_suite
         end if
 
         ! Print success
-        write(*, "(a)") "test_dependant_parameters PASSED"
+        write(*, "(a)") "Dependant parameter check PASSED"
+        print *, ""
     end subroutine test_dependant_parameters
 
     ! Test move function
     subroutine test_move(ierr)
         implicit none
-        logical, intent(inout) :: ierr
+        logical, intent(out) :: ierr
 
         integer :: IUP_old(LATTICE_VOLUME, 4), IDN_old(LATTICE_VOLUME, 4), &
         IUPB_old(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), IDNB_old(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), &
@@ -152,6 +165,7 @@ program test_suite
         else
             write(*, '(a)') "move test FAILED"
         endif
+        print *, ""
     end subroutine
 
     ! Test loading of field configurations
@@ -193,7 +207,73 @@ program test_suite
         else
             write(*, "(a)") "read_gauge_field test FAILED"
             print *, gauge_field_check
-            return
         end if
+        print *, ""
     end subroutine test_read_gauge_field
+
+    ! Test smearing and blocking of configurations
+    subroutine test_blocking_smearing(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real32) :: smear_check(NCOL, NCOL, SLICE_VOLUME, 3), blok_check(NCOL, NCOL, SLICE_VOLUME, 3)
+        complex(real64) :: gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4), &
+        gauge_field_smeared(NCOL, NCOL, SLICE_VOLUME, 3), &
+        gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        character(len=16) :: file_config_id
+        character(len=256) :: directory
+        logical :: blok_equal, smear_equal
+
+        !! Load data from old code
+        ! Load smear_check from SMEARED_SAVE.DAT file
+        open(11, file='SMEARED_SAVE.DAT', form='unformatted', status='old', access='stream')
+        read(11) smear_check
+        close(11)
+
+        ! Load blok_check from BLOCKED_SAVE.DAT file
+        open(11, file='BLOCKED_SAVE.DAT', form='unformatted', status='old', access='stream')
+        read(11) blok_check
+        close(11)
+
+
+        !! Load field configuration from file given in parameter file
+        ! Set directory path
+        write(file_config_id, "(i0)") CONFIG_START
+        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+
+        ! Load gauge field into memory
+        call read_gauge_field(directory, gauge_field)
+
+
+        !! Smear and block configuration using new functions
+        ! Block configuration
+        gauge_field_blocked = get_blocked_gauge_field(gauge_field(:, :, 1:SLICE_VOLUME, 1:3))
+
+        ! Smear configuration at 4th blocking level
+        gauge_field_smeared = get_smeared_gauge_field(gauge_field_blocked(:,:,:,:,4), 4)
+
+
+        !! Check if smeared and blocked configurations are equal to those produced during old calculation
+        smear_equal = all(abs(gauge_field_smeared - smear_check) <= max(epsilon(1.0), TOL_SVD))
+        blok_equal = all(abs(gauge_field_blocked - blok_check) <= max(epsilon(1.0), TOL_SVD))
+        ierr = smear_equal.and.blok_equal
+
+        ! Output results
+        if (ierr) then
+            write(*, "(a)") "smearing and blocking tests PASSED"
+        else
+            write(*, "(a)") "smearing and blocking tests FAILED"
+            if (smear_equal) then
+                write(*, "(a)") "smearing test PASSED"
+            else
+                write(*, "(a)") "smearing test FAILED"
+            endif
+            if (blok_equal) then
+                write(*, "(a)") "blocking test PASSED"
+            else
+                write(*, "(a)") "blocking test FAILED"
+            endif
+        end if
+        print *, ""
+    end subroutine
 end program test_suite
