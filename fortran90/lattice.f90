@@ -467,7 +467,7 @@ module lattice
     end subroutine
 
     ! Return smeared input file configuration at given blocking level
-    function smear(gauge_field_slice, blocking_level)
+    function get_smeared_gauge_field(gauge_field_slice, blocking_level) result(smear)
         implicit none
         complex(real64), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
         integer, intent(in) :: blocking_level
@@ -538,5 +538,36 @@ module lattice
                 smear(:, :, site, mu) = smear(:, :, site, mu) / (determinant**(1.0/real(NCOL)))
             enddo
         enddo
-    end function smear
+    end function get_smeared_gauge_field
+
+    function get_blocked_gauge_field(gauge_field_slice) result(blok)
+        implicit none
+        complex(real64), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
+        complex(real64) :: blok(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+
+        integer :: current_blocking_level, next_blocking_level, mu, site
+        complex(real64) :: smeared_gauge_field(NCOL, NCOL, SLICE_VOLUME, 3)
+
+        ! Initialise first blocking level as original lattice
+        blok(:, :, :, :, 1) = gauge_field_slice
+
+        ! Construct each blocked lattice from the previous blocking level
+        do current_blocking_level = 1, MAX_BLOCKING_LEVEL-1
+            ! Get next blocking level
+            next_blocking_level = current_blocking_level + 1
+
+            ! Smear configuration at current blocking level
+            smeared_gauge_field = get_smeared_gauge_field(blok(:, :, :, :, current_blocking_level), &
+            current_blocking_level)
+
+            ! Form blocked configuration at next blocking level by blocking this smeared configuration
+            do mu = 1, 3
+                do site = 1, SLICE_VOLUME
+                    blok(:, :, site, mu, next_blocking_level) &
+                    = matmul(blok(:, :, site, mu, current_blocking_level), &
+                    blok(:, :, move(site,mu,current_blocking_level), mu, current_blocking_level))
+                enddo
+            enddo
+        enddo
+    end function get_blocked_gauge_field
 end module lattice
