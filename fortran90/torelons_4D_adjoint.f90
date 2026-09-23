@@ -61,9 +61,9 @@ PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 PARAMETER(LMAX=LX4/2+1,MAXDTLS=LMAX-1)
 !
-PARAMETER(ICALLG=1,NITER=218,NMEASL=NITER/ICALLG)
+PARAMETER(ICALLG=1,NITER=2,NMEASL=NITER/ICALLG)
 PARAMETER(ICMIN=1,ICMAX=NITER+ICMIN-1)
-PARAMETER(IBLOK=5,IBING=109,NUMBIN=2)
+PARAMETER(IBLOK=5,IBING=1,NUMBIN=2)
 PARAMETER(PARBS=0.30,PARBDS=0.12)
 !
 !******************************************************************************
@@ -445,7 +445,7 @@ use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
-PARAMETER(NITER=218,NUMBIN=2)
+PARAMETER(NITER=2,NUMBIN=2)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
 COMMON/ARRAYS/U11(NCOL2,LSIZE,4)
@@ -502,7 +502,7 @@ end subroutine POLYLOOP
 SUBROUTINE TODISK1
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
-PARAMETER(IBLOK=5,NUMBIN=2,NITER=218)
+PARAMETER(IBLOK=5,NUMBIN=2,NITER=2)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(LMAX=LX4/2+1)
 PARAMETER(LMAXIR=3)
@@ -767,7 +767,7 @@ end subroutine TODISK1
 SUBROUTINE TODISK2
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
-PARAMETER(IBLOK=5,NUMBIN=2,NITER=218)
+PARAMETER(IBLOK=5,NUMBIN=2,NITER=2)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(LMAX=LX4/2+1)
 PARAMETER(LMAXIR=3)
@@ -961,7 +961,7 @@ SUBROUTINE MEASURE(ITER,NTOT)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 !
-PARAMETER(ICALLG=1,IBING=109,NUMBIN=2)
+PARAMETER(ICALLG=1,IBING=1,NUMBIN=2)
 !
 COMMON/ITEM/ITERG,JBING,NTOTG
 !
@@ -2502,6 +2502,7 @@ end subroutine MLINE5
 !*********************************************************************
 SUBROUTINE BLOCK
 use iso_fortran_env, only : real32, real64, int32
+use correlator_construction_mod, only : pot
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
@@ -12756,7 +12757,7 @@ end subroutine THERML1
 !   COR^+(J,I)=F^+(J,T+DT)*F(I,T)+F(I,T+DT)*F^+(J,T)           
 !   => COR(I,J)=COR^+(J,I)!!                                   
 !*********************************************************************
-SUBROUTINE POT
+SUBROUTINE POT_OLD
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52,IBLOK=5)
@@ -18580,7 +18581,7 @@ end do
 !********************************************************************
 !********************************************************************
 RETURN
-end subroutine POT
+end subroutine POT_OLD
 !*********************************************************************
 !*********************************************************************
 !  Here we set up blocked link pointers...
@@ -18670,7 +18671,7 @@ SUBROUTINE ACTION(IPR,ITER,TOTACT)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
-PARAMETER(NITER=218,NUMBIN=2)
+PARAMETER(NITER=2,NUMBIN=2)
 PARAMETER(LSIZE=LX1*LX2*LX3*LX4)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
@@ -18804,7 +18805,7 @@ SUBROUTINE POLY(IPR,ITER)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
-PARAMETER(NITER=218,NUMBIN=2)
+PARAMETER(NITER=2,NUMBIN=2)
 PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
