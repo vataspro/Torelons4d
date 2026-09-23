@@ -83,6 +83,8 @@ program test_suite
         implicit none
         logical, intent(out) :: ierr
 
+        ierr = .true.
+
         ! Check dependant parameters
         if (SLICE_VOLUME /= LX1 * LX2 * LX3) then
             ierr = .false.
