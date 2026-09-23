@@ -11,6 +11,8 @@ BUILD_DIR := build
 TARGET := torelons_4D_adjoint
 
 SOURCES := \
+	parameters.f90 \
+	lattice.f90 \
 	luesher.f90 \
 	correlator_construction.f90 \
 	torelons_4D_adjoint.f90

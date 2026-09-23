@@ -17,6 +17,7 @@ module parameters
     ! Smearing parameters
     real(real64) :: STAPLE_WEIGHT ! Weighting of staples in smearing procedure, renamed from PARBS
     real(real64) :: DIAGONAL_STAPLE_WEIGHT ! Weighting of diagonal staples in smearing procedure, renamed from PARBDS
+    real(real64) :: TOL_SVD ! Tolerance on SVD-unitarisation algorithm
 
     !! Declare dependant parameters
     ! Lattice parameters
@@ -38,7 +39,8 @@ module parameters
         character(len=*), intent(in) :: parameter_filename
 
         ! Define variables to read in from parameter file
-        namelist /params/ NCOL, LX1, LX2, LX3, LX4
+        namelist /params/ NCOL, LX1, LX2, LX3, LX4, MAX_BLOCKING_LEVEL, STAPLE_WEIGHT, &
+        DIAGONAL_STAPLE_WEIGHT, TOL_SVD
 
         ! Read parameters from parameter file
         open(10, file=trim(parameter_filename))
