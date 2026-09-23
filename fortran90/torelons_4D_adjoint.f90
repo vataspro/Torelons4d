@@ -62,8 +62,8 @@ PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 PARAMETER(LMAX=LX4/2+1,MAXDTLS=LMAX-1)
 !
 PARAMETER(ICALLG=1,NITER=2,NMEASL=NITER/ICALLG)
-PARAMETER(ICMIN=1,ICMAX=NITER+ICMIN-1)
-PARAMETER(IBLOK=5,IBING=1,NUMBIN=2)
+PARAMETER(ICMIN=134764,ICMAX=NITER+ICMIN-1)
+PARAMETER(IBLOK=5,IBING=109,NUMBIN=2)
 PARAMETER(PARBS=0.30,PARBDS=0.12)
 !
 !******************************************************************************
@@ -110,13 +110,17 @@ character(len=102) :: directory
 character(len=120) :: file_name
 character(len=256) :: copy_file
 character(len=256) :: trnsf_file
-character(len=5) :: confnum
+character(len=7) :: confnum
 character(len=6) :: name_of_file
 !                    
-homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
-conf_directory1=trim('m-1.0/26x26x26x52/confs/')
-conf_directory2=trim('run1_52x26x26x26nc2rADJnf2b2.300000')
-directory=trim(homepath//conf_directory1//conf_directory2)
+!homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
+!conf_directory1=trim('m-1.0/26x26x26x52/confs/')
+!conf_directory2=trim('run1_52x26x26x26nc2rADJnf2b2.300000')
+!directory=trim(homepath//conf_directory1//conf_directory2)
+homepath='/gpfs/scratch/ehpc598/torelons/'
+conf_directory1='cnfg/'
+conf_directory2='run1_52x26x26x26nc2rADJnf2b2.300000'
+directory=trim(homepath) // trim(conf_directory1) //trim(conf_directory2)
 !      
 CALL SETUP
 ISEED=3591
@@ -214,27 +218,13 @@ WRITE(6,300) NTOTALMOM
 WRITE(6,91)
 WRITE(6,90)
 !
-IFILE = ICMIN - 1
+IFILE = ICMIN
 do ITER=1,NITER
-IFILE = IFILE + 1
+IFILE = IFILE + 16
 !
 ist=IFILE
-if (ist < 10) then
-write(confnum,'(i1)') ist
-file_name=trim(directory//'m1.000000n'//trim(confnum))
-else if (ist < 100) then
-write(confnum,'(i2)') ist
-file_name=trim(directory//'m1.000000n'//trim(confnum))
-else if (ist < 1000) then
-write(confnum,'(i3)') ist
-file_name=trim(directory//'m1.000000n'//trim(confnum))
-else if (ist < 10000) then
-write(confnum,'(i4)') ist
-file_name=trim(directory//'m1.000000n'//trim(confnum))
-else if (ist < 100000) then
-write(confnum,'(i5)') ist
-file_name=trim(directory//'m1.000000n'//trim(confnum))
-end if
+write(confnum, '(i0)') ist
+file_name=trim(directory)//'m1.000000n'//trim(confnum)
 !     
 write(6,*) "------------------------------"
 write(6,*) "Execution of external commands"
