@@ -18,7 +18,7 @@ program test_suite
     call check_success(error_code)
 
     ! Print success statement
-    if (error_code) write(*, '(a)') "All tests passed."
+    if (error_code) write(*, "(a)") "All tests passed."
 
     contains
 
@@ -30,8 +30,8 @@ program test_suite
 
         if (.not.ierr) then
             error stop "Test failed. Program halting."
-        endif
-    end subroutine
+        end if
+    end subroutine check_success
 
     ! Check parameters are correct for testing
     subroutine check_parameters()
@@ -40,23 +40,23 @@ program test_suite
         ! Check loaded parameters
         if (NCOL /= 2) then
             error stop "NCOL must be equal to 2"
-        endif
+        end if
         if (LX1 /= 26) then
             error stop "LX1 must be equal to 26"
-        endif
+        end if
         if (LX2 /= 26) then
             error stop "LX2 must be equal to 26"
-        endif
+        end if
         if (LX3 /= 26) then
             error stop "LX3 must be equal to 26"
-        endif
+        end if
         if (LX4 /= 52) then
             error stop "LX4 must be equal to 52"
-        endif
+        end if
 
         ! Output success
-        write(*, '(a)') "Parameter check passed."
-    end subroutine
+        write(*, "(a)") "Parameter check passed."
+    end subroutine check_parameters
 
     ! Test dependant parameters
     subroutine test_dependant_parameters(ierr)
@@ -66,43 +66,42 @@ program test_suite
         ! Check dependant parameters
         if (SLICE_VOLUME /= LX1 * LX2 * LX3) then
             ierr = .false.
-            write(*, '(a)') "SLICE_VOLUME test failed"
+            write(*, "(a)") "SLICE_VOLUME test failed"
             return
-        endif
+        end if
         if (LATTICE_VOLUME /= SLICE_VOLUME * LX4) then
             ierr = .false.
-            write(*, '(a)') "LATTICE_VOLUME test failed"
+            write(*, "(a)") "LATTICE_VOLUME test failed"
             return
-        endif
+        end if
         if (NCOL2 /= NCOL * NCOL) then
             ierr = .false.
-            write(*, '(a)') "NCOL2 test failed"
+            write(*, "(a)") "NCOL2 test failed"
             return
-        endif
+        end if
         if (MAX_DELTA_T /= LX4 / 2) then
             ierr = .false.
-            write(*, '(a)') "MAX_DELTA_T test failed"
+            write(*, "(a)") "MAX_DELTA_T test failed"
             return
-        endif
+        end if
 
         ! Print success
-        write(*, '(a)') "test_dependant_parameters passed"
-    end subroutine
+        write(*, "(a)") "test_dependant_parameters passed"
+    end subroutine test_dependant_parameters
 
     ! Test loading of field configurations
     subroutine test_read_gauge_field(ierr)
         implicit none
         logical, intent(out) :: ierr
 
-        character(len=256) :: homepath, conf_directory, conf_filename, directory
+        character(len=16) :: file_config_id
+        character(len=256) :: directory
         complex(real32) :: gauge_field_conf(NCOL, NCOL, LX1, LX2, LX3, LX4, 4)
         complex(real32) :: gauge_field_correct(5), gauge_field_check(5)
 
         ! Set directory path
-        homepath=trim('/mnt/lustre/tursafs1/home/dp208/dp208/shared/runs/axion/')
-        conf_directory=trim('nf2/beta2.3/m-1.0/26x26x26x52/cnfg/')
-        conf_filename=trim('run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n134780')
-        directory=trim(homepath) // trim(conf_directory) // trim(conf_filename)
+        write(file_config_id, "(i0)") CONFIG_START
+        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
 
         ! Load gauge field into memory
         call read_gauge_field(directory, gauge_field_conf)
@@ -125,11 +124,11 @@ program test_suite
         ! Check first 5 elements of loaded gauge field against correct values
         ierr = all(abs(gauge_field_check - gauge_field_correct) < 1e-8)
         if (.not.ierr) then
-            write(*, '(a)') "read_gauge_field test failed"
+            write(*, "(a)") "read_gauge_field test failed"
             print *, gauge_field_check
             return
         else
-            write(*, '(a)') "read_gauge_field test passed"
-        endif
-    end subroutine
-end program
+            write(*, "(a)") "read_gauge_field test passed"
+        end if
+    end subroutine test_read_gauge_field
+end program test_suite

@@ -1,5 +1,4 @@
 module read_field_config
-    use iso_fortran_env, only : int8, int32, int64, real32, real64
     use parameters
     implicit none
 
@@ -61,7 +60,7 @@ module read_field_config
     subroutine read_gauge_field(gauge_field_filename, gauge_field)
         implicit none
         character(len=*), intent(in) :: gauge_field_filename
-        complex(real32), intent(out) :: gauge_field(:,:,:,:,:,:,:)
+        complex(real64), intent(out) :: gauge_field(:,:,:,:,:,:,:)
 
         integer :: ios
         character(len=256) :: iomsg
@@ -75,32 +74,32 @@ module read_field_config
         ! Check gauge field variable is the correct size
         if (size(gauge_field, dim=1) /= NCOL) then
             error stop "gauge_field must have size NCOL in 1st dimension"
-        endif
+        end if
         if (size(gauge_field, dim=2) /= NCOL) then
             error stop "gauge_field must have size NCOL in 2nd dimension"
-        endif
+        end if
         if (size(gauge_field, dim=3) /= LX1) then
             error stop "gauge_field must have size LX1 in 3rd dimension"
-        endif
+        end if
         if (size(gauge_field, dim=4) /= LX2) then
             error stop "gauge_field must have size LX2 in 4th dimension"
-        endif
+        end if
         if (size(gauge_field, dim=5) /= LX3) then
             error stop "gauge_field must have size LX3 in 5th dimension"
-        endif
+        end if
         if (size(gauge_field, dim=6) /= LX4) then
             error stop "gauge_field must have size LX4 in 6th dimension"
-        endif
+        end if
         if (size(gauge_field, dim=7) /= 4) then
             error stop "gauge_field must have size 4 in 7th dimension"
-        endif
+        end if
 
         ! Open gauge field file
-        open(newunit=iun, file=gauge_field_filename, access='stream', form='unformatted', &
-        status='old', action='read', iostat=ios, iomsg=iomsg)
+        open(newunit=iun, file=gauge_field_filename, access="stream", form="unformatted", &
+        status="old", action="read", iostat=ios, iomsg=iomsg)
         if (ios /= 0) then
             error stop "Could not open gauge file: " // trim(iomsg)
-        endif
+        end if
 
         ! Read file metadata
         nc_read      = read_be_int32(iun)
@@ -111,10 +110,10 @@ module read_field_config
         plaquette_read = read_be_real64(iun)
 
         ! Output gauge field metadata
-        write(6, '(a, f8.6)') '[I/O][Plaq]    Plaquette value: ', plaquette_read
-        WRITE(6, '(a, i2.1)') '[I/O][Ncol]    Number of Colors:', nc_read
-        WRITE(6, '(a, 4i3.2)') '[I/O][Dim]    T x X x Y x Z=', nt_read, nx_read, ny_read, nz_read
-        
+        write(6, "(a, f8.6)") "[I/O][Plaq]    Plaquette value: ", plaquette_read
+        WRITE(6, "(a, i2.1)") "[I/O][Ncol]    Number of Colors:", nc_read
+        WRITE(6, "(a, 4i3.2)") "[I/O][Dim]    T x X x Y x Z=", nt_read, nx_read, ny_read, nz_read
+
         ! Read gauge field configuration
         do t = 1, LX4
             do x = 1, LX1
@@ -132,14 +131,18 @@ module read_field_config
                             end if
 
                             gauge_field(1, 1, x, y, z, t, dir_target) = &
-                            cmplx(real(quaternion(1), kind=real32),real(quaternion(4), kind=real32))
+                            cmplx(real(quaternion(1), kind=real64),real(quaternion(4), kind=real64), &
+                            kind=real64)
                             gauge_field(1, 2, x, y, z, t, dir_target) = &
-                            cmplx(-real(quaternion(3), kind=real32),real(quaternion(2), kind=real32))
+                            cmplx(-real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
+                            kind=real64)
                             gauge_field(2, 1, x, y, z, t, dir_target) = &
-                            cmplx(real(quaternion(3), kind=real32),real(quaternion(2), kind=real32))
+                            cmplx(real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
+                            kind=real64)
                             gauge_field(2, 2, x, y, z, t, dir_target) = &
-                            cmplx(real(quaternion(1), kind=real32),-real(quaternion(4), kind=real32))
-                            
+                            cmplx(real(quaternion(1), kind=real64),-real(quaternion(4), kind=real64), &
+                            kind=real64)
+
                         end do
                     end do
                 end do
@@ -147,5 +150,5 @@ module read_field_config
         end do
 
         close(iun)
-    end subroutine
-end module
+    end subroutine read_gauge_field
+end module read_field_config
