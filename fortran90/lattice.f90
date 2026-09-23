@@ -130,10 +130,12 @@ module lattice
         if (present(blocking_level)) then
             ! Site must belong to a time slice and direction must point in a spatial direction
             if (site > SLICE_VOLUME) then
-                write(*, '(a, i0)') "site must be on a spatial slice in move function with blocking_level argument present, therefore must be less than or equal to ", SLICE_VOLUME
+                write(*, '(a, a, i0)') "site must be on a spatial slice in move function with blocking_level", &
+                "argument present, therefore must be less than or equal to ", SLICE_VOLUME
             endif
             if (abs(direction) > 3 .or. direction == 0) then
-                write(*, '(a)') "direction must be spatial in move function with blocking_level argument present, therefore must be less than or equal to 3"
+                write(*, '(a, a)') "direction must be spatial in move function with blocking_level argument", &
+                "present, therefore must be less than or equal to 3"
                 stop
             endif
             if (blocking_level > MAX_BLOCKING_LEVEL+1) then
@@ -150,10 +152,12 @@ module lattice
         else
             ! Site must belong to the lattice and direction must point in 4d
             if (site > LATTICE_VOLUME) then
-                write(*, '(a, i0)') "site must be on the lattice in move function without blocking_level argument present, therefore must be less than or equal to ", LATTICE_VOLUME
+                write(*, '(a, a, i0)') "site must be on the lattice in move function without ", &
+                "blocking_level argument present, therefore must be less than or equal to ", LATTICE_VOLUME
             endif
             if (abs(direction) > 4 .or. direction  == 0) then
-                write(*, '(a)') "direction must be spatial or temporal in move function without blocking_level argument present, therefore must be less than or equal to 4"
+                write(*, '(a, a)') "direction must be spatial or temporal in move function without ", &
+                "blocking_level argument present, therefore must be less than or equal to 4"
                 stop
             endif
 
@@ -275,7 +279,8 @@ module lattice
                 cycle
             else
                 ! Solve for t = tan(theta)
-                tau = (A_dagger_A(q,q)%re - A_dagger_A(p,p)%re)/(2*abs(A_dagger_A(p,q)))
+                tau = (real(A_dagger_A(q,q), kind=real64) - real(A_dagger_A(p,p), kind=real64)) &
+                / (2*abs(A_dagger_A(p,q)))
                 if (tau >= 0) then
                     t = 1.0/(tau + sqrt(1 + tau**2))
                 else
@@ -324,7 +329,7 @@ module lattice
         !! Find unitary matrix U
         ! Find Sigma inverse
         do i = 1, NCOL
-            Sigma_inv(i) = 1.0/sqrt(A_dagger_A(i,i)%re)
+            Sigma_inv(i) = 1.0/sqrt(real(A_dagger_A(i,i), kind=real64))
         enddo
 
         ! Find U = A * V * Sigma_inv * V_dagger
