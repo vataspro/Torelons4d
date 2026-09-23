@@ -17,12 +17,16 @@ program test_suite
     ! Setup lattice pointers
     call setup_lattice()
 
+    ! Test move function
+    call test_move(error_code)
+    call check_success(error_code)
+
     ! Test loading of gauge field
     call test_read_gauge_field(error_code)
     call check_success(error_code)
 
     ! Print success statement
-    if (error_code) write(*, "(a)") "All tests passed."
+    if (error_code) write(*, "(a)") "----------ALL TESTS PASSED----------"
 
     contains
 
@@ -59,7 +63,7 @@ program test_suite
         end if
 
         ! Output success
-        write(*, "(a)") "Parameter check passed."
+        write(*, "(a)") "Parameter check PASSED."
     end subroutine check_parameters
 
     ! Test dependant parameters
@@ -70,35 +74,84 @@ program test_suite
         ! Check dependant parameters
         if (SLICE_VOLUME /= LX1 * LX2 * LX3) then
             ierr = .false.
-            write(*, "(a)") "SLICE_VOLUME test failed"
+            write(*, "(a)") "SLICE_VOLUME test FAILED"
             return
         end if
         if (LATTICE_VOLUME /= SLICE_VOLUME * LX4) then
             ierr = .false.
-            write(*, "(a)") "LATTICE_VOLUME test failed"
+            write(*, "(a)") "LATTICE_VOLUME test FAILED"
             return
         end if
         if (NCOL2 /= NCOL * NCOL) then
             ierr = .false.
-            write(*, "(a)") "NCOL2 test failed"
+            write(*, "(a)") "NCOL2 test FAILED"
             return
         end if
         if (MAX_DELTA_T /= LX4 / 2) then
             ierr = .false.
-            write(*, "(a)") "MAX_DELTA_T test failed"
+            write(*, "(a)") "MAX_DELTA_T test FAILED"
             return
         end if
 
         ! Print success
-        write(*, "(a)") "test_dependant_parameters passed"
+        write(*, "(a)") "test_dependant_parameters PASSED"
     end subroutine test_dependant_parameters
 
     ! Test move function
     subroutine test_move(ierr)
         implicit none
-        logical, intent(in) :: ierr
+        logical, intent(inout) :: ierr
 
-        
+        integer :: IUP_old(LATTICE_VOLUME, 4), IDN_old(LATTICE_VOLUME, 4), &
+        IUPB_old(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), IDNB_old(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), &
+        IUP_new(LATTICE_VOLUME, 4), IDN_new(LATTICE_VOLUME, 4), &
+        IUPB_new(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), IDNB_new(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), &
+        site, mu, blocking_level
+        logical :: IUP_equal, IDN_equal, IUPB_equal, IDNB_equal
+
+        ! Load old IUP, IDN from NEIGHBS.DAT file
+        open(11, file='NEIGHBS.DAT', form='unformatted', status='old', access='stream')
+        read(11) IUP_old
+        read(11) IDN_old
+        close(11)
+
+        ! Load old IUPB, IDNB from BLOCKED_NEIGHBS.DAT file
+        open(11, file='BLOCKED_NEIGHBS.DAT', form='unformatted', status='old', access='stream')
+        read(11) IUPB_old
+        read(11) IDNB_old
+        close(11)
+
+        ! Construct IUP and IDN using move function
+        do mu = 1, 4
+            do site = 1, LATTICE_VOLUME
+                IUP_new(site, mu) = move(site, mu)
+                IDN_new(site, mu) = move(site, -mu)
+            enddo
+        enddo
+
+        ! Construct IUPB and IDNB using move function
+        do blocking_level = 1, MAX_BLOCKING_LEVEL+1
+            do mu = 1, 3
+                do site = 1, SLICE_VOLUME
+                    IUPB_new(site, mu, blocking_level) = move(site, mu, blocking_level)
+                    IDNB_new(site, mu, blocking_level) = move(site, -mu, blocking_level)
+                enddo
+            enddo
+        enddo
+
+        ! Check if all moving arrays match
+        IUP_equal = all(IUP_old == IUP_new)
+        IDN_equal = all(IDN_old == IDN_new)
+        IUPB_equal = all(IUPB_old == IUPB_new)
+        IDNB_equal = all(IDNB_old == IDNB_new)
+
+        ! Check if test has succeeded
+        ierr = IUP_equal.and.IDN_equal.and.IUPB_equal.and.IDNB_equal
+        if (ierr) then
+            write(*, '(a)') "move test PASSED"
+        else
+            write(*, '(a)') "move test FAILED"
+        endif
     end subroutine
 
     ! Test loading of field configurations
@@ -134,13 +187,13 @@ program test_suite
         gauge_field_check(5) = gauge_field_conf(1,1,2,1)
 
         ! Check first 5 elements of loaded gauge field against correct values
-        ierr = all(abs(gauge_field_check - gauge_field_correct) < epsilon(1.0))
-        if (.not.ierr) then
-            write(*, "(a)") "read_gauge_field test failed"
+        ierr = all(abs(gauge_field_check - gauge_field_correct) <= epsilon(1.0))
+        if (ierr) then
+            write(*, "(a)") "read_gauge_field test PASSED"
+        else
+            write(*, "(a)") "read_gauge_field test FAILED"
             print *, gauge_field_check
             return
-        else
-            write(*, "(a)") "read_gauge_field test passed"
         end if
     end subroutine test_read_gauge_field
 end program test_suite
