@@ -213,6 +213,68 @@ program test_suite
         print *, ""
     end subroutine test_read_gauge_field
 
+    ! Test unitarisation subroutine
+    subroutine test_unitarise_SVD(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        integer, parameter :: num_tests = 5
+        character(len=16) :: file_config_id
+        character(len=256) :: directory
+        complex(real64) :: gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4), &
+        matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL)
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, j, k
+        real :: random_numbers(2*num_tests)
+        logical :: diagonal_good, off_diagonal_good, diagonal_mask(NCOL, NCOL), off_diagonal_mask(NCOL, NCOL)
+
+        ! Set directory path
+        write(file_config_id, "(i0)") CONFIG_START
+        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+
+        ! Load gauge field into memory
+        call read_gauge_field(directory, gauge_field)
+
+        ! Get 5 random sites and 5 random directions
+        call random_number(random_numbers)
+        random_numbers(1:num_tests) = random_numbers(1:num_tests) * LATTICE_VOLUME
+        random_sites = ceiling(random_numbers(1:5))
+        random_numbers(num_tests+1:2*num_tests) = random_numbers(num_tests+1:2*num_tests) * 4
+        random_directions = ceiling(random_numbers(num_tests+1:2*num_tests))
+
+        ! Get mask for diagonal and off-diagonal elements
+        diagonal_mask = .false.
+        do i = 1, NCOL
+            diagonal_mask(i,i) = .true.
+        enddo
+        off_diagonal_mask = .not.diagonal_mask
+
+        ! For each random site and direction, add 2 consectutive links from that site and in that direction. Apply the unitarisation procedure to the sum and test the result for unitarity. If any are not unitary, return ierr = .false. and halt execution.
+        ierr = .true.
+        do k = 1, num_tests
+            site = random_sites(k)
+            mu = random_directions(k)
+
+            ! Sum consective links in direction mu from site
+            matrix_sum = gauge_field(:,:,site,mu) + gauge_field(:,:,move(site,mu),mu)
+
+            ! Apply unitaristation procedure
+            trial_U = unitarise_SVD(matrix_sum)
+
+            ! Form trial identity matrix
+            trial_identity = matmul(herm(trial_U), trial_U)
+
+            ! Test if trial identity matrix is sufficiently close to the identity
+            diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.off_diagonal_mask)
+            off_diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.diagonal_mask)
+            ierr = diagonal_good.and.off_diagonal_good
+            if (.not.ierr) then
+                write(*, "(a)") "unitarise_SVD test FAILED"
+                return
+            endif
+        enddo
+        write(*, "(a)") "unitarise_SVD test PASSED"
+    end subroutine
+
     ! Test smearing and blocking of configurations
     subroutine test_blocking_smearing(ierr)
         implicit none
