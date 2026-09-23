@@ -60,7 +60,7 @@ module read_field_config
     subroutine read_gauge_field(gauge_field_filename, gauge_field)
         implicit none
         character(len=*), intent(in) :: gauge_field_filename
-        complex(real32), intent(out) :: gauge_field(:,:,:,:,:,:,:)
+        complex(real64), intent(out) :: gauge_field(:,:,:,:,:,:,:)
 
         integer :: ios
         character(len=256) :: iomsg
@@ -131,13 +131,17 @@ module read_field_config
                             end if
 
                             gauge_field(1, 1, x, y, z, t, dir_target) = &
-                            cmplx(real(quaternion(1), kind=real32),real(quaternion(4), kind=real32))
+                            cmplx(real(quaternion(1), kind=real64),real(quaternion(4), kind=real64), &
+                            kind=real64)
                             gauge_field(1, 2, x, y, z, t, dir_target) = &
-                            cmplx(-real(quaternion(3), kind=real32),real(quaternion(2), kind=real32))
+                            cmplx(-real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
+                            kind=real64)
                             gauge_field(2, 1, x, y, z, t, dir_target) = &
-                            cmplx(real(quaternion(3), kind=real32),real(quaternion(2), kind=real32))
+                            cmplx(real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
+                            kind=real64)
                             gauge_field(2, 2, x, y, z, t, dir_target) = &
-                            cmplx(real(quaternion(1), kind=real32),-real(quaternion(4), kind=real32))
+                            cmplx(real(quaternion(1), kind=real64),-real(quaternion(4), kind=real64), &
+                            kind=real64)
                             
                         end do
                     end do

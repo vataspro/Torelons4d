@@ -181,10 +181,198 @@ module lattice
         herm_real64 = conjg(transpose(A))
     end function
 
-    ! Get diagonal links (diagonal_links) and lattice pointers to sites diagonal links end on (lattice_pointers_diagonal)
-    subroutine get_diagonal_links(gauge_field_slice, direction, blocking_level, diagonal_links, lattice_pointers_diagonal)
+    ! Frobenius norm of off-diagonal elements
+    function off(A)
         implicit none
-        complex(real32), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
+
+        complex(real64), dimension(NCOL,NCOL), intent(in) :: A
+        real(real64) :: off
+
+        integer :: i, j
+
+        off = 0.0
+        do j = 1, NCOL
+            do i = 1, j-1
+                off = off + abs(A(i,j))**2
+            enddo
+            do i = j+1, NCOL
+                off = off + abs(A(i,j))**2
+            enddo
+        enddo
+        off = sqrt(off)
+    end function
+
+    ! Find unitarisation of matrix A
+    function unitarise_SVD(A) result(U)
+        implicit none
+
+        complex(real64), dimension(NCOL,NCOL), intent(in) :: A
+        complex(real64), dimension(NCOL,NCOL) :: U
+
+        complex(real64), dimension(NCOL,NCOL) :: A_dagger_A, V
+        real(real64), dimension(NCOL) :: Sigma_inv
+        complex(real64), dimension(2,NCOL) :: new_rows
+        complex(real64), dimension(NCOL,2) :: new_cols
+        complex(real64), dimension(2,2) :: pq_block
+        real(real64) :: delta, c, t, tau
+        complex(real64) :: s
+        integer, dimension(2) :: index_pair
+        logical, dimension(NCOL,NCOL) :: tri_mask
+        integer :: i, j, p, q, iter
+
+        !! Calculate A dagger A
+        A_dagger_A = matmul(herm(A), A)
+
+        !! Carry out Jacobi iteration on A_dagger_A
+        ! Set tolerance parameter as delta = tol_SVD * ||A_dagger_A||
+        delta = 0.0
+        do j = 1, NCOL
+            do i = 1, NCOL
+                delta = delta + abs(A_dagger_A(i,j))**2
+            enddo
+        enddo
+        delta = sqrt(delta)
+        delta = TOL_SVD*delta
+
+        ! Initialise matrix of eigenvectors, V
+        V = cmplx(0.0,0.0)
+        do i = 1, NCOL
+            V(i,i) = cmplx(1.0,0.0)
+        enddo
+
+        ! Define mask to be true only if i < j
+        do j = 1, NCOL
+            do i = 1, NCOL
+                tri_mask(i,j) = (i < j)
+            enddo
+        enddo
+
+        ! Carry out Jacobi algorithm until convergence is reached
+        iter = 0
+        do while (off(A_dagger_A) > delta)
+            !! Choose (p,q) so that |a_pq| = max(i/=j) |a_ij|
+            index_pair = maxloc(abs(A_dagger_A), mask=tri_mask)
+            p = index_pair(1)
+            q = index_pair(2)
+
+            !! Find c, s which make up Jacobi rotation matrix
+            if (abs(A_dagger_A(p,q)) < max(delta, epsilon(1.0d0)*maxval(abs(A_dagger_A)))) then
+                ! If target is already diagonal, apply no rotation
+                cycle
+            else
+                ! Solve for t = tan(theta)
+                tau = (A_dagger_A(q,q)%re - A_dagger_A(p,p)%re)/(2*abs(A_dagger_A(p,q)))
+                if (tau >= 0) then
+                    t = 1.0/(tau + sqrt(1 + tau**2))
+                else
+                    t = 1.0/(tau - sqrt(1 + tau**2))
+                endif
+
+                ! Find c, s from t
+                c = 1.0/sqrt(1 + t**2)
+                s = t*c*A_dagger_A(p,q)/abs(A_dagger_A(p,q))
+            endif
+
+            !! Update A_dagger_A using Jacobi rotation matrix
+            ! Find new p'th and q'th rows
+            new_rows(1,:) = c*A_dagger_A(p,:) - s*A_dagger_A(q,:)
+            new_rows(2,:) = conjg(s)*A_dagger_A(p,:) + c*A_dagger_A(q,:)
+
+            ! Find new p'th and q'th columns
+            new_cols(:,1) = c*A_dagger_A(:,p) - conjg(s)*A_dagger_A(:,q)
+            new_cols(:,2) = s*A_dagger_A(:,p) + c*A_dagger_A(:,q)
+
+            ! Find new (p,q) block
+            pq_block(1,1) = c*new_cols(p,1) - s*new_cols(q,1)
+            pq_block(2,1) = c*new_cols(q,1) + conjg(s)*new_cols(p,1)
+            pq_block(1,2) = c*new_cols(p,2) - s*new_cols(q,2)
+            pq_block(2,2) = c*new_cols(q,2) + conjg(s)*new_cols(p,2)
+
+            ! Update A_dagger_A
+            A_dagger_A(p,:) = new_rows(1,:)
+            A_dagger_A(q,:) = new_rows(2,:)
+            A_dagger_A(:,p) = new_cols(:,1)
+            A_dagger_A(:,q) = new_cols(:,2)
+            A_dagger_A(p,p) = pq_block(1,1)
+            A_dagger_A(q,p) = pq_block(2,1)
+            A_dagger_A(p,q) = pq_block(1,2)
+            A_dagger_A(q,q) = pq_block(2,2)
+
+            !! Update eigenvectors
+            new_cols(:,1) = c*V(:,p) - conjg(s)*V(:,q)
+            new_cols(:,2) = s*V(:,p) + c*V(:,q)
+            V(:,p) = new_cols(:,1)
+            V(:,q) = new_cols(:,2)
+
+            iter = iter + 1
+        enddo
+
+        !! Find unitary matrix U
+        ! Find Sigma inverse
+        do i = 1, NCOL
+            Sigma_inv(i) = 1.0/sqrt(A_dagger_A(i,i)%re)
+        enddo
+
+        ! Find U = A * V * Sigma_inv * V_dagger
+        U = herm(V) ! U = V_dagger
+        do i = 1, NCOL
+            U(i,:) = Sigma_inv(i)*U(i,:) ! U = Sigma_inv * V_dagger
+        enddo
+        U = matmul(V, U) ! U = V * Sigma_inv * V_dagger
+        U = matmul(A, U)
+    end function
+
+    ! Determinant of NxN matrix
+    function det(matrix)
+        implicit none
+        complex(real64), intent(in) :: matrix(:,:)
+        complex(real64) :: det
+        real(real64) :: pivot_tol
+
+        !! Use the Bareiss algorithm to compute matrix determinant
+        complex(real64), allocatable :: M(:,:)
+        complex(real64) :: denominator, pivot
+        integer :: i, j, k, n
+
+        ! Find size of input matrix
+        n = size(matrix, 1)
+        if (n /= size(matrix, 2)) stop "Matrix input to det is not square"
+
+        ! Allocate M
+        allocate(M(n,n))
+
+        ! Setup copy of matrix
+        M = matrix
+        denominator = cmplx(1.0,0.0)
+
+        ! Perform itertaion
+        do k = 1, n-1
+            ! Check if matrix is singular
+            pivot = M(k,k)
+            pivot_tol = epsilon(1.0d0) * maxval(abs(matrix))
+            if (abs(pivot) < pivot_tol) then
+                det = cmplx(0.0,0.0)
+                exit
+            endif
+
+            ! Conduct Bareiss algorithm step
+            do i = k+1, n
+                do j = k+1, n
+                    M(i,j) = (M(i,j)*M(k,k) - M(i,k)*M(k,j))/denominator
+                enddo
+            enddo
+            denominator = pivot
+        enddo
+
+        ! Entry n,n now contains the determinant of matrix
+        det = M(n,n)
+    end function
+
+    ! Get diagonal links (diagonal_links) and lattice pointers to sites diagonal links end on (lattice_pointers_diagonal)
+    subroutine get_diagonal_links(gauge_field_slice, direction, blocking_level, diagonal_links, &
+        lattice_pointers_diagonal)
+        implicit none
+        complex(real64), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
         integer, intent(in) :: direction, blocking_level
         complex(real64), intent(out) :: diagonal_links(NCOL, NCOL, SLICE_VOLUME, 4)
         integer, intent(out) :: lattice_pointers_diagonal(SLICE_VOLUME, 4)
@@ -263,4 +451,78 @@ module lattice
             lattice_pointers_diagonal(path_site, 4) = site
         enddo
     end subroutine
+
+    ! Return smeared input file configuration at given blocking level
+    function smear(gauge_field_slice, blocking_level)
+        implicit none
+        complex(real64), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
+        integer, intent(in) :: blocking_level
+        complex(real64) :: smear(NCOL, NCOL, SLICE_VOLUME, 3)
+
+        complex(real64) :: diagonal_links_mu(NCOL, NCOL, SLICE_VOLUME, 4), staple(NCOL, NCOL), determinant
+        integer :: diagonal_pointers_mu(SLICE_VOLUME, 4), mu, nu, nu_ku, site, temp_site1, temp_site2, site_plus_mu
+
+        ! Smear over each direction individually
+        do mu = 1, 3 ! mu is the direction of the link to be smeared
+            ! Get diagonal links to all links in plane perpendicular to mu
+            call get_diagonal_links(gauge_field_slice, mu, blocking_level, diagonal_links_mu, diagonal_pointers_mu)
+
+            ! Smear each link pointing in direction mu individually
+            do site = 1, SLICE_VOLUME
+                ! Get site the given link points to
+                site_plus_mu = move(site, mu, blocking_level)
+                !! smeared link = original link + STAPLE_WEIGHT * staples + DIAGONAL_STAPLE_WEIGHT * diagonal staples
+                ! Initialise smeared link as original link
+                smear(:, :, site, mu) = gauge_field_slice(:, :, site, mu)
+
+                ! Get staples over all directions perpendicular to mu
+                do nu = 1, 3
+                    ! Ignore direction parallel to mu
+                    if (nu == mu) cycle
+
+                    ! Get staple in +nu direction
+                    ! To do this, we need (site + nu) -> store in temp_site1
+                    temp_site1 = move(site, nu, blocking_level)
+                    staple = matmul(matmul(gauge_field_slice(:,:,site,nu), gauge_field_slice(:,:,temp_site1,mu)), &
+                    herm(gauge_field_slice(:,:,site_plus_mu,nu)))
+
+                    ! Add staple to smeared link with appropriate weight
+                    smear(:, :, site, mu) = smear(:, :, site, mu) + STAPLE_WEIGHT * staple
+
+                    ! Get staple in -nu direction
+                    ! To do this, we need (site - nu) -> store in temp_site1, and (site - nu + mu) -> store in temp_site2
+                    temp_site1 = move(site, -nu, blocking_level)
+                    temp_site2 = move(site_plus_mu, -nu, blocking_level)
+                    staple = matmul(matmul(herm(gauge_field_slice(:,:,temp_site1,nu)), gauge_field_slice(:,:,temp_site1,mu)), &
+                    herm(gauge_field_slice(:,:,temp_site2,nu)))
+
+                    ! Add staple to smeared link with appropriate weight
+                    smear(:, :, site, mu) = smear(:, :, site, mu) + STAPLE_WEIGHT * staple
+                enddo
+
+                ! Get diagonal staples over all diagonal directions perpendicular to mu
+                do nu_ku = 1, 4
+                    ! Get staple starting in diagonal direction nu_ku from site
+                    ! To do this, we need (site + nu_ku) -> store in temp_site1
+                    temp_site1 = diagonal_pointers_mu(site, nu_ku)
+
+                    ! Get diagonal staple
+                    staple = matmul(matmul(diagonal_links_mu(:,:,site,nu_ku), gauge_field_slice(:,:,temp_site1,mu)), &
+                    herm(diagonal_links_mu(:,:,site_plus_mu,nu_ku)))
+
+                    ! Add staple to smeared link with appropriate weight
+                    smear(:, :, site, mu) = smear(:, :, site, mu) + DIAGONAL_STAPLE_WEIGHT * staple
+                enddo
+
+                ! Unitarise smeared link to sit in SU(N)
+                smear(:, :, site, mu) = unitarise_SVD(smear(:, :, site, mu))
+
+                ! Normalise so that smeared links had determinant = 1
+                determinant = det(smear(:, :, site, mu))
+                determinant = determinant/abs(determinant) ! ensure det(U) is a phase as expected
+                ! Scale U to force det(U) = 1 whilst maintaining unitarity
+                smear(:, :, site, mu) = smear(:, :, site, mu) / (determinant**(1.0/real(NCOL)))
+            enddo
+        enddo
+    end function
 end module lattice
