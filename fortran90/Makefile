@@ -13,6 +13,7 @@ TARGET := torelons_4D_adjoint
 SOURCES := \
 	luesher.f90 \
 	correlator_construction.f90 \
+	therml.f90 \
 	torelons_4D_adjoint.f90
 
 .PHONY: all clean test
