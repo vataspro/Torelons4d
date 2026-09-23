@@ -22,6 +22,9 @@ program test_suite
     ! Test loading of gauge field
     call check_success(test_read_gauge_field)
 
+    ! Test unitarisation procedure
+    call check_success(test_unitarise_SVD)
+
     ! Test smearing and blocking procedures
     call check_success(test_blocking_smearing)
 
@@ -29,6 +32,25 @@ program test_suite
     write(*, "(a)") "----------ALL TESTS PASSED----------"
 
     contains
+
+    ! Print matrix
+    subroutine print_matrix(matrix)
+        implicit none
+        complex(real64), dimension(:,:), intent(in) :: matrix
+
+        integer :: i, j
+        integer, dimension(2) :: N
+
+        N = shape(matrix)
+        do i = 1, N(1)
+            do j = 1, N(2)
+                write(6, '(f0.6, a, f0.6, a)', advance='no') real(matrix(i,j)), "+",&
+                aimag(matrix(i,j)), "i    "
+            enddo
+            print *, ""
+        enddo
+        print *, ""
+    end subroutine
 
     ! Quit program if a test has failed
     subroutine check_success(test_function)
@@ -269,6 +291,10 @@ program test_suite
             ierr = diagonal_good.and.off_diagonal_good
             if (.not.ierr) then
                 write(*, "(a)") "unitarise_SVD test FAILED"
+                write(*, "(a)") "Trial unitary matrix:"
+                call print_matrix(trial_U)
+                write(*, "(a)") "Trial identity matrix:"
+                call print_matrix(trial_identity)
                 return
             endif
         enddo
