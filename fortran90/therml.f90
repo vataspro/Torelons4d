@@ -3,13 +3,61 @@ module loop_builder
 !    use lattice
     use iso_fortran_env, only : real32, real64, int32
     implicit none
+    integer, PARAMETER :: NCOL=2
+    integer, PARAMETER :: NCOL2=NCOL*NCOL
+    integer, PARAMETER :: LX1=26
+    integer, PARAMETER :: LX2=26
+    integer, PARAMETER :: LX3=26
+    integer, PARAMETER :: LX4=52
+    integer, PARAMETER :: IBLOK=5
+    integer, PARAMETER :: LSIZEB=LX1*LX2*LX3
+    integer, PARAMETER :: LSIZE=LSIZEB*LX4
     contains
 
-FUNCTION get_square(a) result(b)
+FUNCTION get_square(GaugeField, site_idx, direction, IUP) result(A11)
     implicit none
-    real(real64), intent(in) :: a
-    real(real64) :: b
-    b = a + 1
+    integer(int32), intent(in) :: site_idx, direction
+    integer(int32), intent(in) :: IUP(LSIZEB,3)
+    complex(real64), intent(in) :: GaugeField(NCOL2,LSIZEB,3)
+
+    integer(int32) :: IC
+    integer(int32) :: KU = 1
+    complex(real64) :: A11(NCOL2), B11(NCOL2), C11(NCOL2), D11(NCOL2), DUM11(NCOL2)
+
+    integer(int32), intent(out) :: other_idx
+    complex(real64), intent(out) :: SQUY1(NCOL2)
+    ! LOCAL: B11, C11, D11, M3
+    ! LOCAL CTRS: IC
+    ! IN: NCOL2, M2, M3, JU, KU
+    ! OUT: SQUY1
+
+    DO IC=1,NCOL2
+       B11(IC)=GaugeField(IC,site_idx,direction)
+    ENDDO
+
+    other_idx=IUP(site_idx,direction)
+    DO IC=1,NCOL2
+       C11(IC)=GaugeField(IC,other_idx,KU)
+    ENDDO
+
+    CALL VMX(1,B11,C11,D11,1)
+
+    other_idx=IUP(site_idx,KU)
+    !site_idx = other_idx
+    DO IC=1,NCOL2
+       C11(IC)=GaugeField(IC,other_idx,direction)
+    ENDDO
+    CALL HERM(1,C11,DUM11,1)
+    CALL VMX(1,D11,C11,SQUY1,1)
+    CALL VMX(1,A11,SQUY1,C11,1)
+   
+    DO IC=1,NCOL2
+       A11(IC)=C11(IC)
+    ENDDO
+   
+!    IEEE=1
+
+    ! return A11, other_idx, SQUY1
 
 end function get_square
 
@@ -18,9 +66,7 @@ SUBROUTINE THERML1(N4,IBLL)
     use iso_fortran_env, only : real32, real64, int32
     implicit real(real64) (A-H,O-Z)
     implicit integer(int32) (I-N)
-      PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52,IBLOK=5)
-      PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
-      PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
+!    PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !********************************************************
       COMMON/LINES/ALINE1(LX4,IBLOK),ALINE2(LX4,IBLOK)&
      ,ALINE3(LX4,IBLOK),ALINE4(LX4,IBLOK),ALINE5(LX4,IBLOK)&
@@ -637,7 +683,8 @@ SUBROUTINE THERML1(N4,IBLL)
 !**********************************************************************
 
        NN=0 ! Initial lattice point
-       DO NK=1,LS(KU)
+       DO NK=1,LS(KU) ! LX direction
+          ! Momentum phases
           PF(1)=DCOS((2.0*PI*NK)/LS(KU))+GIOT*DSIN((2.0*PI*NK)/LS(KU))
           PF(2)=DCOS((4.0*PI*NK)/LS(KU))+GIOT*DSIN((4.0*PI*NK)/LS(KU))
              DO NJ=1,LS(JU) ! LY direction
@@ -5565,6 +5612,7 @@ SUBROUTINE THERML1(N4,IBLL)
 !******************************************************************c
          ENDIF
 !******************************************************************C
+! If the operator does not fit in this blocking level (more than once)
                IF(LCNT(IDS).LT.ICO) THEN
                   DO 168 IC=1, NCOL2
                      A11(IC)=LIN0(IC)
