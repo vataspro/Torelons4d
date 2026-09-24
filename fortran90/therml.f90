@@ -465,9 +465,9 @@ SUBROUTINE THERML1(N4,IBLL)
          LB(IDD)=2*LB(IDD-1)
       ENDDO
 !********************************************************************* 
-      KU = 1 ! Set directions
-      JU = 2
-      IU = 3
+      KU = 1 ! Set directions -- X
+      JU = 2 ! Y
+      IU = 3 ! Z
      
       ID=IBLL ! Current blocking level (BL)
 
@@ -635,27 +635,22 @@ SUBROUTINE THERML1(N4,IBLL)
       ENDDO
 !
 !**********************************************************************
-         NN=0
-!**********************************************************************
-!     OPENMP INTRINSICS
-!     NK,LS,PF,KU
-!     UC11 
-!     A11, B11, C11, D11
-!     SQUY1, SQUZ1, SQDY1, SQDZ1
 
-         
-         DO NK=1,LS(KU)
-       PF(1)=DCOS((2.0*PI*NK)/LS(KU))+GIOT*DSIN((2.0*PI*NK)/LS(KU))
-       PF(2)=DCOS((4.0*PI*NK)/LS(KU))+GIOT*DSIN((4.0*PI*NK)/LS(KU))
-!       PF(3)=DCOS((6.0*PI*NK)/LS(KU))+GIOT*DSIN((6.0*PI*NK)/LS(KU))
-!       PF(4)=DCOS((8.0*PI*NK)/LS(KU))+GIOT*DSIN((8.0*PI*NK)/LS(KU))
-            DO NJ=1,LS(JU)
-               DO NI=1,LS(IU)
-               NN=NN+1
-               IX(IU)=NI
-               IX(JU)=NJ
-               IX(KU)=NK
-               MN=IX(1)+LS(1)*(IX(2)-1)+LS(1)*LS(2)*(IX(3)-1)
+       NN=0 ! Initial lattice point
+       DO NK=1,LS(KU)
+          PF(1)=DCOS((2.0*PI*NK)/LS(KU))+GIOT*DSIN((2.0*PI*NK)/LS(KU))
+          PF(2)=DCOS((4.0*PI*NK)/LS(KU))+GIOT*DSIN((4.0*PI*NK)/LS(KU))
+            DO NJ=1,LS(JU) ! LY direction
+               DO NI=1,LS(IU) ! LZ direction 
+                  ! Lexicographical lattice site definition
+                  NN=NN+1
+                  IX(IU)=NI
+                  IX(JU)=NJ
+                  IX(KU)=NK
+                  ! MN defines the current lattice site
+                  MN=IX(1)+LS(1)*(IX(2)-1)+LS(1)*LS(2)*(IX(3)-1)
+
+
 !**********************************************************************
                IF(IDS.EQ.ID) THEN
 !**********************************************************************
