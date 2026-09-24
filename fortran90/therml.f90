@@ -17,7 +17,7 @@ end function get_square
 SUBROUTINE THERML1(N4,IBLL)
     use iso_fortran_env, only : real32, real64, int32
     implicit real(real64) (A-H,O-Z)
-
+    implicit integer(int32) (I-N)
       PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52,IBLOK=5)
       PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
       PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
