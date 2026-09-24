@@ -826,60 +826,60 @@ SUBROUTINE THERML1(N4,IBLL)
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
                       IF (IDS.EQ.ID) THEN
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-               ICO=2
-               IF(IDDD.LT.5) ICO=1
-               IF(((IDDD.GT.12).AND.(IDDD.LT.17)).AND.(IDS.NE.1)) ICO=1
-               IF(((IDDD.GT.16).AND.(IDDD.LT.21)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.20).AND.(IDDD.LT.25)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.24).AND.(IDDD.LT.29)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.28).AND.(IDDD.LT.33)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.40).AND.(IDDD.LT.49)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.48).AND.(IDDD.LT.57)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.56).AND.(IDDD.LT.65)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.64).AND.(IDDD.LT.69)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.68).AND.(IDDD.LT.73)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.72).AND.(IDDD.LT.81)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.80).AND.(IDDD.LT.89)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.88).AND.(IDDD.LT.97)).AND.(IDS.EQ.1)) ICO=4
-               IF(((IDDD.GT.96).AND.(IDDD.LT.105)).AND.(IDS.EQ.1)) ICO=4
-                  IF(((IDDD.GT.104).AND.(IDDD.LT.113)).AND.(IDS.EQ.1)) ICO=4
-                  IF(((IDDD.GT.112).AND.(IDDD.LT.129)).AND.(IDS.EQ.1)) ICO=4
-                  IF(((IDDD.GT.128).AND.(IDDD.LT.137)).AND.(IDS.EQ.1)) ICO=4
-                  IF(((IDDD.GT.136).AND.(IDDD.LT.145)).AND.(IDS.NE.1)) ICO=1
-               IF(IDDD.EQ.145) ICO=1
-               IF((IDDD.GT.145).AND.(IDDD.LT.194)) ICO=1
-               IF((IDDD.GT.209).AND.(IDDD.LT.338)) ICO=1 ! THIS NEEDS TO BE FIXED  !
+                         ICO=2
+                         IF(IDDD.LT.5) ICO=1
+                         IF(((IDDD.GT.12).AND.(IDDD.LT.17)).AND.(IDS.NE.1)) ICO=1
+                         IF(((IDDD.GT.16).AND.(IDDD.LT.21)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.20).AND.(IDDD.LT.25)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.24).AND.(IDDD.LT.29)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.28).AND.(IDDD.LT.33)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.40).AND.(IDDD.LT.49)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.48).AND.(IDDD.LT.57)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.56).AND.(IDDD.LT.65)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.64).AND.(IDDD.LT.69)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.68).AND.(IDDD.LT.73)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.72).AND.(IDDD.LT.81)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.80).AND.(IDDD.LT.89)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.88).AND.(IDDD.LT.97)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.96).AND.(IDDD.LT.105)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.104).AND.(IDDD.LT.113)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.112).AND.(IDDD.LT.129)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.128).AND.(IDDD.LT.137)).AND.(IDS.EQ.1)) ICO=4
+                         IF(((IDDD.GT.136).AND.(IDDD.LT.145)).AND.(IDS.NE.1)) ICO=1
+                         IF(IDDD.EQ.145) ICO=1
+                         IF((IDDD.GT.145).AND.(IDDD.LT.194)) ICO=1
+                         IF((IDDD.GT.209).AND.(IDDD.LT.338)) ICO=1 ! THIS NEEDS TO BE FIXED  !
 !**********************************************************************C
-                     IF(LCNT(IDS).GE.ICO) THEN
+                         IF(LCNT(IDS).GE.ICO) THEN
 !**********************************************************************C
 !                     UP SQUARE PULSE                                  C 
 !**********************************************************************C
 !                     UP Y
 !**********************************************************************
-                        IF(IDDD.EQ.1) THEN
+                         IF(IDDD.EQ.1) THEN
 !
-                           DO 12 IC=1,NCOL2
-                              B11(IC)=UC11(IC,M2,JU)
- 12                        CONTINUE
-                           M3=IUP(M2,JU)
-                           DO 13 IC=1,NCOL2
-                              C11(IC)=UC11(IC,M3,KU)
- 13                        CONTINUE
-                           CALL VMX(1,B11,C11,D11,1)
-                           M3=IUP(M2,KU)
-                           M2=M3
-                           DO 14 IC=1,NCOL2
-                              C11(IC)=UC11(IC,M2,JU)
- 14                        CONTINUE
-                           CALL HERM(1,C11,DUM11,1)
-                           CALL VMX(1,D11,C11,SQUY1,1)
-                           CALL VMX(1,A11,SQUY1,C11,1)
+                            DO IC=1,NCOL2
+                               B11(IC)=UC11(IC,M2,JU)
+                            ENDDO
+                            M3=IUP(M2,JU)
+                            DO IC=1,NCOL2
+                               C11(IC)=UC11(IC,M3,KU)
+                            ENDDO
+                            CALL VMX(1,B11,C11,D11,1)
+                            M3=IUP(M2,KU)
+                            M2=M3
+                            DO IC=1,NCOL2
+                               C11(IC)=UC11(IC,M2,JU)
+                            ENDDO
+                            CALL HERM(1,C11,DUM11,1)
+                            CALL VMX(1,D11,C11,SQUY1,1)
+                            CALL VMX(1,A11,SQUY1,C11,1)
 !     
-                           DO 15 IC=1,NCOL2
-                              A11(IC)=C11(IC)
- 15                        CONTINUE
+                            DO IC=1,NCOL2
+                               A11(IC)=C11(IC)
+                            ENDDO
 !     
-                           IEEE=1
+                            IEEE=1
 !     
                         ENDIF
 !**********************************************************************C
