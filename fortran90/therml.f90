@@ -460,99 +460,123 @@ SUBROUTINE THERML1(N4,IBLL)
       LS(3)=LX3
       LB(1)=1
 !*********************************************************************     
-      DO 1 IDD=2,IBLOK
+! LB is an array containing the blocking length at each level
+      DO IDD=2,IBLOK
          LB(IDD)=2*LB(IDD-1)
- 1    CONTINUE
+      ENDDO
 !********************************************************************* 
-      DO 2 KU=1,1
-         JU=KU+1
-         IF(JU.GT.3)JU=JU-3
-         IU=KU+2
-         IF(IU.GT.3)IU=IU-3
-!     
-         ID=IBLL
-!
-         DO 3 IB=1,ID
-            LCNT(IB)=0
- 3       CONTINUE
-!     
-         LREST=LS(KU)
-!     
-         DO 4 IG=1,ID
-            IDG=ID-IG+1
-            LCNT(IDG)=LREST/LB(IDG)
-            LREST=LREST-LCNT(IDG)*LB(IDG)
- 4       CONTINUE
-!     
-         DO 5 IB=1,ID
-            IF(LCNT(IB).GE.1)IDS=IB
- 5       CONTINUE
-!     
-         IDSM1=IDS-1
-         IF(IDS.EQ.1)IDSM1=IDS
+      KU = 1 ! Set directions
+      JU = 2
+      IU = 3
+     
+      ID=IBLL ! Current blocking level (BL)
+
+
+! We try and fit the blocking level lengths into LX1
+! Fill LCNT array 
+! Example: LX1 = 20, IBL=4
+! LCNT = 0, 0, 1, 2
+
+      DO IB=1,ID
+         LCNT(IB)=0
+      ENDDO
+
+      LREST=LS(KU) ! LX1
+
+      DO IDG=1,ID,-1
+         LCNT(IDG)=LREST/LB(IDG)
+         LREST=LREST-LCNT(IDG)*LB(IDG)
+      ENDDO
+
+ ! Find the largest blocking level IDS which fits more than
+ ! one link in the lattice X direction
+ ! (in which case it makes sense to define of a Polyakov loop)
+      DO IB=1,ID
+         IF(LCNT(IB).GE.1) THEN
+           IDS=IB
+         ENDIF
+      ENDDO
+
+ ! Blocking level below IDS - if it's the smallest, set it to itself
+ ! Only happens if LX1 = 2 (I think)
+      IDSM1=IDS-1
+      IF(IDS.EQ.1)IDSM1=IDS
 !**********************************************************************
-         DO KK=1,3
-            DO NN=1,LSIZEB
-               IUP(NN,KK)=IUPB(NN,KK,IDS)
-               IDN(NN,KK)=IDNB(NN,KK,IDS)
-            ENDDO
+! Use this to set the move functions at the correct blocking level
+! Use the move functions of the IDS blocking level
+! TODO: Source of duplicate operators, should also have possible
+!       optimisation as it's called at every BL
+      DO KK=1,3
+         DO NN=1,LSIZEB
+            IUP(NN,KK)=IUPB(NN,KK,IDS)
+            IDN(NN,KK)=IDNB(NN,KK,IDS)
          ENDDO
+      ENDDO
 !**********************************************************************    
-         DO KK=1,3
-            DO NN=1,LSIZEB
-               DO IC=1,NCOL2
-                  UC11(IC,NN,KK)=UB11(IC,NN,KK,IDS)
-               ENDDO
+! Define our configuration at the current blocking level
+! to be the configuration at BL corresponding to IDS
+      DO KK=1,3
+         DO NN=1,LSIZEB
+            DO IC=1,NCOL2
+               UC11(IC,NN,KK)=UB11(IC,NN,KK,IDS)
             ENDDO
          ENDDO
+      ENDDO
 !**********************************************************************
-         CSUMN=(0.0,0.0)
-!
-         DO IJN=1,4
-            CSUMS(IJN)=(0.0,0.0)
-            CSUM2S(IJN)=(0.0,0.0)
-            CSUM2WS(IJN)=(0.0,0.0)
-            CSUMW(IJN)=(0.0,0.0)
-            CSUM2W(IJN)=(0.0,0.0)
-            CSUM3W(IJN)=(0.0,0.0)
-            CSUMUP(IJN)=(0.0,0.0)
-            CSUMUD(IJN)=(0.0,0.0)
-         ENDDO
-!
-         DO IJN=1,8
-            CSUMTT1(IJN)=(0.0,0.0)
-            CSUMTT2(IJN)=(0.0,0.0)
-            CSUMTT3(IJN)=(0.0,0.0)
-            CSUMTT4(IJN)=(0.0,0.0)
-            CSUMTT5(IJN)=(0.0,0.0)
-            CSUMTT6(IJN)=(0.0,0.0)
-            CSUMTT7(IJN)=(0.0,0.0)
-            CSUMTT8(IJN)=(0.0,0.0)
-            CSUMTT9(IJN)=(0.0,0.0)
-            CSUMTT10(IJN)=(0.0,0.0)
-            CSUMTT11(IJN)=(0.0,0.0)
-            CSUMTT13(IJN)=(0.0,0.0)
-            CSUMTT14(IJN)=(0.0,0.0)
-            CSUMPLQ(IJN)=(0.0,0.0)
-            CSUMPLQ2(IJN)=(0.0,0.0)
-            CSUMPLQ3(IJN)=(0.0,0.0)
-            CSUMPLQ4(IJN)=(0.0,0.0)
-            CSUMPLQ5(IJN)=(0.0,0.0)
-            CSUMPLQ6(IJN)=(0.0,0.0)
-         ENDDO
-!
-         DO IJN=1,16
-            CSUMTT12(IJN)=(0.0,0.0)
-            CSUMPLQ7(IJN)=(0.0,0.0)
-            CSUMPLQ8(IJN)=(0.0,0.0)
-            CSUMPLQ9(IJN)=(0.0,0.0)
-            CSUMPLQ10(IJN)=(0.0,0.0)
-            CSUMPLQ11(IJN)=(0.0,0.0)
-            CSUMPLQ12(IJN)=(0.0,0.0)
-            CSUMPLQ13(IJN)=(0.0,0.0)
-            CSUMPLQ14(IJN)=(0.0,0.0)
-            CSUMPLQ15(IJN)=(0.0,0.0)
-         ENDDO
+! These sums keep track of the operators, summing them to make
+! the final operator is translation invariant
+      CSUMN=(0.0,0.0)
+! These operators have 4 rotations
+      DO IJN=1,4
+                              ! Each element will be summed over
+                              ! all x
+                              ! and contains one ''rotation''
+         CSUMS(IJN)=(0.0,0.0)
+         CSUM2S(IJN)=(0.0,0.0)
+         CSUM2WS(IJN)=(0.0,0.0)
+         CSUMW(IJN)=(0.0,0.0)
+         CSUM2W(IJN)=(0.0,0.0)
+         CSUM3W(IJN)=(0.0,0.0)
+         CSUMUP(IJN)=(0.0,0.0)
+         CSUMUD(IJN)=(0.0,0.0)
+      ENDDO
+! These operators have 4 rotations x 2 reflections
+      DO IJN=1,8
+         CSUMTT1(IJN)=(0.0,0.0)
+         CSUMTT2(IJN)=(0.0,0.0)
+         CSUMTT3(IJN)=(0.0,0.0)
+         CSUMTT4(IJN)=(0.0,0.0)
+         CSUMTT5(IJN)=(0.0,0.0)
+         CSUMTT6(IJN)=(0.0,0.0)
+         CSUMTT7(IJN)=(0.0,0.0)
+         CSUMTT8(IJN)=(0.0,0.0)
+         CSUMTT9(IJN)=(0.0,0.0)
+         CSUMTT10(IJN)=(0.0,0.0)
+         CSUMTT11(IJN)=(0.0,0.0)
+         CSUMTT13(IJN)=(0.0,0.0)
+         CSUMTT14(IJN)=(0.0,0.0)
+         CSUMPLQ(IJN)=(0.0,0.0)
+         CSUMPLQ2(IJN)=(0.0,0.0)
+         CSUMPLQ3(IJN)=(0.0,0.0)
+         CSUMPLQ4(IJN)=(0.0,0.0)
+         CSUMPLQ5(IJN)=(0.0,0.0)
+         CSUMPLQ6(IJN)=(0.0,0.0)
+      ENDDO
+! These operators have 4 rotations x 2 reflections
+!                                  x 2 reflection
+! from different parities
+      DO IJN=1,16
+         CSUMTT12(IJN)=(0.0,0.0)
+         CSUMPLQ7(IJN)=(0.0,0.0)
+         CSUMPLQ8(IJN)=(0.0,0.0)
+         CSUMPLQ9(IJN)=(0.0,0.0)
+         CSUMPLQ10(IJN)=(0.0,0.0)
+         CSUMPLQ11(IJN)=(0.0,0.0)
+         CSUMPLQ12(IJN)=(0.0,0.0)
+         CSUMPLQ13(IJN)=(0.0,0.0)
+         CSUMPLQ14(IJN)=(0.0,0.0)
+         CSUMPLQ15(IJN)=(0.0,0.0)
+      ENDDO
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          DO IJN=1, 4
             DO IJ=1, 2
@@ -9497,7 +9521,6 @@ SUBROUTINE THERML1(N4,IBLL)
      -CSUMPLQMOM15(16,IK)))*ADIV2
       ENDDO      
 !**********************************************************************
- 2    CONTINUE
 !**********************************************************************
       RETURN
       END
