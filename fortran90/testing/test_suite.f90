@@ -121,7 +121,7 @@ program test_suite
         end if
 
         ! Output success
-        write(*, "(a)") "Parameter check PASSED."
+        write(*, "(a)") "Parameter check PASSED"
         print *, ""
     end subroutine check_parameters
 
@@ -253,12 +253,12 @@ program test_suite
         print *, ""
     end subroutine test_read_gauge_field
 
-    ! Test unitarisation subroutine
+    ! Test unitarisation function
     subroutine test_unitarise_SVD(ierr)
         implicit none
         logical, intent(out) :: ierr
 
-        integer, parameter :: num_tests = 5
+        integer, parameter :: num_tests = 10
         complex(real64) :: matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL)
         integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
         real :: random_numbers(2*num_tests)
@@ -267,10 +267,10 @@ program test_suite
         ! Load gauge field into memory if it hasn't been already
         call load_gauge_field()
 
-        ! Get 5 random sites and 5 random directions
+        ! Get random sites and random directions
         call random_number(random_numbers)
         random_numbers(1:num_tests) = random_numbers(1:num_tests) * LATTICE_VOLUME
-        random_sites = ceiling(random_numbers(1:5))
+        random_sites = ceiling(random_numbers(1:num_tests))
         random_numbers(num_tests+1:2*num_tests) = random_numbers(num_tests+1:2*num_tests) * 4
         random_directions = ceiling(random_numbers(num_tests+1:2*num_tests))
 
@@ -313,8 +313,60 @@ program test_suite
         print *, ""
     end subroutine
 
-    ! 
+    ! Test determinant function
+    subroutine test_det(ierr)
+        implicit none
+        logical, intent(out) :: ierr
 
+        integer, parameter :: num_tests = 10
+        complex(real64) :: matrix_sum(NCOL, NCOL), computed_det, correct_det
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
+        real :: random_numbers(2*num_tests)
+        logical :: real_good, imag_good
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Get random sites and random directions
+        call random_number(random_numbers)
+        random_numbers(1:num_tests) = random_numbers(1:num_tests) * LATTICE_VOLUME
+        random_sites = ceiling(random_numbers(1:num_tests))
+        random_numbers(num_tests+1:2*num_tests) = random_numbers(num_tests+1:2*num_tests) * 4
+        random_directions = ceiling(random_numbers(num_tests+1:2*num_tests))
+
+        ! For each random site and direction, sum 2 consectutive links from that site and in that direction. Apply the determinant procedure to the sum and test the result against formula for determinant of 2x2 matrix. If they are not equal for all of the tests, return ierr = .false. and halt execution.
+        ierr = .true.
+        do k = 1, num_tests
+            site = random_sites(k)
+            mu = random_directions(k)
+
+            ! Sum consective links in direction mu from site
+            matrix_sum = gauge_field(:,:,site,mu) + gauge_field(:,:,move(site,mu),mu)
+
+            ! Compute determinant using det function
+            computed_det = det(matrix_sum)
+
+            ! Compute 2x2 determinant
+            correct_det = matrix_sum(1,1) * matrix_sum(2,2) - matrix_sum(1,2) * matrix_sum(2,1)
+
+            ! We expect this to be a phase, so check real and imaginary components individually
+            real_good = (real(computed_det - correct_det, kind=real64) <= epsilon(1.0d0))
+            imag_good = (aimag(computed_det - correct_det) <= epsilon(1.0d0))
+            ierr = real_good.and.imag_good
+            if (.not.ierr) then
+                write(*, "(a)") "det test FAILED"
+                write(*, "(a, f0.15, a, f0.15, a)") "Computed determinant", real(computed_det, kind=real64), &
+                " + ", aimag(computed_det), "i"
+                write(*, "(a, f0.15, a, f0.15, a)") "Correct determinant", real(correct_det, kind=real64), &
+                " + ", aimag(correct_det), "i"
+                return
+            endif
+        enddo
+        write(*, "(a)") "det test PASSED"
+        print *, ""
+    end subroutine
+
+    !!! SMEARED_SAVE NOW FIRST SMEARING STEP, SO SPLIT THIS FUNCTION INTO TWO
     ! Test smearing and blocking of configurations
     subroutine test_blocking_smearing(ierr)
         implicit none
