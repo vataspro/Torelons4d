@@ -724,106 +724,107 @@ SUBROUTINE THERML1(N4,IBLL)
 !**********************************************************************
 !*********************** REMAINING PIECE ******************************
 !**********************************************************************            
-            DO IC=1, NCOL2
-               REM11(IC)=(0.0,0.0)
-            ENDDO
+                  DO IC=1, NCOL2
+                     REM11(IC)=(0.0,0.0)
+                  ENDDO
 !********************************************************************
-            DO N1=1,NCOL
-               IJ=N1+NCOL*(N1-1)                     
-               REM11(IJ)=(1.0,0.0) 
-            ENDDO
+                  DO N1=1,NCOL
+                     IJ=N1+NCOL*(N1-1)                     
+                     REM11(IJ)=(1.0,0.0) 
+                  ENDDO
 !********************************************************************
-           DO 176 IG=1,IDS
-               IDG=IDS-IG+1
-               IF(IDG.EQ.ID)GOTO176
-               DO 177 NC=1,LCNT(IDG)
-                  DO 178 IC=1,NCOL2
-                     UINT11(IC)=(0.0,0.0)
- 178              CONTINUE
+                  DO IG=1,IDS
+                      IDG=IDS-IG+1
+                      IF(IDG.EQ.ID) CYCLE
+                      DO NC=1,LCNT(IDG)
+
+                         DO IC=1,NCOL2
+                            UINT11(IC)=(0.0,0.0)
+                         ENDDO
 !     
-                  DO 179 IJ=1,3
-                     IF(IJ.EQ.KU)GOTO179
-                     DO 180 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M2,IJ,IDSM1)
- 180                 CONTINUE
-                     M3=IUPB(M2,IJ,IDSM1)
-                     DO 181 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,IDG)
- 181                 CONTINUE
-                     CALL VMX(1,B11,C11,D11,1)
-                     M1=IUPB(M2,KU,IDG)
-                     DO 182 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M1,IJ,IDSM1)
- 182                 CONTINUE
-                     CALL HERM(1,B11,DUM11,1)
-                     CALL VMX(1,D11,B11,C11,1)
-                     DO 183 IC=1,NCOL2
-                        UINT11(IC)=UINT11(IC)+C11(IC)
- 183                 CONTINUE
-                     M3=IDNB(M2,IJ,IDSM1)
-                     DO 184 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,IJ,IDSM1)
- 184                 CONTINUE
-                     DO 185 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,IDG)
- 185                 CONTINUE
-                     CALL HERM(1,B11,DUM11,1)
-                     CALL VMX(1,B11,C11,D11,1)
-                     M1=IUPB(M3,KU,IDG)
-                     DO 186 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M1,IJ,IDSM1)
- 186                 CONTINUE
-                     CALL VMX(1,D11,B11,C11,1)
-                     DO 187 IC=1,NCOL2
-                        UINT11(IC)=UINT11(IC)+C11(IC)
- 187                 CONTINUE
- 179              CONTINUE
-                  DO 188 IC=1,NCOL2
-                     B11(IC)=UB11(IC,M2,KU,IDG)
- 188              CONTINUE
-                  DO 189 IC=1,NCOL2
-                     UINT11(IC)=UINT11(IC)+B11(IC)
- 189              CONTINUE
-!new
-                  CALL RENORMBS(UINT11,UREN11)
-                  DO 441 IJ=1,NCOL2
-                     AA(IJ)=UREN11(IJ)
- 441              CONTINUE
-                  JMAT=NCOL
-                  CALL DETNANT(JMAT,DET,AA)
+                         DO IJ=1,3
+                            IF(IJ.EQ.KU) CYCLE
+                            DO IC=1,NCOL2
+                               B11(IC)=UB11(IC,M2,IJ,IDSM1)
+                            ENDDO
+                            M3=IUPB(M2,IJ,IDSM1)
+                            DO IC=1,NCOL2
+                               C11(IC)=UB11(IC,M3,KU,IDG)
+                            ENDDO
+                            CALL VMX(1,B11,C11,D11,1)
+                            M1=IUPB(M2,KU,IDG)
+                            DO IC=1,NCOL2
+                               B11(IC)=UB11(IC,M1,IJ,IDSM1)
+                            ENDDO
+                            CALL HERM(1,B11,DUM11,1)
+                            CALL VMX(1,D11,B11,C11,1)
+                            DO IC=1,NCOL2
+                               UINT11(IC)=UINT11(IC)+C11(IC)
+                            ENDDO
+                            M3=IDNB(M2,IJ,IDSM1)
+                            DO IC=1,NCOL2
+                               B11(IC)=UB11(IC,M3,IJ,IDSM1)
+                            ENDDO
+                            DO IC=1,NCOL2
+                               C11(IC)=UB11(IC,M3,KU,IDG)
+                            ENDDO
+                            CALL HERM(1,B11,DUM11,1)
+                            CALL VMX(1,B11,C11,D11,1)
+                            M1=IUPB(M3,KU,IDG)
+                            DO IC=1,NCOL2
+                               B11(IC)=UB11(IC,M1,IJ,IDSM1)
+                            ENDDO
+                            CALL VMX(1,D11,B11,C11,1)
+                            DO IC=1,NCOL2
+                               UINT11(IC)=UINT11(IC)+C11(IC)
+                            ENDDO
+                         ENDDO
+                         DO IC=1,NCOL2
+                            B11(IC)=UB11(IC,M2,KU,IDG)
+                         ENDDO
+                         DO IC=1,NCOL2
+                            UINT11(IC)=UINT11(IC)+B11(IC)
+                         ENDDO
 !
-                  DNCOL=CMPLX(1.0/NCOL)
-                  CDET=DET**DNCOL
-                  CNORM=1.0/CDET
+                         CALL RENORMBS(UINT11,UREN11)
+                         DO IJ=1,NCOL2
+                            AA(IJ)=UREN11(IJ)
+                         ENDDO
+                         JMAT=NCOL
+                         CALL DETNANT(JMAT,DET,AA)
 !
-                  DO 644 IC=1,NCOL2
-                     B11(IC)=UREN11(IC)*CNORM
- 644               CONTINUE
-!********************************************
-                  CALL VMX(1,REM11,B11,C11,1)
-                  M1=M2
-                  DO 191 IC=1,NCOL2
-                     REM11(IC)=C11(IC)
- 191              CONTINUE
-                  M2=IUPB(M1,KU,IDG)
- 177           CONTINUE
- 176        CONTINUE
+                         DNCOL=CMPLX(1.0/NCOL)
+                         CDET=DET**DNCOL
+                         CNORM=1.0/CDET
+!
+                         DO IC=1,NCOL2
+                            B11(IC)=UREN11(IC)*CNORM
+                         ENDDO
+!*************************************************************
+                         CALL VMX(1,REM11,B11,C11,1)
+                         M1=M2
+                         DO IC=1,NCOL2
+                            REM11(IC)=C11(IC)
+                         ENDDO
+                         M2=IUPB(M1,KU,IDG)
+                      ENDDO
+                   ENDDO
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 ! OPERATOR CONSTRUCTION
-               DO 9 IDDD=1,337 !new!
+                   DO 9 IDDD=1,337 !new!
 !
-                  M2=MN
+                      M2=MN
 !
-                  DO 10 IJ=1,NCOL2
-                     A11(IJ)=(0.0,0.0)
- 10               CONTINUE
+                      DO J=1,NCOL2
+                         A11(IJ)=(0.0,0.0)
+                      ENDDO
 !
-                  DO 11 N1=1,NCOL
-                     IJ=N1+NCOL*(N1-1)
-                     A11(IJ)=(1.0,0.0)
- 11               CONTINUE
+                      DO N1=1,NCOL
+                         IJ=N1+NCOL*(N1-1)
+                         A11(IJ)=(1.0,0.0)
+                      ENDDO
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-                  IF (IDS.EQ.ID) THEN
+                      IF (IDS.EQ.ID) THEN
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
                ICO=2
                IF(IDDD.LT.5) ICO=1
@@ -841,10 +842,10 @@ SUBROUTINE THERML1(N4,IBLL)
                IF(((IDDD.GT.80).AND.(IDDD.LT.89)).AND.(IDS.EQ.1)) ICO=4
                IF(((IDDD.GT.88).AND.(IDDD.LT.97)).AND.(IDS.EQ.1)) ICO=4
                IF(((IDDD.GT.96).AND.(IDDD.LT.105)).AND.(IDS.EQ.1)) ICO=4
-              IF(((IDDD.GT.104).AND.(IDDD.LT.113)).AND.(IDS.EQ.1)) ICO=4
-              IF(((IDDD.GT.112).AND.(IDDD.LT.129)).AND.(IDS.EQ.1)) ICO=4
-              IF(((IDDD.GT.128).AND.(IDDD.LT.137)).AND.(IDS.EQ.1)) ICO=4
-              IF(((IDDD.GT.136).AND.(IDDD.LT.145)).AND.(IDS.NE.1)) ICO=1
+                  IF(((IDDD.GT.104).AND.(IDDD.LT.113)).AND.(IDS.EQ.1)) ICO=4
+                  IF(((IDDD.GT.112).AND.(IDDD.LT.129)).AND.(IDS.EQ.1)) ICO=4
+                  IF(((IDDD.GT.128).AND.(IDDD.LT.137)).AND.(IDS.EQ.1)) ICO=4
+                  IF(((IDDD.GT.136).AND.(IDDD.LT.145)).AND.(IDS.NE.1)) ICO=1
                IF(IDDD.EQ.145) ICO=1
                IF((IDDD.GT.145).AND.(IDDD.LT.194)) ICO=1
                IF((IDDD.GT.209).AND.(IDDD.LT.338)) ICO=1 ! THIS NEEDS TO BE FIXED  !
