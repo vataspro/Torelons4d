@@ -5,6 +5,7 @@ program test_suite
     implicit none
 
     complex(real64), allocatable :: gauge_field(:,:,:,:)
+    logical :: gauge_field_loaded
 
     ! Read parameters from input file
     call initialise_parameters("parameter_file.txt")
@@ -23,6 +24,7 @@ program test_suite
 
     ! Allocate gauge field so that it only needs to be loaded once
     allocate(gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4))
+    gauge_field_loaded = .false.
 
     ! Test loading of gauge field
     call check_success(test_read_gauge_field)
@@ -55,6 +57,24 @@ program test_suite
             print *, ""
         enddo
         print *, ""
+    end subroutine
+
+    ! Load gauge field if gauge field has yet to be loaded
+    subroutine load_gauge_field()
+        implicit none
+
+        character(len=16) :: file_config_id
+        character(len=256) :: directory
+
+        if (.not.gauge_field_loaded) then
+            ! Set directory path
+            write(file_config_id, "(i0)") CONFIG_START
+            directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+
+            ! Load gauge field into memory
+            call read_gauge_field(directory, gauge_field)
+            gauge_field_loaded = .true.
+        endif
     end subroutine
 
     ! Quit program if a test has failed
@@ -202,16 +222,10 @@ program test_suite
         implicit none
         logical, intent(out) :: ierr
 
-        character(len=16) :: file_config_id
-        character(len=256) :: directory
         complex(real64) :: gauge_field_correct(5), gauge_field_check(5)
 
-        ! Set directory path
-        write(file_config_id, "(i0)") CONFIG_START
-        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
-
         ! Load gauge field into memory
-        call read_gauge_field(directory, gauge_field)
+        call load_gauge_field()
 
         ! Set correct links
         gauge_field_correct = &
@@ -245,19 +259,13 @@ program test_suite
         logical, intent(out) :: ierr
 
         integer, parameter :: num_tests = 5
-        character(len=16) :: file_config_id
-        character(len=256) :: directory
         complex(real64) :: matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL)
         integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
         real :: random_numbers(2*num_tests)
         logical :: diagonal_good, off_diagonal_good, diagonal_mask(NCOL, NCOL), off_diagonal_mask(NCOL, NCOL)
 
-        ! Set directory path
-        write(file_config_id, "(i0)") CONFIG_START
-        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
-
-        ! Load gauge field into memory
-        call read_gauge_field(directory, gauge_field)
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
 
         ! Get 5 random sites and 5 random directions
         call random_number(random_numbers)
@@ -305,6 +313,8 @@ program test_suite
         print *, ""
     end subroutine
 
+    ! 
+
     ! Test smearing and blocking of configurations
     subroutine test_blocking_smearing(ierr)
         implicit none
@@ -314,8 +324,6 @@ program test_suite
         blok_check(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         complex(real64) :: gauge_field_smeared(NCOL, NCOL, SLICE_VOLUME, 3), &
         gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
-        character(len=16) :: file_config_id
-        character(len=256) :: directory
         logical :: blok_equal, smear_equal
 
         !! Load data from old code
@@ -330,13 +338,8 @@ program test_suite
         close(11)
 
 
-        !! Load field configuration from file given in parameter file
-        ! Set directory path
-        write(file_config_id, "(i0)") CONFIG_START
-        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
-
-        ! Load gauge field into memory
-        call read_gauge_field(directory, gauge_field)
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
 
 
         !! Smear and block configuration using new functions
