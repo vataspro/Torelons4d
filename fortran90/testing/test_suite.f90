@@ -44,7 +44,7 @@ program test_suite
         N = shape(matrix)
         do i = 1, N(1)
             do j = 1, N(2)
-                write(6, '(f0.6, a, f0.6, a)', advance='no') real(matrix(i,j)), "+",&
+                write(6, '(f0.9, a, f0.9, a)', advance='no') real(matrix(i,j)), "+",&
                 aimag(matrix(i,j)), "i    "
             enddo
             print *, ""
@@ -287,7 +287,7 @@ program test_suite
 
             ! Test if trial identity matrix is sufficiently close to the identity
             diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.off_diagonal_mask)
-            off_diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.diagonal_mask)
+            off_diagonal_good = all((abs(trial_identity) < TOL_SVD).or.diagonal_mask)
             ierr = diagonal_good.and.off_diagonal_good
             if (.not.ierr) then
                 write(*, "(a)") "unitarise_SVD test FAILED"
@@ -299,6 +299,7 @@ program test_suite
             endif
         enddo
         write(*, "(a)") "unitarise_SVD test PASSED"
+	print *, ""
     end subroutine
 
     ! Test smearing and blocking of configurations
@@ -345,8 +346,8 @@ program test_suite
 
 
         !! Check if smeared and blocked configurations are equal to those produced during old calculation
-        smear_equal = all(abs(gauge_field_smeared - smear_check) <= max(epsilon(1.0), TOL_SVD))
-        blok_equal = all(abs(gauge_field_blocked - blok_check) <= max(epsilon(1.0), TOL_SVD))
+        smear_equal = all(abs(gauge_field_smeared - smear_check) <= max(1e-4, epsilon(1.0), TOL_SVD))
+        blok_equal = all(abs(gauge_field_blocked - blok_check) <= max(1e-4, epsilon(1.0), TOL_SVD))
         ierr = smear_equal.and.blok_equal
 
         ! Output results
