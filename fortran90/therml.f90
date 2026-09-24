@@ -640,82 +640,83 @@ SUBROUTINE THERML1(N4,IBLL)
        DO NK=1,LS(KU)
           PF(1)=DCOS((2.0*PI*NK)/LS(KU))+GIOT*DSIN((2.0*PI*NK)/LS(KU))
           PF(2)=DCOS((4.0*PI*NK)/LS(KU))+GIOT*DSIN((4.0*PI*NK)/LS(KU))
-            DO NJ=1,LS(JU) ! LY direction
-               DO NI=1,LS(IU) ! LZ direction 
-                  ! Lexicographical lattice site definition
-                  NN=NN+1
-                  IX(IU)=NI
-                  IX(JU)=NJ
-                  IX(KU)=NK
-                  ! MN defines the current lattice site
-                  MN=IX(1)+LS(1)*(IX(2)-1)+LS(1)*LS(2)*(IX(3)-1)
+             DO NJ=1,LS(JU) ! LY direction
+                DO NI=1,LS(IU) ! LZ direction 
+                   ! Lexicographical lattice site definition
+                   NN=NN+1
+                   IX(IU)=NI
+                   IX(JU)=NJ
+                   IX(KU)=NK
+                   ! MN defines the current lattice site
+                   MN=IX(1)+LS(1)*(IX(2)-1)+LS(1)*LS(2)*(IX(3)-1)
 
 
+! TODO: ANDREAS COMMENTS FROM HERE
 !**********************************************************************
-               IF(IDS.EQ.ID) THEN
+                   IF(IDS.EQ.ID) THEN
 !**********************************************************************
-               IREM=3
-               IF(IDS.EQ.1) IREM=4
-               DO 201 ILOOP=1,IREM
-                  IF(ILOOP.EQ.1)LI=LCNT(IDS)
-                  IF(ILOOP.GT.1)LI=LCNT(IDS)-2**(ILOOP-2)
-                  IF(LI.LT.0) GOTO 201
+                      IREM=3
+                      IF(IDS.EQ.1) IREM=4
+                      DO ILOOP=1,IREM
+                         IF(ILOOP.EQ.1)LI=LCNT(IDS)
+                         IF(ILOOP.GT.1)LI=LCNT(IDS)-2**(ILOOP-2)
+                         IF(LI.LT.0) EXIT
+!      
+                         M2=MN
+                         IF(ILOOP.GT.1) THEN
+                            DO I=1, 2**(ILOOP-2)
+                               M3=IUP(M2,KU)
+                               M2=M3
+                            END DO
+                         ENDIF
 !
-                  M2=MN
-                  IF(ILOOP.GT.1) THEN
-                     DO I=1, 2**(ILOOP-2)
-                        M3=IUP(M2,KU)
-                        M2=M3
-                     END DO
-                  ENDIF
+                         DO IC=1,NCOL2                        
+                            E11(IC)=(0.0,0.0)
+                         ENDDO
 !
-                  DO 202 IC=1,NCOL2                        
-                     E11(IC)=(0.0,0.0)
- 202              CONTINUE
+                         DO N1=1,NCOL                         
+                            IJ=N1+NCOL*(N1-1)                     
+                            E11(IJ)=(1.0,0.0)                     
+                         ENDDO
 !
-                  DO 203 N1=1,NCOL                         
-                     IJ=N1+NCOL*(N1-1)                     
-                     E11(IJ)=(1.0,0.0)                     
- 203              CONTINUE 
+                         DO NC=1,LI
+                            DO  IC=1,NCOL2
+                               B11(IC)=UC11(IC,M2,KU)
+                            ENDDO
+                            CALL VMX(1,E11,B11,C11,1)
+                            M3=IUP(M2,KU)
+                            M2=M3
+                            DO IC=1,NCOL2
+                               E11(IC)=C11(IC)
+                            ENDDO
+                         ENDDO
 !
-                  DO 204 NC=1,LI
-                     DO 205 IC=1,NCOL2
-                        B11(IC)=UC11(IC,M2,KU)
- 205                 CONTINUE
-                     CALL VMX(1,E11,B11,C11,1)
-                     M3=IUP(M2,KU)
-                     M2=M3
-                     DO 206 IC=1,NCOL2
-                        E11(IC)=C11(IC)
- 206                 CONTINUE
- 204              CONTINUE
-!
-                  ML=M2
-                  IF(ILOOP.EQ.1) THEN
-                     DO 207 IC=1,NCOL2
-                        LIN0(IC)=E11(IC)
- 207                 CONTINUE
-                  ENDIF
+                         ML=M2
+                         IF(ILOOP.EQ.1) THEN
+                            DO IC=1,NCOL2
+                               LIN0(IC)=E11(IC)
+                            ENDDO
+                         ENDIF
 !********************************************************************                  
-                  IF(ILOOP.EQ.2) THEN
-                     DO 208 IC=1,NCOL2
-                        LIN1(IC)=E11(IC)   
- 208                 CONTINUE
-                  ENDIF
+                        IF(ILOOP.EQ.2) THEN
+                           DO IC=1,NCOL2
+                              LIN1(IC)=E11(IC)   
+                           ENDDO
+                        ENDIF
 !********************************************************************                                 
-                  IF(ILOOP.EQ.3) THEN
-                     DO 209 IC=1,NCOL2
-                        LIN2(IC)=E11(IC)   
- 209                 CONTINUE
-                  ENDIF
+                        IF(ILOOP.EQ.3) THEN
+                           DO IC=1,NCOL2
+                              LIN2(IC)=E11(IC)   
+                           ENDDO
+                        ENDIF
 !********************************************************************
-                  IF(ILOOP.EQ.4) THEN
-                     DO 210 IC=1,NCOL2
-                        LIN4(IC)=E11(IC)   
- 210                 CONTINUE
-                  ENDIF
+                        IF(ILOOP.EQ.4) THEN
+                           DO IC=1,NCOL2
+                              LIN4(IC)=E11(IC)   
+                           ENDDO
+                        ENDIF
 !********************************************************************
- 201           CONTINUE
+                     ENDDO
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             ELSE
                M2=MN
@@ -808,6 +809,7 @@ SUBROUTINE THERML1(N4,IBLL)
  177           CONTINUE
  176        CONTINUE
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+! OPERATOR CONSTRUCTION
                DO 9 IDDD=1,337 !new!
 !
                   M2=MN
@@ -5916,7 +5918,7 @@ SUBROUTINE THERML1(N4,IBLL)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             ENDIF  
 !     
- 9       CONTINUE 
+9       CONTINUE ! OPERATOR CONSTRUCTION LOOP END
 !
       ENDDO
       ENDDO
