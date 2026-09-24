@@ -494,7 +494,7 @@ module lattice
         integer, intent(in) :: blocking_level
         complex(real64) :: smear(NCOL, NCOL, SLICE_VOLUME, 3)
 
-        complex(real64) :: diagonal_links_mu(NCOL, NCOL, SLICE_VOLUME, 4), staple(NCOL, NCOL), determinant
+        complex(real64) :: diagonal_links_mu(NCOL, NCOL, SLICE_VOLUME, 4), staple(NCOL, NCOL)
         integer :: diagonal_pointers_mu(SLICE_VOLUME, 4), mu, nu, nu_ku, site, temp_site1, temp_site2, site_plus_mu
 
         ! Smear over each direction individually

@@ -65,7 +65,16 @@ program test_suite
     call check_success(test_det)
 
     ! Test smearing and blocking procedures
-    call check_success(test_blocking_smearing)
+    call check_success(test_normalise_link)
+
+    ! Test diagonal links procedure
+    call check_success(test_get_diagonal_links)
+
+    ! Test smearing procedure
+    call check_success(test_get_smeared_gauge_field)
+
+    ! Test blocking procedure
+    call check_success(test_get_blocked_gauge_field)
 
     ! Print success statement
     write(*, "(a)") "----------ALL TESTS PASSED----------"
@@ -83,7 +92,7 @@ program test_suite
         N = shape(matrix)
         do i = 1, N(1)
             do j = 1, N(2)
-                write(6, '(f0.9, a, f0.9, a)', advance='no') real(matrix(i,j)), "+",&
+                write(6, '(f0.6, a, f0.6, a)', advance='no') real(matrix(i,j)), "+",&
                 aimag(matrix(i,j)), "i    "
             enddo
             print *, ""
@@ -466,63 +475,122 @@ program test_suite
         print *, ""
     end subroutine
 
-    !!! SMEARED_SAVE NOW FIRST SMEARING STEP, SO SPLIT THIS FUNCTION INTO TWO
-    ! Test smearing and blocking of configurations
-    subroutine test_blocking_smearing(ierr)
+    ! Test diagonal links
+    subroutine test_get_diagonal_links(ierr)
         implicit none
         logical, intent(out) :: ierr
 
-        complex(real32) :: smear_check(NCOL, NCOL, SLICE_VOLUME, 3), &
-        blok_check(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
-        complex(real64) :: gauge_field_smeared(NCOL, NCOL, SLICE_VOLUME, 3), &
-        gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
-        logical :: blok_equal, smear_equal
+        complex(real32) :: diag_check(NCOL, NCOL, SLICE_VOLUME, 4)
+        integer :: diag_pointer_check(SLICE_VOLUME, 4)
+        complex(real64) :: diag_computed(NCOL, NCOL, SLICE_VOLUME, 4)
+        integer :: diag_pointer_computed(SLICE_VOLUME, 4)
+        logical :: diag_equal, pointers_equal
 
-        !! Load data from old code
+        ! Load data from old code, stored in DIAG.DAT file
+        open(11, file='DIAG.DAT', form='unformatted', status='old', access='stream')
+        read(11) diag_check
+        read(11) diag_pointer_check
+        close(11)
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Get diagonal links for gauge configuration in direction mu = 1
+        call get_diagonal_links(gauge_field(:,:,1:SLICE_VOLUME,1:3), 1, 1, &
+        diag_computed, diag_pointer_computed)
+
+        ! Check diagonal links and diagonal pointers are equal
+        diag_equal = all(abs(diag_computed - diag_check) <= epsilon(1.0))
+        pointers_equal = all(diag_pointer_computed == diag_pointer_check)
+        ierr = diag_equal.and.pointers_equal
+        if (ierr) then
+            write(*, "(a)") "get_diagonal_links test PASSED"
+        else
+            write(*, "(a)") "get_diagonal_links test FAILED"
+            if (diag_equal) then
+                write(*, "(a)") "    diagonal links: CORRECT"
+            else
+                write(*, "(a)") "    diagonal links: INCORRECT"
+                write(*, "(a)") "    Matrix (1,1) from file:"
+                call print_matrix(cmplx(diag_check(:,:,1,1), kind=real64))
+                write(*, "(a)") "    Matrix (1,1) computed:"
+                call print_matrix(diag_computed(:,:,1,1))
+            endif
+            if (pointers_equal) then
+                write(*, "(a)") "    pointers:       CORRECT"
+            else
+                write(*, '(a)') "    pointers:       INCORRECT"
+                write(*, '(a)') "    First 4 pointers from file:"
+                print *, diag_pointer_check(1, :)
+                write(*, "(a)") "    First 4 pointers computed:"
+                print *, diag_pointer_computed(1, :)
+            endif
+        endif
+    end subroutine
+
+    ! Test smearing function
+    subroutine test_get_smeared_gauge_field(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real32) :: smear_check(NCOL, NCOL, SLICE_VOLUME, 3)
+        complex(real64) :: smear_computed(NCOL, NCOL, SLICE_VOLUME, 3)
+        logical :: smear_equal
+
         ! Load smear_check from SMEARED_SAVE.DAT file
         open(11, file='SMEARED_SAVE.DAT', form='unformatted', status='old', access='stream')
         read(11) smear_check
         close(11)
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Smear configuration at 1st blocking level
+        smear_computed = get_smeared_gauge_field(gauge_field(:,:,1:SLICE_VOLUME,1:3), 1)
+
+        ! Check if smeared configuration is equal to those produced during old calculation
+        smear_equal = all(abs(smear_computed - smear_check) <= max(epsilon(1.0), TOL_SVD))
+        if (ierr) then
+            write(*, "(a)") "get_smeared_gauge_field test PASSED"
+        else
+            write(*, "(a)") "get_smeared_gauge_field test FAILED"
+            write(*, "(a)") "    Matrix (1,1) from file:"
+            call print_matrix(cmplx(smear_check(:,:,1,1), kind=real64))
+            write(*, "(a)") "    Matrix (1,1) computed:"
+            call print_matrix(smear_computed(:,:,1,1))
+        endif
+    end subroutine
+
+    ! Test blocking function
+    subroutine test_get_blocked_gauge_field(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real32) :: blok_check(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: blok_computed(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        logical :: blok_equal
 
         ! Load blok_check from BLOCKED_SAVE.DAT file
         open(11, file='BLOCKED_SAVE.DAT', form='unformatted', status='old', access='stream')
         read(11) blok_check
         close(11)
 
-
         ! Load gauge field into memory if it hasn't been already
         call load_gauge_field()
 
-
-        !! Smear and block configuration using new functions
         ! Block configuration
-        gauge_field_blocked = get_blocked_gauge_field(gauge_field(:, :, 1:SLICE_VOLUME, 1:3))
+        blok_computed = get_blocked_gauge_field(gauge_field(:, :, 1:SLICE_VOLUME, 1:3))
 
-        ! Smear configuration at 4th blocking level
-        gauge_field_smeared = get_smeared_gauge_field(gauge_field_blocked(:,:,:,:,4), 4)
-
-
-        !! Check if smeared and blocked configurations are equal to those produced during old calculation
-        smear_equal = all(abs(gauge_field_smeared - smear_check) <= max(epsilon(1.0), TOL_SVD))
-        blok_equal = all(abs(gauge_field_blocked - blok_check) <= max(epsilon(1.0), TOL_SVD))
-        ierr = smear_equal.and.blok_equal
-
-        ! Output results
+        ! Check if smeared configuration is equal to those produced during old calculation
+        blok_equal = all(abs(blok_computed - blok_check) <= max(epsilon(1.0), TOL_SVD))
         if (ierr) then
-            write(*, "(a)") "smearing and blocking tests PASSED"
+            write(*, "(a)") "get_blocked_gauge_field test PASSED"
         else
-            write(*, "(a)") "smearing and blocking tests FAILED"
-            if (smear_equal) then
-                write(*, "(a)") "smearing test PASSED"
-            else
-                write(*, "(a)") "smearing test FAILED"
-            endif
-            if (blok_equal) then
-                write(*, "(a)") "blocking test PASSED"
-            else
-                write(*, "(a)") "blocking test FAILED"
-            endif
-        end if
-        print *, ""
+            write(*, "(a)") "get_blocked_gauge_field test FAILED"
+            write(*, "(a)") "    Matrix (1,1), blocking level 2 from file:"
+            call print_matrix(cmplx(blok_check(:,:,1,1,2), kind=real64))
+            write(*, "(a)") "    Matrix (1,1), blocking level 2 computed:"
+            call print_matrix(blok_computed(:,:,1,1,2))
+        endif
     end subroutine
 end program test_suite
