@@ -363,6 +363,7 @@ C **** SAVE THE SMEARED FUNCTION
       WRITE(11) UC11
 
       CLOSE(11)
+      STOP
 C
          DO MU=1,3
             DO NN=1,LSIZEB
@@ -437,6 +438,7 @@ C
 C
       DO 1 MU=1,3
          IF(IDIAG.EQ.1) CALL DIAG(MU)
+C            
 C
          DO 2 NN=1,LSIZEB
             M1=NN
@@ -662,6 +664,16 @@ C
          IDD(M4,4)=M1
 C     
  1    CONTINUE
+
+      IF (MU.EQ.1) THEN
+        OPEN (11,FILE='DIAG.DAT',FORM='UNFORMATTED',
+     &  status='REPLACE',ACCESS='STREAM')
+
+        WRITE(11) UDD
+        WRITE(11) IDD
+
+        CLOSE(11)
+      ENDIF
 C     
       RETURN
       END
