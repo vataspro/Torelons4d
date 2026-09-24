@@ -4,6 +4,8 @@ program test_suite
     use read_field_config
     implicit none
 
+    complex(real64), allocatable :: gauge_field(:,:,:,:)
+
     ! Read parameters from input file
     call initialise_parameters("parameter_file.txt")
 
@@ -18,6 +20,9 @@ program test_suite
 
     ! Test move function
     call check_success(test_move)
+
+    ! Allocate gauge field so that it only needs to be loaded once
+    allocate(gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4))
 
     ! Test loading of gauge field
     call check_success(test_read_gauge_field)
@@ -199,7 +204,6 @@ program test_suite
 
         character(len=16) :: file_config_id
         character(len=256) :: directory
-        complex(real64) :: gauge_field_conf(NCOL, NCOL, LATTICE_VOLUME, 4)
         complex(real64) :: gauge_field_correct(5), gauge_field_check(5)
 
         ! Set directory path
@@ -207,7 +211,7 @@ program test_suite
         directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
 
         ! Load gauge field into memory
-        call read_gauge_field(directory, gauge_field_conf)
+        call read_gauge_field(directory, gauge_field)
 
         ! Set correct links
         gauge_field_correct = &
@@ -218,11 +222,11 @@ program test_suite
         (-0.778977633,8.882141858E-02)]
 
         ! Get links that should match the set links from the loaded gauge field
-        gauge_field_check(1) = gauge_field_conf(1,1,1,1)
-        gauge_field_check(2) = gauge_field_conf(2,1,1,1)
-        gauge_field_check(3) = gauge_field_conf(1,2,1,1)
-        gauge_field_check(4) = gauge_field_conf(2,2,1,1)
-        gauge_field_check(5) = gauge_field_conf(1,1,2,1)
+        gauge_field_check(1) = gauge_field(1,1,1,1)
+        gauge_field_check(2) = gauge_field(2,1,1,1)
+        gauge_field_check(3) = gauge_field(1,2,1,1)
+        gauge_field_check(4) = gauge_field(2,2,1,1)
+        gauge_field_check(5) = gauge_field(1,1,2,1)
 
         ! Check first 5 elements of loaded gauge field against correct values
         ierr = all(abs(gauge_field_check - gauge_field_correct) <= epsilon(1.0))
@@ -243,9 +247,8 @@ program test_suite
         integer, parameter :: num_tests = 5
         character(len=16) :: file_config_id
         character(len=256) :: directory
-        complex(real64) :: gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4), &
-        matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL)
-        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, j, k
+        complex(real64) :: matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL)
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
         real :: random_numbers(2*num_tests)
         logical :: diagonal_good, off_diagonal_good, diagonal_mask(NCOL, NCOL), off_diagonal_mask(NCOL, NCOL)
 
@@ -299,7 +302,7 @@ program test_suite
             endif
         enddo
         write(*, "(a)") "unitarise_SVD test PASSED"
-	print *, ""
+        print *, ""
     end subroutine
 
     ! Test smearing and blocking of configurations
@@ -309,8 +312,7 @@ program test_suite
 
         complex(real32) :: smear_check(NCOL, NCOL, SLICE_VOLUME, 3), &
         blok_check(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
-        complex(real64) :: gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4), &
-        gauge_field_smeared(NCOL, NCOL, SLICE_VOLUME, 3), &
+        complex(real64) :: gauge_field_smeared(NCOL, NCOL, SLICE_VOLUME, 3), &
         gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         character(len=16) :: file_config_id
         character(len=256) :: directory
@@ -346,8 +348,8 @@ program test_suite
 
 
         !! Check if smeared and blocked configurations are equal to those produced during old calculation
-        smear_equal = all(abs(gauge_field_smeared - smear_check) <= max(1e-4, epsilon(1.0), TOL_SVD))
-        blok_equal = all(abs(gauge_field_blocked - blok_check) <= max(1e-4, epsilon(1.0), TOL_SVD))
+        smear_equal = all(abs(gauge_field_smeared - smear_check) <= max(epsilon(1.0), TOL_SVD))
+        blok_equal = all(abs(gauge_field_blocked - blok_check) <= max(epsilon(1.0), TOL_SVD))
         ierr = smear_equal.and.blok_equal
 
         ! Output results
