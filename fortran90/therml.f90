@@ -815,7 +815,7 @@ SUBROUTINE THERML1(N4,IBLL)
 !
                       M2=MN
 !
-                      DO J=1,NCOL2
+                      DO IJ=1,NCOL2
                          A11(IJ)=(0.0,0.0)
                       ENDDO
 !
