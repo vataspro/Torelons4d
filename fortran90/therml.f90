@@ -718,9 +718,9 @@ SUBROUTINE THERML1(N4,IBLL)
 !********************************************************************
                      ENDDO
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-            ELSE
-               M2=MN
-            ENDIF
+                  ELSE
+                     M2=MN
+                  ENDIF
 !**********************************************************************
 !*********************** REMAINING PIECE ******************************
 !**********************************************************************            
