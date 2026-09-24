@@ -578,58 +578,61 @@ SUBROUTINE THERML1(N4,IBLL)
          CSUMPLQ15(IJN)=(0.0,0.0)
       ENDDO
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-         DO IJN=1, 4
-            DO IJ=1, 2
-               CSUMSMOM(IJN,IJ)=(0.0,0.0)
-               CSUM2SMOM(IJN,IJ)=(0.0,0.0)
-               CSUM2WSMOM(IJN,IJ)=(0.0,0.0)
-               CSUMWMOM(IJN,IJ)=(0.0,0.0)
-               CSUM2WMOM(IJN,IJ)=(0.0,0.0)
-               CSUM3WMOM(IJN,IJ)=(0.0,0.0)
-               CSUMUPMOM(IJN,IJ)=(0.0,0.0)
-               CSUMUDMOM(IJN,IJ)=(0.0,0.0)
-            ENDDO
+! Same as operators above but adding momentum
+      DO IJN=1, 4 ! index the rotations
+         DO IJ=1, 2 ! indexes J1, J2
+            CSUMSMOM(IJN,IJ)=(0.0,0.0)
+            CSUM2SMOM(IJN,IJ)=(0.0,0.0)
+            CSUM2WSMOM(IJN,IJ)=(0.0,0.0)
+            CSUMWMOM(IJN,IJ)=(0.0,0.0)
+            CSUM2WMOM(IJN,IJ)=(0.0,0.0)
+            CSUM3WMOM(IJN,IJ)=(0.0,0.0)
+            CSUMUPMOM(IJN,IJ)=(0.0,0.0)
+            CSUMUDMOM(IJN,IJ)=(0.0,0.0)
          ENDDO
+      ENDDO
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-         DO IJN=1, 8
-            DO IJ=1, 2
-               CSUMTTMOM1(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM2(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM3(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM4(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM5(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM6(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM7(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM8(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM9(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM10(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM11(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM13(IJN,IJ)=(0.0,0.0)
-               CSUMTTMOM14(IJN,IJ)=(0.0,0.0)
-!CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-               CSUMPLQMOM(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM2(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM3(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM4(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM5(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM6(IJN,IJ)=(0.0,0.0)
-            ENDDO
+      DO IJN=1, 8
+         DO IJ=1, 2
+            CSUMTTMOM1(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM2(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM3(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM4(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM5(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM6(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM7(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM8(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM9(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM10(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM11(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM13(IJN,IJ)=(0.0,0.0)
+            CSUMTTMOM14(IJN,IJ)=(0.0,0.0)
+!CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+            CSUMPLQMOM(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM2(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM3(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM4(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM5(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM6(IJN,IJ)=(0.0,0.0)
          ENDDO
-!
-         DO IJN=1, 16
-            DO IJ=1, 2
-               CSUMTTMOM12(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM7(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM8(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM9(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM10(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM11(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM12(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM13(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM14(IJN,IJ)=(0.0,0.0)
-               CSUMPLQMOM15(IJN,IJ)=(0.0,0.0)
-            ENDDO
+      ENDDO
+! Note: While P_// is not well defined here due to J != 0,
+! we double the operators for cross checking and
+! extra statistics
+      DO IJN=1, 16
+         DO IJ=1, 2
+            CSUMTTMOM12(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM7(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM8(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM9(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM10(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM11(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM12(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM13(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM14(IJN,IJ)=(0.0,0.0)
+            CSUMPLQMOM15(IJN,IJ)=(0.0,0.0)
          ENDDO
+      ENDDO
 !
 !**********************************************************************
          NN=0
