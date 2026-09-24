@@ -67,7 +67,7 @@ PARAMETER(IBLOK=5,IBING=109,NUMBIN=2)
 PARAMETER(PARBS=0.30,PARBDS=0.12)
 !
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -98,10 +98,10 @@ PARAMETER(NTOTALMOM=NOPFULJ0MOM+NOPFULJ1MOM+NOPFULJ2MOM)
 !----------------------------------------------------------
 !******************************************************************************
 !******************************************************************************
-!      
+!
 COMMON/ARRAYS/U11(NCOL2*LSIZE*4)
-complex(real32) U11
-real(real64) rndnum
+complex(real32) :: U11
+real(real64) :: rndnum
 !
 character(len=43) :: homepath
 character(len=24) :: conf_directory1
@@ -112,16 +112,16 @@ character(len=256) :: copy_file
 character(len=256) :: trnsf_file
 character(len=7) :: confnum
 character(len=6) :: name_of_file
-!                    
+!
 !homepath=trim('/home/dp208/dp208/dc-athe1/AXIONS/NF2/b2.3/')
 !conf_directory1=trim('m-1.0/26x26x26x52/confs/')
 !conf_directory2=trim('run1_52x26x26x26nc2rADJnf2b2.300000')
 !directory=trim(homepath//conf_directory1//conf_directory2)
-homepath='/gpfs/scratch/ehpc598/torelons/'
-conf_directory1='cnfg/'
-conf_directory2='run1_52x26x26x26nc2rADJnf2b2.300000'
+homepath="/gpfs/scratch/ehpc598/torelons/"
+conf_directory1="cnfg/"
+conf_directory2="run1_52x26x26x26nc2rADJnf2b2.300000"
 directory=trim(homepath) // trim(conf_directory1) //trim(conf_directory2)
-!      
+!
 CALL SETUP
 ISEED=3591
 call rluxgo(3, iseed, 0, 0)
@@ -130,7 +130,7 @@ ITOT=NITER
 !
 WRITE(*,*) "                                                "
 WRITE(6,90)
-90 FORMAT(' *******************************************************')
+90 FORMAT(" *******************************************************")
 WRITE(*,*) "                                                "
 WRITE(*,*) &
   & " ******  ******  ***    ******  **      ******  *    *"
@@ -145,27 +145,27 @@ WRITE(*,*) &
 WRITE(*,*) "                                                "
 WRITE(6,90)
 WRITE(6,91)
-91 FORMAT(' *')
+91 FORMAT(" *")
 WRITE(6,92) LX1,LX2,LX3,LX4
-92 FORMAT("[Info][Lattice Size]  ",'             LX   = ',4I4)
+92 FORMAT("[Info][Lattice Size]  ","             LX   = ",4I4)
 WRITE(6,193) BETAG
-193 FORMAT("[Info][Value of Beta] ",'           beta   =',F8.4)
+193 FORMAT("[Info][Value of Beta] ","           beta   =",F8.4)
 WRITE(6,194) NCOL
-194 FORMAT("[Info][Colors]        ",' Number of Colors = ',I6)
+194 FORMAT("[Info][Colors]        "," Number of Colors = ",I6)
 WRITE(6,195) IHEAT
-195 FORMAT("[Info][Thermalisation]",'   Therml. sweeps = ',I6)
+195 FORMAT("[Info][Thermalisation]","   Therml. sweeps = ",I6)
 WRITE(6,91)
 WRITE(6,90)
 WRITE(6,91)
 WRITE(6,196) ITOT
-196 FORMAT("[Info][Measurements]",'   Number of MC Iterations = ',I6)
+196 FORMAT("[Info][Measurements]","   Number of MC Iterations = ",I6)
 WRITE(6,197) ICALLG
-197 FORMAT("[Info][Measurements]",'   Sweeps per measurements = ',I6)
+197 FORMAT("[Info][Measurements]","   Sweeps per measurements = ",I6)
 WRITE(6,198) IBING
-198 FORMAT("[Info][Measurements]",'      Measurements per bin = ',I6)
+198 FORMAT("[Info][Measurements]","      Measurements per bin = ",I6)
 WRITE(6,91)
 WRITE(6,90)
-200 FORMAT("[Info][Number of Operators q=0]",'  Total Number = ',I4)
+200 FORMAT("[Info][Number of Operators q=0]","  Total Number = ",I4)
 WRITE(6,91)
 WRITE(6,205)
 WRITE(6,206)
@@ -181,22 +181,22 @@ WRITE(6,220) NOPJ2MP
 WRITE(6,221) NOPJ2MM
 WRITE(6,207)
 WRITE(6,200) NTOTAL
-205 FORMAT("[Info][Number of Operators q=0]",'     J   P   R      #')
-206 FORMAT("[Info][Number of Operators q=0]",'     ----------------')
-210 FORMAT("[Info][Number of Operators q=0]",'     0   +   +   ',I4)
-211 FORMAT("[Info][Number of Operators q=0]",'     0   +   -   ',I4)
-212 FORMAT("[Info][Number of Operators q=0]",'     0   -   +   ',I4)
-213 FORMAT("[Info][Number of Operators q=0]",'     0   -   -   ',I4)
-214 FORMAT("[Info][Number of Operators q=0]",'     1   #   +   ',I4)
-216 FORMAT("[Info][Number of Operators q=0]",'     1   #   -   ',I4)
-218 FORMAT("[Info][Number of Operators q=0]",'     2   +   +   ',I4)
-219 FORMAT("[Info][Number of Operators q=0]",'     2   +   -   ',I4)
-220 FORMAT("[Info][Number of Operators q=0]",'     2   -   +   ',I4)
-221 FORMAT("[Info][Number of Operators q=0]",'     2   -   -   ',I4)
-207 FORMAT("[Info][Number of Operators q=0]",'     ----------------')
+205 FORMAT("[Info][Number of Operators q=0]","     J   P   R      #")
+206 FORMAT("[Info][Number of Operators q=0]","     ----------------")
+210 FORMAT("[Info][Number of Operators q=0]","     0   +   +   ",I4)
+211 FORMAT("[Info][Number of Operators q=0]","     0   +   -   ",I4)
+212 FORMAT("[Info][Number of Operators q=0]","     0   -   +   ",I4)
+213 FORMAT("[Info][Number of Operators q=0]","     0   -   -   ",I4)
+214 FORMAT("[Info][Number of Operators q=0]","     1   #   +   ",I4)
+216 FORMAT("[Info][Number of Operators q=0]","     1   #   -   ",I4)
+218 FORMAT("[Info][Number of Operators q=0]","     2   +   +   ",I4)
+219 FORMAT("[Info][Number of Operators q=0]","     2   +   -   ",I4)
+220 FORMAT("[Info][Number of Operators q=0]","     2   -   +   ",I4)
+221 FORMAT("[Info][Number of Operators q=0]","     2   -   -   ",I4)
+207 FORMAT("[Info][Number of Operators q=0]","     ----------------")
 WRITE(6,91)
 WRITE(6,90)
-300 FORMAT("[Info][Number of Operators q=1,2]",'  Total Number = ',I4)
+300 FORMAT("[Info][Number of Operators q=1,2]","  Total Number = ",I4)
 WRITE(6,91)
 WRITE(6,305)
 WRITE(6,306)
@@ -207,14 +207,14 @@ WRITE(6,318) NOPJ2PMOM
 WRITE(6,320) NOPJ2MMOM
 WRITE(6,307)
 WRITE(6,300) NTOTALMOM
-305 FORMAT("[Info][Number of Operators q=1,2]",'     J   P   #')
-306 FORMAT("[Info][Number of Operators q=1,2]",'     ---------------')
-310 FORMAT("[Info][Number of Operators q=1,2]",'     0   + ',I4)
-312 FORMAT("[Info][Number of Operators q=1,2]",'     0   - ',I4)
-314 FORMAT("[Info][Number of Operators q=1,2]",'     1     ',I4)
-318 FORMAT("[Info][Number of Operators q=1,2]",'     2   + ',I4)
-320 FORMAT("[Info][Number of Operators q=1,2]",'     2   - ',I4)
-307 FORMAT("[Info][Number of Operators q=1,2]",'     ---------------')
+305 FORMAT("[Info][Number of Operators q=1,2]","     J   P   #")
+306 FORMAT("[Info][Number of Operators q=1,2]","     ---------------")
+310 FORMAT("[Info][Number of Operators q=1,2]","     0   + ",I4)
+312 FORMAT("[Info][Number of Operators q=1,2]","     0   - ",I4)
+314 FORMAT("[Info][Number of Operators q=1,2]","     1     ",I4)
+318 FORMAT("[Info][Number of Operators q=1,2]","     2   + ",I4)
+320 FORMAT("[Info][Number of Operators q=1,2]","     2   - ",I4)
+307 FORMAT("[Info][Number of Operators q=1,2]","     ---------------")
 WRITE(6,91)
 WRITE(6,90)
 !
@@ -223,16 +223,16 @@ do ITER=1,NITER
 IFILE = IFILE + 16
 !
 ist=IFILE
-write(confnum, '(i0)') ist
-file_name=trim(directory)//'m1.000000n'//trim(confnum)
-!     
+write(confnum, "(i0)") ist
+file_name=trim(directory)//"m1.000000n"//trim(confnum)
+!
 write(6,*) "------------------------------"
 write(6,*) "Execution of external commands"
 write(6,*) "                              "
 write(6,*) "Commands to be executed"
 write(6,*) "------------------------------"
 
-copy_file=trim('cp '//file_name//' ./conf')
+copy_file=trim("cp "//file_name//" ./conf")
 write(6,*) copy_file
 write(6,*) "                              "
 write(6,*) "                              "
@@ -241,17 +241,17 @@ call execute_command_line(copy_file, WAIT=.true.)
 write(6,*) "*************************************************"
 write(6,*) "                              "
 write(6,*) "                              "
-name_of_file=trim('./conf')
-WRITE(6,*) 'Config to be read: ', file_name
-!         
+name_of_file=trim("./conf")
+WRITE(6,*) "Config to be read: ", file_name
+!
 CALL cpu_time(t1)
 CALL READ_GF(name_of_file)
 CALL cpu_time(t2)
 WRITE(6,902) real(t2-t1, kind=real32)
-902 FORMAT('[Info][Time]','    Configuration Read time:', F8.4)
-!     
+902 FORMAT("[Info][Time]","    Configuration Read time:", F8.4)
+!
 CALL ACTION(0,ITER,TOTACT)
-511 format('[FM][0]Check plaq = ', f8.6)
+511 format("[FM][0]Check plaq = ", f8.6)
 write (6,511) TOTACT
 CALL POLYLOOP()
 CALL MEASURE(ITER,NITER)
@@ -290,7 +290,7 @@ PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(NCOL=2,ND=4)
 !
 character(len=6) :: filename
-integer(int32) nc_read, nx_read, ny_read, nz_read, nt_read
+integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
 integer :: t, x, y, z, dir, dir_target, iun, iq
 real(real64) :: plaquette_read
 
@@ -299,10 +299,10 @@ complex(real32), dimension(2, 2) :: quaternion_to_matrix
 
 COMMON/ARRAYS/U11(NCOL,NCOL,LX1,LX2,LX3,LX4,4)
 
-complex(real32) U11
+complex(real32) :: U11
 
-open(newunit=iun, file=filename, access='stream', form='unformatted', &
-     status='old', action='read')
+open(newunit=iun, file=filename, access="stream", form="unformatted", &
+     status="old", action="read")
 nc_read      = read_be_int32(iun)
 nt_read      = read_be_int32(iun)
 nx_read      = read_be_int32(iun)
@@ -311,11 +311,11 @@ nz_read      = read_be_int32(iun)
 plaquette_read = read_be_real64(iun)
 
 WRITE(6,101) plaquette_read
-101 FORMAT('[I/O][Plaq]', 'Plaquette value:',F8.6)
+101 FORMAT("[I/O][Plaq]", "Plaquette value:",F8.6)
 WRITE(6,102) nc_read
-102 FORMAT('[I/O][Ncol]', 'Number of Colors:',I2.1)
+102 FORMAT("[I/O][Ncol]", "Number of Colors:",I2.1)
 WRITE(6,103) nt_read, nx_read, ny_read, nz_read
-103 FORMAT('[I/O][Dim]', 'T x X x Y x Z=',I3.2, I3.2, I3.2, I3.2)
+103 FORMAT("[I/O][Dim]", "T x X x Y x Z=",I3.2, I3.2, I3.2, I3.2)
 !
 DO t = 1, LX4
 DO x = 1, LX1
@@ -362,14 +362,14 @@ PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 
 COMMON/ARRAYS/U11(NCOL,NCOL,LX1,LX2,LX3,LX4,4)
 
-complex(real32) U11
-complex(real64) UR11(LX4,LX3,LX2,LX1,4,NCOL,NCOL)
+complex(real32) :: U11
+complex(real64) :: UR11(LX4,LX3,LX2,LX1,4,NCOL,NCOL)
 character(len=6) :: filename
 integer :: iun
 real(real64) :: rpart, ipart
 !
-open(newunit=iun, file=trim(filename), access='stream', &
-     form='unformatted', status='old', action='read')
+open(newunit=iun, file=trim(filename), access="stream", &
+     form="unformatted", status="old", action="read")
 !
 !      REWIND(60)
 !
@@ -402,7 +402,7 @@ DO L2=1, LX2
 DO L3=1, LX3
 DO L4=1, LX4
 DO MU=1, 4
-!     
+!
 DREALCONF=real(UR11(L4,L3,L2,L1,MU,IJ,IK))
 DIMAGCONF=aimag(UR11(L4,L3,L2,L1,MU,IJ,IK))
 SREALCONF=real(DREALCONF, kind=real32)
@@ -410,7 +410,7 @@ SIMAGCONF=real(DIMAGCONF, kind=real32)
 U11(IJ,IK,L1,L2,L3,L4,MU)=cmplx(SREALCONF,SIMAGCONF)
 !
 !        write(*,*) U11(IJ,IK,L1,L2,L3,L4,MU)
-!                                                                                                                                                                        
+!
 end do
 end do
 end do
@@ -419,7 +419,7 @@ end do
 end do
 end do
 !
-WRITE(6,*) 'Configuration read'
+WRITE(6,*) "Configuration read"
 close(iun)
 !
 RETURN
@@ -442,19 +442,19 @@ COMMON/ARRAYS/U11(NCOL2,LSIZE,4)
 COMMON/NEXT/IUP(LSIZE,4),IDN(LSIZE,4)
 DIMENSION DUM11(NCOL2) &
   & ,A11(NCOL2),B11(NCOL2),C11(NCOL2),D11(NCOL2)
-complex(real32) U11,A11,B11,C11,D11,DUM11,ACT
+complex(real32) :: U11,A11,B11,C11,D11,DUM11,ACT
 !
 DIMENSION AVAC(NUMBIN),AVACSQ(NUMBIN),AVACS(NUMBIN),AVACT(NUMBIN)
 DIMENSION VAL(NUMBIN),AV(NUMBIN)
 dimension icoordvect(4)
-complex(real32) cpol1
-complex(real64) cpol(4)
+complex(real32) :: cpol1
+complex(real64) :: cpol(4)
 !
 icoordvect(1) = LX1-1
 icoordvect(2) = LX2-1
 icoordvect(3) = LX3-1
 icoordvect(4) = LX4-1
-!     
+!
 cpol(:) = cmplx(0.0_real64, 0.0_real64, kind=real64)
 dnorm = 1.0/real(lsizeb*ncol, kind=real64)
 !
@@ -479,7 +479,7 @@ end do
 !
 cpol(:) = cpol(:)*dnorm
 !
-888 format('Poly(' ,i1, ')  =  (',f16.12,',',f16.12,')')
+888 format("Poly(" ,i1, ")  =  (",f16.12,",",f16.12,")")
 do idir=1,4
 write (92,888) idir,real(cpol(idir)),aimag(cpol(idir))
 end do
@@ -498,7 +498,7 @@ PARAMETER(LMAX=LX4/2+1)
 PARAMETER(LMAXIR=3)
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -529,7 +529,7 @@ PARAMETER(NTOTALMOM=NOPFULJ0MOM+NOPFULJ1MOM+NOPFULJ2MOM)
 !----------------------------------------------------------
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************  
+!******************************************************************************
 COMMON/PBLOCKP/ACORLP(NUMBIN,LMAXIR,NTOTAL,NTOTAL) &
   & ,AVACLP(NUMBIN,NTOTAL)
 COMMON/PBLOCKJ0PP/ACORLJ0PP(NUMBIN,LMAX,NOPJ0PP,NOPJ0PP) &
@@ -566,76 +566,76 @@ COMMON/PBLOCKJALL/ACORLALL(NUMBIN,LMAXIR,NTOTAL,NTOTAL) &
 COMMON/POLYT/TLINE(NITER),SQTLINE(NITER)
 COMMON/ASTORE/ACTN(NUMBIN,6),PLAQ(NITER,6)
 !
-complex(real64) ACORLP
-complex(real64) AVACLP
-complex(real64) ACORLJ0PP
-complex(real64) AVACLJ0PP
-complex(real64) ACORLJ0PM
-complex(real64) AVACLJ0PM
-complex(real64) ACORLJ0MP
-complex(real64) AVACLJ0MP
-complex(real64) ACORLJ0MM
-complex(real64) AVACLJ0MM
-complex(real64) ACORLJ1P
-complex(real64) AVACLJ1P
-complex(real64) ACORLJ1M
-complex(real64) AVACLJ1M
-complex(real64) ACORLJ2PP
-complex(real64) AVACLJ2PP
-complex(real64) ACORLJ2PM
-complex(real64) AVACLJ2PM
-complex(real64) ACORLJ2MP
-complex(real64) AVACLJ2MP
-complex(real64) ACORLJ2MM
-complex(real64) AVACLJ2MM
+complex(real64) :: ACORLP
+complex(real64) :: AVACLP
+complex(real64) :: ACORLJ0PP
+complex(real64) :: AVACLJ0PP
+complex(real64) :: ACORLJ0PM
+complex(real64) :: AVACLJ0PM
+complex(real64) :: ACORLJ0MP
+complex(real64) :: AVACLJ0MP
+complex(real64) :: ACORLJ0MM
+complex(real64) :: AVACLJ0MM
+complex(real64) :: ACORLJ1P
+complex(real64) :: AVACLJ1P
+complex(real64) :: ACORLJ1M
+complex(real64) :: AVACLJ1M
+complex(real64) :: ACORLJ2PP
+complex(real64) :: AVACLJ2PP
+complex(real64) :: ACORLJ2PM
+complex(real64) :: AVACLJ2PM
+complex(real64) :: ACORLJ2MP
+complex(real64) :: AVACLJ2MP
+complex(real64) :: ACORLJ2MM
+complex(real64) :: AVACLJ2MM
 !
-complex(real64) ACORLJ0
-complex(real64) AVACLJ0
-complex(real64) ACORLJ1
-complex(real64) AVACLJ1
-complex(real64) ACORLJ2
-complex(real64) AVACLJ2
-complex(real64) ACORLALL
-complex(real64) AVACLALL
-!     
-complex(real32) TLINE
+complex(real64) :: ACORLJ0
+complex(real64) :: AVACLJ0
+complex(real64) :: ACORLJ1
+complex(real64) :: AVACLJ1
+complex(real64) :: ACORLJ2
+complex(real64) :: AVACLJ2
+complex(real64) :: ACORLALL
+complex(real64) :: AVACLALL
 !
-OPEN (11,FILE='ACORLQ0.DAT')
-OPEN (12,FILE='ACORLJ0PPQ0.DAT')
-OPEN (13,FILE='ACORLJ0PMQ0.DAT')
-OPEN (14,FILE='ACORLJ0MPQ0.DAT')
-OPEN (15,FILE='ACORLJ0MMQ0.DAT')
-OPEN (16,FILE='ACORLJ1PQ0.DAT')
-OPEN (17,FILE='ACORLJ1MQ0.DAT')
-OPEN (18,FILE='ACORLJ2PPQ0.DAT')
-OPEN (19,FILE='ACORLJ2PMQ0.DAT')
-OPEN (20,FILE='ACORLJ2MPQ0.DAT')
-OPEN (21,FILE='ACORLJ2MMQ0.DAT')
-OPEN (22,FILE='ACORLJ0Q0.DAT')
-OPEN (23,FILE='ACORLJ1Q0.DAT')
-OPEN (24,FILE='ACORLJ2Q0.DAT')
-OPEN (25,FILE='ACORLJALL.DAT')
+complex(real32) :: TLINE
+!
+OPEN (11,FILE="ACORLQ0.DAT")
+OPEN (12,FILE="ACORLJ0PPQ0.DAT")
+OPEN (13,FILE="ACORLJ0PMQ0.DAT")
+OPEN (14,FILE="ACORLJ0MPQ0.DAT")
+OPEN (15,FILE="ACORLJ0MMQ0.DAT")
+OPEN (16,FILE="ACORLJ1PQ0.DAT")
+OPEN (17,FILE="ACORLJ1MQ0.DAT")
+OPEN (18,FILE="ACORLJ2PPQ0.DAT")
+OPEN (19,FILE="ACORLJ2PMQ0.DAT")
+OPEN (20,FILE="ACORLJ2MPQ0.DAT")
+OPEN (21,FILE="ACORLJ2MMQ0.DAT")
+OPEN (22,FILE="ACORLJ0Q0.DAT")
+OPEN (23,FILE="ACORLJ1Q0.DAT")
+OPEN (24,FILE="ACORLJ2Q0.DAT")
+OPEN (25,FILE="ACORLJALL.DAT")
 !******************************************
 DO IN=1, NUMBIN
 
 !
 do IL=1,LMAXIR
-!     
+!
 DO IX=1, NTOTAL
 DO IY=1, NTOTAL
 WRITE(11,*) ACORLP(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NTOTAL
 DO IY=1, NTOTAL
 WRITE(25,*) ACORLALL(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 31 CONTINUE
 end do
-!     
+!
 DO IL=1,LMAX
 !
 !****************************************************
@@ -646,19 +646,19 @@ DO IY=1, NOPJ0PP
 WRITE(12,*) ACORLJ0PP(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPJ0PM
 DO IY=1, NOPJ0PM
 WRITE(13,*) ACORLJ0PM(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPJ0MP
 DO IY=1, NOPJ0MP
 WRITE(14,*) ACORLJ0MP(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPJ0MM
 DO IY=1, NOPJ0MM
 WRITE(15,*) ACORLJ0MM(IN,IL,IY,IX)
@@ -672,7 +672,7 @@ DO IY=1, NOPJ1P
 WRITE(16,*) ACORLJ1P(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPJ1M
 DO IY=1, NOPJ1M
 WRITE(17,*) ACORLJ1M(IN,IL,IY,IX)
@@ -686,7 +686,7 @@ DO IY=1, NOPJ2PP
 WRITE(18,*) ACORLJ2PP(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPJ2PM
 DO IY=1, NOPJ2PM
 WRITE(19,*) ACORLJ2PM(IN,IL,IY,IX)
@@ -698,7 +698,7 @@ DO IY=1, NOPJ2MP
 WRITE(20,*) ACORLJ2MP(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPJ2MM
 DO IY=1, NOPJ2MM
 WRITE(21,*) ACORLJ2MM(IN,IL,IY,IX)
@@ -712,13 +712,13 @@ DO IY=1, NOPFULJ0
 WRITE(22,*) ACORLJ0(IN,IL,IY,IX)
 end do
 end do
-!                  
+!
 DO IX=1, NOPFULJ1
 DO IY=1, NOPFULJ1
 WRITE(23,*) ACORLJ1(IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPFULJ2
 DO IY=1, NOPFULJ2
 WRITE(24,*) ACORLJ2(IN,IL,IY,IX)
@@ -726,7 +726,7 @@ end do
 end do
 !****************************************************
 !****************************************************
-!****************************************************               
+!****************************************************
 end do
 end do
 !******************************************
@@ -734,7 +734,7 @@ REWIND(52)
 WRITE(52) ACTN
 WRITE(52) TLINE,PLAQ,SQTLINE
 ! Close all output files
-CLOSE(11) 
+CLOSE(11)
 CLOSE(12)
 CLOSE(13)
 CLOSE(14)
@@ -763,7 +763,7 @@ PARAMETER(LMAX=LX4/2+1)
 PARAMETER(LMAXIR=3)
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -794,7 +794,7 @@ PARAMETER(NTOTALMOM=NOPFULJ0MOM+NOPFULJ1MOM+NOPFULJ2MOM)
 !----------------------------------------------------------
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************  
+!******************************************************************************
 COMMON/PBLOCKMOMP/ACORLPMOM(2,NUMBIN,LMAXIR,NTOTALMOM,NTOTALMOM) &
   & ,AVACLPMOM(2,NUMBIN,NTOTALMOM)
 !
@@ -825,49 +825,49 @@ COMMON/PBLOCKMOMJALL/ &
   & ACORLPMOMJALL(2,NUMBIN,LMAXIR,NTOTALMOM,NTOTALMOM) &
   & ,AVACLMOMALL(2,NUMBIN,NTOTALMOM)
 !*****************************************************************
-complex(real64) ACORLPMOM
-complex(real64) AVACLPMOM
-complex(real64) ACORLPMOMJ0P
-complex(real64) AVACLMOMJ0P
-complex(real64) ACORLPMOMJ0M
-complex(real64) AVACLMOMJ0M
-complex(real64) ACORLPMOMJ1
-complex(real64) AVACLMOMJ1
-complex(real64) ACORLPMOMJ2P
-complex(real64) AVACLMOMJ2P
-complex(real64) ACORLPMOMJ2M
-complex(real64) AVACLMOMJ2M
-complex(real64) ACORLPMOMJ0
-complex(real64) AVACLMOMJ0
-complex(real64) ACORLPMOMJ2
-complex(real64) AVACLMOMJ2
-complex(real64) ACORLPMOMJALL
-complex(real64) AVACLMOMALL
+complex(real64) :: ACORLPMOM
+complex(real64) :: AVACLPMOM
+complex(real64) :: ACORLPMOMJ0P
+complex(real64) :: AVACLMOMJ0P
+complex(real64) :: ACORLPMOMJ0M
+complex(real64) :: AVACLMOMJ0M
+complex(real64) :: ACORLPMOMJ1
+complex(real64) :: AVACLMOMJ1
+complex(real64) :: ACORLPMOMJ2P
+complex(real64) :: AVACLMOMJ2P
+complex(real64) :: ACORLPMOMJ2M
+complex(real64) :: AVACLMOMJ2M
+complex(real64) :: ACORLPMOMJ0
+complex(real64) :: AVACLMOMJ0
+complex(real64) :: ACORLPMOMJ2
+complex(real64) :: AVACLMOMJ2
+complex(real64) :: ACORLPMOMJALL
+complex(real64) :: AVACLMOMALL
 !*****************************************************************
-OPEN (17, FILE='ACORLPMOM1.DAT')
-OPEN (18, FILE='ACORLPMOM2.DAT')
-OPEN (19, FILE='ACORLJ0PMOMQ1.DAT')
-OPEN (20, FILE='ACORLJ0PMOMQ2.DAT')
-OPEN (21, FILE='ACORLJ0MMOMQ1.DAT')
-OPEN (22, FILE='ACORLJ0MMOMQ2.DAT')
-OPEN (23, FILE='ACORLJ1MOMQ1.DAT')
-OPEN (24, FILE='ACORLJ1MOMQ2.DAT')
-OPEN (25, FILE='ACORLJ2PMOMQ1.DAT')
-OPEN (26, FILE='ACORLJ2PMOMQ2.DAT')
-OPEN (27, FILE='ACORLJ2MMOMQ1.DAT')
-OPEN (28, FILE='ACORLJ2MMOMQ2.DAT')
-OPEN (29, FILE='ACORLJ0MOMQ1.DAT')
-OPEN (30, FILE='ACORLJ0MOMQ2.DAT')
-OPEN (33, FILE='ACORLJ2MOMQ1.DAT')
-OPEN (34, FILE='ACORLJ2MOMQ2.DAT')
-OPEN (35, FILE='ACORLJALLMOMQ1.DAT')
-OPEN (36, FILE='ACORLJALLMOMQ2.DAT')
+OPEN (17, FILE="ACORLPMOM1.DAT")
+OPEN (18, FILE="ACORLPMOM2.DAT")
+OPEN (19, FILE="ACORLJ0PMOMQ1.DAT")
+OPEN (20, FILE="ACORLJ0PMOMQ2.DAT")
+OPEN (21, FILE="ACORLJ0MMOMQ1.DAT")
+OPEN (22, FILE="ACORLJ0MMOMQ2.DAT")
+OPEN (23, FILE="ACORLJ1MOMQ1.DAT")
+OPEN (24, FILE="ACORLJ1MOMQ2.DAT")
+OPEN (25, FILE="ACORLJ2PMOMQ1.DAT")
+OPEN (26, FILE="ACORLJ2PMOMQ2.DAT")
+OPEN (27, FILE="ACORLJ2MMOMQ1.DAT")
+OPEN (28, FILE="ACORLJ2MMOMQ2.DAT")
+OPEN (29, FILE="ACORLJ0MOMQ1.DAT")
+OPEN (30, FILE="ACORLJ0MOMQ2.DAT")
+OPEN (33, FILE="ACORLJ2MOMQ1.DAT")
+OPEN (34, FILE="ACORLJ2MOMQ2.DAT")
+OPEN (35, FILE="ACORLJALLMOMQ1.DAT")
+OPEN (36, FILE="ACORLJALLMOMQ2.DAT")
 !*****************************************************************
 DO IN=1,NUMBIN
 
 !
 do IL=1,LMAXIR
-!            
+!
 DO IX=1, NTOTALMOM
 DO IY=1, NTOTALMOM
 WRITE(17,*) ACORLPMOM(1,IN,IL,IY,IX)
@@ -876,7 +876,7 @@ WRITE(35,*) ACORLPMOMJALL(1,IN,IL,IY,IX)
 WRITE(36,*) ACORLPMOMJALL(2,IN,IL,IY,IX)
 end do
 end do
-!     
+!
 31 CONTINUE
 end do
 
@@ -890,7 +890,7 @@ WRITE(19,*) ACORLPMOMJ0P(1,IN,IL,IY,IX)
 WRITE(20,*) ACORLPMOMJ0P(2,IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1,NOPJ0MMOM
 DO IY=1, NOPJ0MMOM
 WRITE(21,*) ACORLPMOMJ0M(1,IN,IL,IY,IX)
@@ -915,7 +915,7 @@ WRITE(25,*) ACORLPMOMJ2P(1,IN,IL,IY,IX)
 WRITE(26,*) ACORLPMOMJ2P(2,IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1,NOPJ2MMOM
 DO IY=1, NOPJ2MMOM
 WRITE(27,*) ACORLPMOMJ2M(1,IN,IL,IY,IX)
@@ -931,7 +931,7 @@ WRITE(29,*) ACORLPMOMJ0(1,IN,IL,IY,IX)
 WRITE(30,*) ACORLPMOMJ0(2,IN,IL,IY,IX)
 end do
 end do
-!     
+!
 DO IX=1, NOPFULJ2MOM
 DO IY=1, NOPFULJ2MOM
 WRITE(33,*) ACORLPMOMJ2(1,IN,IL,IY,IX)
@@ -959,7 +959,7 @@ ITERG=ITER/ICALLG
 JBING=IBING
 NTOTG=IBING*NTOT/(ICALLG*IBING)
 !
-IF(ITER.EQ.(ITERG*ICALLG).AND.ITERG.LE.NTOTG) THEN
+IF(ITER==(ITERG*ICALLG).AND.ITERG<=NTOTG) THEN
 PAR=1.0d0
 !
 CALL SETUPB
@@ -969,7 +969,7 @@ CALL BLOCK
 WRITE(*,*) "Number of iteration:", ITER
 end if
 !
-IF(ITER.EQ.NTOTG*ICALLG) THEN
+IF(ITER==NTOTG*ICALLG) THEN
 CALL MLINE1
 CALL MLINE2
 CALL MLINE3
@@ -996,7 +996,7 @@ CLOSE(32)
 CLOSE(33)
 CLOSE(34)
 CLOSE(35)
-CLOSE(36) 
+CLOSE(36)
 RETURN
 end subroutine MEASURE
 !*********************************************************************
@@ -1012,7 +1012,7 @@ PARAMETER(LMAXIR=3)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -1040,7 +1040,7 @@ PARAMETER(NOPFULJ0MOM=NOPJ0PMOM+NOPJ0MMOM)
 PARAMETER(NOPFULJ1MOM=NOPJ1MOM)
 PARAMETER(NOPFULJ2MOM=NOPJ2PMOM+NOPJ2MMOM)
 PARAMETER(NTOTALMOM=NOPFULJ0MOM+NOPFULJ1MOM+NOPFULJ2MOM)
-!----------------------------------------------------------      
+!----------------------------------------------------------
 !
 COMMON/PBLOCKP/ACORLP(NUMBIN,LMAXIR,NTOTAL,NTOTAL) &
   & ,AVACLP(NUMBIN,NTOTAL)
@@ -1048,12 +1048,12 @@ COMMON/PBLOCKP/ACORLP(NUMBIN,LMAXIR,NTOTAL,NTOTAL) &
 COMMON/ITEM/ITR,IBIN,ITOT
 COMMON/FIT/ACOR(200),SCOR(200),AMM(200),SMM(200),NTMAX
 !
-complex(real64) ACORLP,AVACLP
-!      
+complex(real64) :: ACORLP,AVACLP
+!
 DIMENSION CORP(NUMBIN,LMAX)
 DIMENSION VAC(NUMBIN),LS(3),AV(NUMBIN)
 !
-OPEN (23, FILE='DIAGNALFULLQ0.DAT')
+OPEN (23, FILE="DIAGNALFULLQ0.DAT")
 !
 NBIN=ITOT/IBIN
 LS(1)=LX1
@@ -1065,19 +1065,19 @@ EPS=0.0000000001d0
 !********************************************************************
 WRITE(23,80)
 WRITE(23,80)
-80 FORMAT('****************************************************')
+80 FORMAT("****************************************************")
 WRITE(23,181)
-181 FORMAT('****************** OPERATORS WITH J = 0 ************')
+181 FORMAT("****************** OPERATORS WITH J = 0 ************")
 WRITE(23,80)
 WRITE(23,81)
 WRITE(23,80)
 WRITE(23,80)
 WRITE(23,81)
-81 FORMAT(' *')
+81 FORMAT(" *")
 WRITE(23,91)
-91 FORMAT(' AVERAGE  X,Y  LINES ')
+91 FORMAT(" AVERAGE  X,Y  LINES ")
 WRITE(23,81)
-82 FORMAT(' ******************* ')
+82 FORMAT(" ******************* ")
 !
 do ID=1, NTOTAL
 ACOUNT=NCOL*IBIN*LSIZE/LS(1)
@@ -1092,33 +1092,33 @@ AV(IB)=aimag(AVACLP(IB,ID))/ACOUNT
 end do
 CALL JACKM(NUMBIN,AV,APLAQIP,SPLAQIP)
 WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
-101 FORMAT('OP =',I4,'  AV,ER R,I LINES =',4F9.4)
+101 FORMAT("OP =",I4,"  AV,ER R,I LINES =",4F9.4)
 10 CONTINUE
 end do
 !
 WRITE(23,80)
 WRITE(23,81)
 WRITE(23,92)
-92 FORMAT(' AVERAGE   Y   LINES ')
+92 FORMAT(" AVERAGE   Y   LINES ")
 WRITE(23,81)
 
 do ID=1, NTOTAL
 WRITE(23,81)
 WRITE(23,82)
 WRITE(23,94) ID
-94 FORMAT(' OPERATOR = ',I4)
+94 FORMAT(" OPERATOR = ",I4)
 WRITE(23,82)
 DO NT=1,LMAXIR
 DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLP(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 20
+IF(ABS(CORP(1,1))<=EPS)goto 20
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAXIR,CORP,VAC)
 !         DO 26 NT=1,MAXDTLS
 do NT=1,LMAXIR-1
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
-102 FORMAT('  DT=',I3,'   AV,ER COR = ',2F8.4,'    E=',2F8.4)
+102 FORMAT("  DT=",I3,"   AV,ER COR = ",2F8.4,"    E=",2F8.4)
 26 CONTINUE
 end do
 20 CONTINUE
@@ -1140,7 +1140,7 @@ PARAMETER(LMAXIR=3)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -1176,11 +1176,11 @@ COMMON/PBLOCKMOMP/ACORLPMOM(2,NUMBIN,LMAXIR,NTOTALMOM,NTOTALMOM) &
 COMMON/ITEM/ITR,IBIN,ITOT
 COMMON/FIT/ACOR(200),SCOR(200),AMM(200),SMM(200),NTMAX
 !
-complex(real64) ACORLPMOM,AVACLPMOM
+complex(real64) :: ACORLPMOM,AVACLPMOM
 DIMENSION CORP(NUMBIN,LMAX)
 DIMENSION VAC(NUMBIN),LS(3),AV(NUMBIN)
 !
-OPEN (24, FILE='DIAGNALFULLMOMQ0.DAT')
+OPEN (24, FILE="DIAGNALFULLMOMQ0.DAT")
 !
 NBIN=ITOT/IBIN
 LS(1)=LX1
@@ -1194,8 +1194,8 @@ DO IJ=1,2
 !********************************************************************
 WRITE(24,80)
 WRITE(24,80)
-80 FORMAT('****************************************************')
-181 FORMAT('************ OPERATORS ************')
+80 FORMAT("****************************************************")
+181 FORMAT("************ OPERATORS ************")
 WRITE(24,80)
 WRITE(24,80)
 WRITE(24,81)
@@ -1203,11 +1203,11 @@ WRITE(24,80)
 WRITE(24,181)
 WRITE(24,80)
 WRITE(24,81)
-81 FORMAT(' *')
+81 FORMAT(" *")
 WRITE(24,91)
-91 FORMAT(' AVERAGE  X,Y  LINES ')
+91 FORMAT(" AVERAGE  X,Y  LINES ")
 WRITE(24,81)
-82 FORMAT(' ******************* ')
+82 FORMAT(" ******************* ")
 !
 do ID=1, NTOTALMOM
 ACOUNT=NCOL*IBIN*LSIZE/LS(1)
@@ -1222,34 +1222,34 @@ AV(IB)=aimag(AVACLPMOM(IJ,IB,ID))/ACOUNT
 end do
 CALL JACKM(NUMBIN,AV,APLAQIP,SPLAQIP)
 WRITE(24,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
-101 FORMAT('OP =',I4,'  AV,ER R,I LINES =',4F9.4)
+101 FORMAT("OP =",I4,"  AV,ER R,I LINES =",4F9.4)
 10 CONTINUE
 end do
-!     
+!
 WRITE(24,80)
 WRITE(24,81)
 WRITE(24,92)
-92 FORMAT(' AVERAGE   Y   LINES ')
+92 FORMAT(" AVERAGE   Y   LINES ")
 WRITE(24,81)
 
 do ID=1, NTOTALMOM
 WRITE(24,81)
 WRITE(24,82)
 WRITE(24,94) ID
-94 FORMAT(' OPERATOR = ',I4)
+94 FORMAT(" OPERATOR = ",I4)
 WRITE(24,82)
 DO NT=1,LMAXIR
 DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOM(IJ,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 20
+IF(ABS(CORP(1,1))<=EPS)goto 20
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAXIR,CORP,VAC)
 !
 !         DO 26 NT=1,MAXDTLS
 do NT=1, LMAXIR-1
 WRITE(24,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
-102 FORMAT('  DT=',I3,'   AV,ER COR = ',2F8.4,'    E=',2F8.4)
+102 FORMAT("  DT=",I3,"   AV,ER COR = ",2F8.4,"    E=",2F8.4)
 26 CONTINUE
 end do
 20 CONTINUE
@@ -1273,7 +1273,7 @@ PARAMETER(LMAXIR=3)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -1304,7 +1304,7 @@ PARAMETER(NTOTALMOM=NOPFULJ0MOM+NOPFULJ1MOM+NOPFULJ2MOM)
 !----------------------------------------------------------
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************   
+!******************************************************************************
 COMMON/PBLOCKP/ACORLP(NUMBIN,LMAXIR,NTOTAL,NTOTAL) &
   & ,AVACLP(NUMBIN,NTOTAL)
 !
@@ -1328,25 +1328,25 @@ COMMON/PBLOCKJ2MP/ACORLJ2MP(NUMBIN,LMAX,NOPJ2MP,NOPJ2MP) &
   & ,AVACLJ2MP(NUMBIN,NOPJ2MP)
 COMMON/PBLOCKJ2MM/ACORLJ2MM(NUMBIN,LMAX,NOPJ2MM,NOPJ2MM) &
   & ,AVACLJ2MM(NUMBIN,NOPJ2MM)
-!      
+!
 COMMON/ITEM/ITR,IBIN,ITOT
 COMMON/FIT/ACOR(200),SCOR(200),AMM(200),SMM(200),NTMAX
 !
-complex(real64) ACORLP,AVACLP
+complex(real64) :: ACORLP,AVACLP
 !***********************************************************
-complex(real64) ACORLJ0PP,ACORLJ0PM,ACORLJ0MP,ACORLJ0MM
-complex(real64) AVACLJ0PP,AVACLJ0PM,AVACLJ0MP,AVACLJ0MM
+complex(real64) :: ACORLJ0PP,ACORLJ0PM,ACORLJ0MP,ACORLJ0MM
+complex(real64) :: AVACLJ0PP,AVACLJ0PM,AVACLJ0MP,AVACLJ0MM
 !***********************************************************
-complex(real64) ACORLJ1P,ACORLJ1M
-complex(real64) AVACLJ1P,AVACLJ1M
+complex(real64) :: ACORLJ1P,ACORLJ1M
+complex(real64) :: AVACLJ1P,AVACLJ1M
 !***********************************************************
-complex(real64) ACORLJ2PP,ACORLJ2PM,ACORLJ2MP,ACORLJ2MM
-complex(real64) AVACLJ2PP,AVACLJ2PM,AVACLJ2MP,AVACLJ2MM
+complex(real64) :: ACORLJ2PP,ACORLJ2PM,ACORLJ2MP,ACORLJ2MM
+complex(real64) :: AVACLJ2PP,AVACLJ2PM,AVACLJ2MP,AVACLJ2MM
 !***********************************************************
 DIMENSION CORP(NUMBIN,LMAX)
 DIMENSION VAC(NUMBIN),LS(3),AV(NUMBIN)
 !
-OPEN (23, FILE='DIAGNALQ0IND.DAT')
+OPEN (23, FILE="DIAGNALQ0IND.DAT")
 !
 NBIN=ITOT/IBIN
 LS(1)=LX1
@@ -1358,19 +1358,19 @@ EPS=0.0000000001d0
 !********************************************************************
 WRITE(23,80)
 WRITE(23,80)
-80 FORMAT('****************************************************')
+80 FORMAT("****************************************************")
 WRITE(23,181)
-181 FORMAT('****************** OPERATORS WITH Q = 0 ************')
+181 FORMAT("****************** OPERATORS WITH Q = 0 ************")
 WRITE(23,80)
 WRITE(23,81)
 WRITE(23,80)
 WRITE(23,80)
 WRITE(23,81)
-81 FORMAT(' *')
+81 FORMAT(" *")
 WRITE(23,91)
-91 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=+, Pr=+ ')
+91 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=+, Pr=+ ")
 WRITE(23,81)
-82 FORMAT(' ******************* ')
+82 FORMAT(" ******************* ")
 !
 do ID=1, NOPJ0PP
 ACOUNT=NCOL*IBIN*LSIZE/LS(1)
@@ -1385,12 +1385,12 @@ AV(IB)=aimag(AVACLJ0PP(IB,ID))/ACOUNT
 end do
 CALL JACKM(NUMBIN,AV,APLAQIP,SPLAQIP)
 WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
-101 FORMAT('OP =',I4,'  AV,ER R,I LINES =',4F9.4)
+101 FORMAT("OP =",I4,"  AV,ER R,I LINES =",4F9.4)
 10 CONTINUE
 end do
 WRITE(23,81)
 WRITE(23,201)
-201 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=+, Pr=- ')
+201 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=+, Pr=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ0PM
@@ -1407,7 +1407,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,202)
-202 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=-, Pr=+ ')
+202 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=-, Pr=+ ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ0MP
@@ -1424,7 +1424,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,203)
-203 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=-, Pr=- ')
+203 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=-, Pr=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ0MM
@@ -1441,7 +1441,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,204)
-204 FORMAT(' AVERAGE  X,Y  LINES, J=1, Pr=+ ')
+204 FORMAT(" AVERAGE  X,Y  LINES, J=1, Pr=+ ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ1P
@@ -1458,7 +1458,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,205)
-205 FORMAT(' AVERAGE  X,Y  LINES, J=1, Pr=- ')
+205 FORMAT(" AVERAGE  X,Y  LINES, J=1, Pr=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ1M
@@ -1475,7 +1475,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,206)
-206 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=+, Pr=+ ')
+206 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=+, Pr=+ ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2PP
@@ -1492,7 +1492,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,208)
-208 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=+, Pr=- ')
+208 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=+, Pr=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2PM
@@ -1509,7 +1509,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,209)
-209 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=-, Pr=+ ')
+209 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=-, Pr=+ ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2MP
@@ -1526,7 +1526,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,210)
-210 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=-, Pr=- ')
+210 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=-, Pr=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2MM
@@ -1543,37 +1543,37 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 !**********************************************************************
 !     DIAGONAL CORRELATORS
-!**********************************************************************      
+!**********************************************************************
 WRITE(23,80)
 
 WRITE(23,81)
 WRITE(23,220)
-220 FORMAT(' DIAGONAL TORELONS J=0, Pp=+, Pr=+, q=0 ')
+220 FORMAT(" DIAGONAL TORELONS J=0, Pp=+, Pr=+, q=0 ")
 WRITE(23,81)
 
 do ID=1, NOPJ0PP
 WRITE(23,81)
 WRITE(23,82)
 WRITE(23,94) ID
-94 FORMAT(' OPERATOR = ',I4)
+94 FORMAT(" OPERATOR = ",I4)
 WRITE(23,82)
 DO NT=1,LMAX
 DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ0PP(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 20
+IF(ABS(CORP(1,1))<=EPS)goto 20
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
-102 FORMAT('  DT=',I3,'   AV,ER COR = ',2F8.4,'    E=',2F8.4)
+102 FORMAT("  DT=",I3,"   AV,ER COR = ",2F8.4,"    E=",2F8.4)
 end do
 20 CONTINUE
 end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,211)
-211 FORMAT(' DIAGONAL TORELONS J=0, Pp=+, Pr=-, q=0 ')
+211 FORMAT(" DIAGONAL TORELONS J=0, Pp=+, Pr=-, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ0PM
@@ -1586,7 +1586,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ0PM(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 21
+IF(ABS(CORP(1,1))<=EPS)goto 21
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1596,7 +1596,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,212)
-212 FORMAT(' DIAGONAL TORELONS J=0, Pp=-, Pr=+, q=0 ')
+212 FORMAT(" DIAGONAL TORELONS J=0, Pp=-, Pr=+, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ0MP
@@ -1609,7 +1609,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ0MP(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 22
+IF(ABS(CORP(1,1))<=EPS)goto 22
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1619,7 +1619,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,213)
-213 FORMAT(' DIAGONAL TORELONS J=0, Pp=-, Pr=-, q=0 ')
+213 FORMAT(" DIAGONAL TORELONS J=0, Pp=-, Pr=-, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ0MM
@@ -1632,7 +1632,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ0MM(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 23
+IF(ABS(CORP(1,1))<=EPS)goto 23
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1642,7 +1642,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,214)
-214 FORMAT(' DIAGONAL TORELONS J=1, Pr=+, q=0 ')
+214 FORMAT(" DIAGONAL TORELONS J=1, Pr=+, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ1P
@@ -1655,7 +1655,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ1P(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 24
+IF(ABS(CORP(1,1))<=EPS)goto 24
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1665,7 +1665,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,215)
-215 FORMAT(' DIAGONAL TORELONS J=1, Pr=-, q=0 ')
+215 FORMAT(" DIAGONAL TORELONS J=1, Pr=-, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ1M
@@ -1678,7 +1678,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ1M(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 25
+IF(ABS(CORP(1,1))<=EPS)goto 25
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1688,7 +1688,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,216)
-216 FORMAT(' DIAGONAL TORELONS J=2, Pp=+, Pr=+, q=0 ')
+216 FORMAT(" DIAGONAL TORELONS J=2, Pp=+, Pr=+, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2PP
@@ -1701,7 +1701,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ2PP(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 26
+IF(ABS(CORP(1,1))<=EPS)goto 26
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1711,7 +1711,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,217)
-217 FORMAT(' DIAGONAL TORELONS J=2, Pp=+, Pr=-, q=0 ')
+217 FORMAT(" DIAGONAL TORELONS J=2, Pp=+, Pr=-, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2PM
@@ -1724,7 +1724,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ2PM(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 27
+IF(ABS(CORP(1,1))<=EPS)goto 27
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1734,7 +1734,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,218)
-218 FORMAT(' DIAGONAL TORELONS J=2, Pp=-, Pr=+, q=0 ')
+218 FORMAT(" DIAGONAL TORELONS J=2, Pp=-, Pr=+, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2MP
@@ -1747,7 +1747,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ2MP(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 28
+IF(ABS(CORP(1,1))<=EPS)goto 28
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1757,7 +1757,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,219)
-219 FORMAT(' DIAGONAL TORELONS J=2, Pp=-, Pr=-, q=0 ')
+219 FORMAT(" DIAGONAL TORELONS J=2, Pp=-, Pr=-, q=0 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2MM
@@ -1770,7 +1770,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLJ2MM(IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 29
+IF(ABS(CORP(1,1))<=EPS)goto 29
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -1778,7 +1778,7 @@ end do
 29 CONTINUE
 end do
 CLOSE(23)
-!*********************************************************************   
+!*********************************************************************
 RETURN
 end subroutine MLINE3
 !*********************************************************************
@@ -1794,7 +1794,7 @@ PARAMETER(LMAXIR=3)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -1825,7 +1825,7 @@ PARAMETER(NTOTALMOM=NOPFULJ0MOM+NOPFULJ1MOM+NOPFULJ2MOM)
 !----------------------------------------------------------
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************   
+!******************************************************************************
 COMMON/PBLOCKP/ACORLP(NUMBIN,LMAXIR,NTOTAL,NTOTAL) &
   & ,AVACLP(NUMBIN,NTOTAL)
 !
@@ -1876,30 +1876,30 @@ COMMON/PBLOCKMOMJ2/ &
 COMMON/ITEM/ITR,IBIN,ITOT
 COMMON/FIT/ACOR(200),SCOR(200),AMM(200),SMM(200),NTMAX
 !
-complex(real64) ACORLP,AVACLP
+complex(real64) :: ACORLP,AVACLP
 !***********************************************************
-complex(real64) ACORLJ0PP,ACORLJ0PM,ACORLJ0MP,ACORLJ0MM
-complex(real64) AVACLJ0PP,AVACLJ0PM,AVACLJ0MP,AVACLJ0MM
+complex(real64) :: ACORLJ0PP,ACORLJ0PM,ACORLJ0MP,ACORLJ0MM
+complex(real64) :: AVACLJ0PP,AVACLJ0PM,AVACLJ0MP,AVACLJ0MM
 !***********************************************************
-complex(real64) ACORLJ1P,ACORLJ1M
-complex(real64) AVACLJ1P,AVACLJ1M
+complex(real64) :: ACORLJ1P,ACORLJ1M
+complex(real64) :: AVACLJ1P,AVACLJ1M
 !***********************************************************
-complex(real64) ACORLJ2PP,ACORLJ2PM,ACORLJ2MP,ACORLJ2MM
-complex(real64) AVACLJ2PP,AVACLJ2PM,AVACLJ2MP,AVACLJ2MM
+complex(real64) :: ACORLJ2PP,ACORLJ2PM,ACORLJ2MP,ACORLJ2MM
+complex(real64) :: AVACLJ2PP,AVACLJ2PM,AVACLJ2MP,AVACLJ2MM
 !***********************************************************
-complex(real64) ACORLPMOMJ0P, ACORLPMOMJ0M
-complex(real64) AVACLMOMJ0P, AVACLMOMJ0M
+complex(real64) :: ACORLPMOMJ0P, ACORLPMOMJ0M
+complex(real64) :: AVACLMOMJ0P, AVACLMOMJ0M
 !***********************************************************
-complex(real64) ACORLPMOMJ0, ACORLPMOMJ1, ACORLPMOMJ2
-complex(real64) AVACLMOMJ0, AVACLMOMJ1, AVACLMOMJ2
+complex(real64) :: ACORLPMOMJ0, ACORLPMOMJ1, ACORLPMOMJ2
+complex(real64) :: AVACLMOMJ0, AVACLMOMJ1, AVACLMOMJ2
 !***********************************************************
-complex(real64) ACORLPMOMJ2P, ACORLPMOMJ2M
-complex(real64) AVACLMOMJ2P, AVACLMOMJ2M
+complex(real64) :: ACORLPMOMJ2P, ACORLPMOMJ2M
+complex(real64) :: AVACLMOMJ2P, AVACLMOMJ2M
 !***********************************************************
 DIMENSION CORP(NUMBIN,LMAX)
 DIMENSION VAC(NUMBIN),LS(3),AV(NUMBIN)
 !
-OPEN (23, FILE='DIAGNALQ1IND.DAT')
+OPEN (23, FILE="DIAGNALQ1IND.DAT")
 !
 NBIN=ITOT/IBIN
 LS(1)=LX1
@@ -1911,19 +1911,19 @@ EPS=0.0000000001d0
 !********************************************************************
 WRITE(23,80)
 WRITE(23,80)
-80 FORMAT('****************************************************')
+80 FORMAT("****************************************************")
 WRITE(23,181)
-181 FORMAT('****************** OPERATORS WITH Q = 1 ************')
+181 FORMAT("****************** OPERATORS WITH Q = 1 ************")
 WRITE(23,80)
 WRITE(23,81)
 WRITE(23,80)
 WRITE(23,80)
 WRITE(23,81)
-81 FORMAT(' *')
+81 FORMAT(" *")
 WRITE(23,91)
-91 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=+')
+91 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=+")
 WRITE(23,81)
-82 FORMAT(' ******************* ')
+82 FORMAT(" ******************* ")
 !
 do ID=1, NOPJ0PMOM
 ACOUNT=NCOL*IBIN*LSIZE/LS(1)
@@ -1938,12 +1938,12 @@ AV(IB)=aimag(AVACLMOMJ0P(1,IB,ID))/ACOUNT
 end do
 CALL JACKM(NUMBIN,AV,APLAQIP,SPLAQIP)
 WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
-101 FORMAT('OP =',I4,'  AV,ER R,I LINES =',4F9.4)
+101 FORMAT("OP =",I4,"  AV,ER R,I LINES =",4F9.4)
 10 CONTINUE
 end do
 WRITE(23,81)
 WRITE(23,202)
-202 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=- ')
+202 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ0MMOM
@@ -1960,7 +1960,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,204)
-204 FORMAT(' AVERAGE  X,Y  LINES, J=1 ')
+204 FORMAT(" AVERAGE  X,Y  LINES, J=1 ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ1MOM
@@ -1977,7 +1977,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,206)
-206 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=+ ')
+206 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=+ ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2PMOM
@@ -1994,7 +1994,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,207)
-207 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=- ')
+207 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2MMOM
@@ -2011,37 +2011,37 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 !**********************************************************************
 !     DIAGONAL CORRELATORS smirloglou 00302102473443, 00306972428749
-!**********************************************************************      
+!**********************************************************************
 WRITE(23,80)
 
 WRITE(23,81)
 WRITE(23,220)
-220 FORMAT(' DIAGONAL TORELONS J=0, Pp=+, q=1 ')
+220 FORMAT(" DIAGONAL TORELONS J=0, Pp=+, q=1 ")
 WRITE(23,81)
 
 do ID=1, NOPJ0PMOM
 WRITE(23,81)
 WRITE(23,82)
 WRITE(23,94) ID
-94 FORMAT(' OPERATOR = ',I4)
+94 FORMAT(" OPERATOR = ",I4)
 WRITE(23,82)
 DO NT=1,LMAX
 DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ0P(1,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 20
+IF(ABS(CORP(1,1))<=EPS)goto 20
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
-102 FORMAT('  DT=',I3,'   AV,ER COR = ',2F8.4,'    E=',2F8.4)
+102 FORMAT("  DT=",I3,"   AV,ER COR = ",2F8.4,"    E=",2F8.4)
 end do
 20 CONTINUE
 end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,211)
-211 FORMAT(' DIAGONAL TORELONS J=0, Pp=-, q=1 ')
+211 FORMAT(" DIAGONAL TORELONS J=0, Pp=-, q=1 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ0MMOM
@@ -2054,7 +2054,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ0M(1,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 21
+IF(ABS(CORP(1,1))<=EPS)goto 21
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2064,7 +2064,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,212)
-212 FORMAT(' DIAGONAL TORELONS J=1, q=1 ')
+212 FORMAT(" DIAGONAL TORELONS J=1, q=1 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ1MOM
@@ -2077,7 +2077,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ1(1,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 22
+IF(ABS(CORP(1,1))<=EPS)goto 22
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2087,7 +2087,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,213)
-213 FORMAT(' DIAGONAL TORELONS J=2, Pp=+, q=1 ')
+213 FORMAT(" DIAGONAL TORELONS J=2, Pp=+, q=1 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2PMOM
@@ -2100,7 +2100,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ2P(1,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 23
+IF(ABS(CORP(1,1))<=EPS)goto 23
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2110,7 +2110,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,214)
-214 FORMAT(' DIAGONAL TORELONS J=2, Pr=-, q=1 ')
+214 FORMAT(" DIAGONAL TORELONS J=2, Pr=-, q=1 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2MMOM
@@ -2123,7 +2123,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ2M(1,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 24
+IF(ABS(CORP(1,1))<=EPS)goto 24
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2131,7 +2131,7 @@ end do
 24 CONTINUE
 end do
 CLOSE(23)
-!*********************************************************************   
+!*********************************************************************
 RETURN
 end subroutine MLINE4
 !*********************************************************************
@@ -2147,7 +2147,7 @@ PARAMETER(LMAXIR=3)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************     
+!******************************************************************************
 PARAMETER(I0PP=38,I0PM=10,I0MP=15,I0MM=22) !TBC!
 PARAMETER(I1P=34,I1M=32) !TBC!
 PARAMETER(I2PP=27,I2PM=20,I2MP=25,I2MM=12) !TBC!
@@ -2178,7 +2178,7 @@ PARAMETER(NTOTALMOM=NOPFULJ0MOM+NOPFULJ1MOM+NOPFULJ2MOM)
 !----------------------------------------------------------
 !******************************************************************************
 !******************************************************************************
-!******************************************************************************   
+!******************************************************************************
 COMMON/PBLOCKP/ACORLP(NUMBIN,LMAXIR,NTOTAL,NTOTAL) &
   & ,AVACLP(NUMBIN,NTOTAL)
 !
@@ -2229,30 +2229,30 @@ COMMON/PBLOCKMOMJ2/ &
 COMMON/ITEM/ITR,IBIN,ITOT
 COMMON/FIT/ACOR(200),SCOR(200),AMM(200),SMM(200),NTMAX
 !
-complex(real64) ACORLP,AVACLP
+complex(real64) :: ACORLP,AVACLP
 !***********************************************************
-complex(real64) ACORLJ0PP,ACORLJ0PM,ACORLJ0MP,ACORLJ0MM
-complex(real64) AVACLJ0PP,AVACLJ0PM,AVACLJ0MP,AVACLJ0MM
+complex(real64) :: ACORLJ0PP,ACORLJ0PM,ACORLJ0MP,ACORLJ0MM
+complex(real64) :: AVACLJ0PP,AVACLJ0PM,AVACLJ0MP,AVACLJ0MM
 !***********************************************************
-complex(real64) ACORLJ1P,ACORLJ1M
-complex(real64) AVACLJ1P,AVACLJ1M
+complex(real64) :: ACORLJ1P,ACORLJ1M
+complex(real64) :: AVACLJ1P,AVACLJ1M
 !***********************************************************
-complex(real64) ACORLJ2PP,ACORLJ2PM,ACORLJ2MP,ACORLJ2MM
-complex(real64) AVACLJ2PP,AVACLJ2PM,AVACLJ2MP,AVACLJ2MM
+complex(real64) :: ACORLJ2PP,ACORLJ2PM,ACORLJ2MP,ACORLJ2MM
+complex(real64) :: AVACLJ2PP,AVACLJ2PM,AVACLJ2MP,AVACLJ2MM
 !***********************************************************
-complex(real64) ACORLPMOMJ0P, ACORLPMOMJ0M
-complex(real64) AVACLMOMJ0P, AVACLMOMJ0M
+complex(real64) :: ACORLPMOMJ0P, ACORLPMOMJ0M
+complex(real64) :: AVACLMOMJ0P, AVACLMOMJ0M
 !***********************************************************
-complex(real64) ACORLPMOMJ0, ACORLPMOMJ1, ACORLPMOMJ2
-complex(real64) AVACLMOMJ0, AVACLMOMJ1, AVACLMOMJ2
+complex(real64) :: ACORLPMOMJ0, ACORLPMOMJ1, ACORLPMOMJ2
+complex(real64) :: AVACLMOMJ0, AVACLMOMJ1, AVACLMOMJ2
 !***********************************************************
-complex(real64) ACORLPMOMJ2P, ACORLPMOMJ2M
-complex(real64) AVACLMOMJ2P, AVACLMOMJ2M
+complex(real64) :: ACORLPMOMJ2P, ACORLPMOMJ2M
+complex(real64) :: AVACLMOMJ2P, AVACLMOMJ2M
 !***********************************************************
 DIMENSION CORP(NUMBIN,LMAX)
 DIMENSION VAC(NUMBIN),LS(3),AV(NUMBIN)
 !
-OPEN (23, FILE='DIAGNALQ2IND.DAT')
+OPEN (23, FILE="DIAGNALQ2IND.DAT")
 !
 NBIN=ITOT/IBIN
 LS(1)=LX1
@@ -2264,19 +2264,19 @@ EPS=0.0000000001d0
 !********************************************************************
 WRITE(23,80)
 WRITE(23,80)
-80 FORMAT('****************************************************')
+80 FORMAT("****************************************************")
 WRITE(23,181)
-181 FORMAT('****************** OPERATORS WITH Q = 2 ************')
+181 FORMAT("****************** OPERATORS WITH Q = 2 ************")
 WRITE(23,80)
 WRITE(23,81)
 WRITE(23,80)
 WRITE(23,80)
 WRITE(23,81)
-81 FORMAT(' *')
+81 FORMAT(" *")
 WRITE(23,91)
-91 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=+')
+91 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=+")
 WRITE(23,81)
-82 FORMAT(' ******************* ')
+82 FORMAT(" ******************* ")
 !
 do ID=1, NOPJ0PMOM
 ACOUNT=NCOL*IBIN*LSIZE/LS(1)
@@ -2291,12 +2291,12 @@ AV(IB)=aimag(AVACLMOMJ0P(2,IB,ID))/ACOUNT
 end do
 CALL JACKM(NUMBIN,AV,APLAQIP,SPLAQIP)
 WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
-101 FORMAT('OP =',I4,'  AV,ER R,I LINES =',4F9.4)
+101 FORMAT("OP =",I4,"  AV,ER R,I LINES =",4F9.4)
 10 CONTINUE
 end do
 WRITE(23,81)
 WRITE(23,202)
-202 FORMAT(' AVERAGE  X,Y  LINES, J=0, Pp=- ')
+202 FORMAT(" AVERAGE  X,Y  LINES, J=0, Pp=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ0MMOM
@@ -2313,7 +2313,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,204)
-204 FORMAT(' AVERAGE  X,Y  LINES, J=1 ')
+204 FORMAT(" AVERAGE  X,Y  LINES, J=1 ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ1MOM
@@ -2330,7 +2330,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,206)
-206 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=+ ')
+206 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=+ ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2PMOM
@@ -2347,7 +2347,7 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 WRITE(23,81)
 WRITE(23,207)
-207 FORMAT(' AVERAGE  X,Y  LINES, J=2, Pp=- ')
+207 FORMAT(" AVERAGE  X,Y  LINES, J=2, Pp=- ")
 WRITE(23,81)
 !
 DO ID=1, NOPJ2MMOM
@@ -2364,37 +2364,37 @@ WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
 end do
 !**********************************************************************
 !     DIAGONAL CORRELATORS smirloglou 00302102473443, 00306972428749
-!**********************************************************************      
+!**********************************************************************
 WRITE(23,80)
 
 WRITE(23,81)
 WRITE(23,220)
-220 FORMAT(' DIAGONAL TORELONS J=0, Pp=+, q=2 ')
+220 FORMAT(" DIAGONAL TORELONS J=0, Pp=+, q=2 ")
 WRITE(23,81)
 
 do ID=1, NOPJ0PMOM
 WRITE(23,81)
 WRITE(23,82)
 WRITE(23,94) ID
-94 FORMAT(' OPERATOR = ',I4)
+94 FORMAT(" OPERATOR = ",I4)
 WRITE(23,82)
 DO NT=1,LMAX
 DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ0P(2,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 20
+IF(ABS(CORP(1,1))<=EPS)goto 20
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
-102 FORMAT('  DT=',I3,'   AV,ER COR = ',2F8.4,'    E=',2F8.4)
+102 FORMAT("  DT=",I3,"   AV,ER COR = ",2F8.4,"    E=",2F8.4)
 end do
 20 CONTINUE
 end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,211)
-211 FORMAT(' DIAGONAL TORELONS J=0, Pp=-, q=2 ')
+211 FORMAT(" DIAGONAL TORELONS J=0, Pp=-, q=2 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ0MMOM
@@ -2407,7 +2407,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ0M(2,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 21
+IF(ABS(CORP(1,1))<=EPS)goto 21
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2417,7 +2417,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,212)
-212 FORMAT(' DIAGONAL TORELONS J=1, q=2 ')
+212 FORMAT(" DIAGONAL TORELONS J=1, q=2 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ1MOM
@@ -2430,7 +2430,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ1(2,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 22
+IF(ABS(CORP(1,1))<=EPS)goto 22
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2440,7 +2440,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,213)
-213 FORMAT(' DIAGONAL TORELONS J=2, Pp=+, q=2 ')
+213 FORMAT(" DIAGONAL TORELONS J=2, Pp=+, q=2 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2PMOM
@@ -2453,7 +2453,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ2P(2,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 23
+IF(ABS(CORP(1,1))<=EPS)goto 23
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2463,7 +2463,7 @@ end do
 !*********************************************************************
 WRITE(23,81)
 WRITE(23,214)
-214 FORMAT(' DIAGONAL TORELONS J=2, Pr=-, q=2 ')
+214 FORMAT(" DIAGONAL TORELONS J=2, Pr=-, q=2 ")
 WRITE(23,81)
 !
 do ID=1, NOPJ2MMOM
@@ -2476,7 +2476,7 @@ DO IB=1,NBIN
 CORP(IB,NT)=real(ACORLPMOMJ2M(2,IB,NT,ID,ID))
 end do
 end do
-IF(ABS(CORP(1,1)).LE.EPS)go to 24
+IF(ABS(CORP(1,1))<=EPS)goto 24
 CALL JACK(NBIN,1,LX4,NUMBIN,LMAX,CORP,VAC)
 DO NT=1,MAXDTLS
 WRITE(23,102) NT-1,ACOR(NT),SCOR(NT),AMM(NT),SMM(NT)
@@ -2484,11 +2484,11 @@ end do
 24 CONTINUE
 end do
 CLOSE(23)
-!*********************************************************************   
+!*********************************************************************
 RETURN
 end subroutine MLINE5
 !*********************************************************************
-!************************ SUBROUTINE BLOCK *************************** 
+!************************ SUBROUTINE BLOCK ***************************
 !*********************************************************************
 SUBROUTINE BLOCK
 use iso_fortran_env, only : real32, real64, int32
@@ -2506,14 +2506,14 @@ COMMON/ASMEAR1/UC11(NCOL2,LSIZEB,3)
 COMMON/ASMEAR2/IUP(LSIZEB,3),IDN(LSIZEB,3)
 COMMON/NEXTB/IUPB(LSIZEB,3,IBLOK+1),IDNB(LSIZEB,3,IBLOK+1)
 DIMENSION A11(NCOL2),B11(NCOL2),C11(NCOL2)
-complex(real32) U11,UB11,A11,B11,C11,UC11
+complex(real32) :: U11,UB11,A11,B11,C11,UC11
 !
 CALL cpu_time(t1)
 do I4=1,LX4
 !
 do IBL=1,IBLOK
 !
-IF(IBL.EQ.1)THEN
+IF(IBL==1)THEN
 DO MU=1,3
 DO NN=1,LSIZEB
 DO IJ=1,NCOL2
@@ -2521,7 +2521,7 @@ UB11(IJ,NN,MU,1)=U11(IJ,NN,I4,MU)
 end do
 end do
 end do
-go to 11
+goto 11
 end if
 !
 IBLM=IBL-1
@@ -2565,13 +2565,13 @@ end do
 end do
 CALL cpu_time(t2)
 WRITE(6,901) real(t2-t1, kind=real32)
-901 FORMAT('[Info][Time]','     Thermal Line time:', F8.4)
+901 FORMAT("[Info][Time]","     Thermal Line time:", F8.4)
 !
 CALL cpu_time(t1)
 CALL POT
 CALL cpu_time(t2)
 WRITE(6,902) real(t2-t1, kind=real32)
-902 FORMAT('[Info][Time]','     Correlation Creation time:', F8.4)
+902 FORMAT("[Info][Time]","     Correlation Creation time:", F8.4)
 !
 RETURN
 end subroutine BLOCK
@@ -2593,8 +2593,8 @@ COMMON/DIAGOUT/UDD(NCOL2,LSIZEB,4),IDD(LSIZEB,4)
 DIMENSION UCC11(NCOL2,LSIZEB,3)
 DIMENSION UINT11(NCOL2),UREN11(NCOL2)
 DIMENSION A11(NCOL2),B11(NCOL2),C11(NCOL2),DUM11(NCOL2)
-complex(real32) A11,B11,C11,UINT11,UREN11,UC11,DUM11,UCC11,UDD
-complex(real32) UUC11
+complex(real32) :: A11,B11,C11,UINT11,UREN11,UC11,DUM11,UCC11,UDD
+complex(real32) :: UUC11
 !
 DO KK=1,3
 DO NN=1,LSIZEB
@@ -2612,7 +2612,7 @@ end do
 end do
 !
 do MU=1,3
-IF(IDIAG.EQ.1) CALL DIAG(MU)
+IF(IDIAG==1) CALL DIAG(MU)
 !
 do NN=1,LSIZEB
 M1=NN
@@ -2623,7 +2623,7 @@ UINT11(IJ)=UC11(IJ,M1,MU)
 end do
 !
 do NU=1,3
-IF(MU.EQ.NU)go to 40
+IF(MU==NU)goto 40
 !
 do IJ=1,NCOL2
 A11(IJ)=UC11(IJ,M1,NU)
@@ -2673,7 +2673,7 @@ end do
 end do
 !
 do MNU=1,4
-IF(IDIAG.NE.1)go to 50
+IF(IDIAG/=1)goto 50
 !
 do IJ=1,NCOL2
 A11(IJ)=UDD(IJ,M1,MNU)
@@ -2733,10 +2733,10 @@ PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
 COMMON/ASMEAR1/U11(NCOL,NCOL,LSIZEB,3)
-complex(real32) ADUM(NCOL,NCOL),U11,CSUM
+complex(real32) :: ADUM(NCOL,NCOL),U11,CSUM
 !
-complex(real32) AA(NCOL,NCOL)
-complex(real32) DET,CNORM,CDET,DNCOL
+complex(real32) :: AA(NCOL,NCOL)
+complex(real32) :: DET,CNORM,CDET,DNCOL
 !
 DO MU=1,3
 DO NN=1,LSIZEB
@@ -2771,7 +2771,7 @@ end do
 RETURN
 end subroutine DODET
 !*********************************************************************
-! form 4 'diagonal' links in plane orth to MU, from each site 
+! form 4 'diagonal' links in plane orth to MU, from each site
 ! with end-pt in IDD using links and pointers in /DIAGIN/
 ! -- output matrices (not suN) and pointers in /DIAGOUT/
 !*********************************************************************
@@ -2781,22 +2781,22 @@ implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(LSIZEB=LX1*LX2*LX3)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
-!     
+!
 COMMON/DIAGOUT/UDD(NCOL2,LSIZEB,4),IDD(LSIZEB,4)
 COMMON/DIAGIN/UC11(NCOL2,LSIZEB,3), &
   & IUP(LSIZEB,3),IDN(LSIZEB,3)
-complex(real32) C11(NCOL2),F11(NCOL2),DUM11(NCOL2)
-complex(real32) A11(NCOL2),D11(NCOL2),E11(NCOL2)
-complex(real32) AA11(NCOL2),DD11(NCOL2),EE11(NCOL2)
-complex(real32) UDD,UC11
-!     
+complex(real32) :: C11(NCOL2),F11(NCOL2),DUM11(NCOL2)
+complex(real32) :: A11(NCOL2),D11(NCOL2),E11(NCOL2)
+complex(real32) :: AA11(NCOL2),DD11(NCOL2),EE11(NCOL2)
+complex(real32) :: UDD,UC11
+!
 NU=MU+1
-IF(MU.EQ.3)NU=1
+IF(MU==3)NU=1
 KU=6-MU-NU
-!     
+!
 do NN=1,LSIZEB
 M1=NN
-!     
+!
 do IJ=1,NCOL2
 A11(IJ)=UC11(IJ,M1,NU)
 2 CONTINUE
@@ -2823,7 +2823,7 @@ UDD(IJ,M1,1)=C11(IJ)+F11(IJ)
 end do
 M9=IUP(M3,NU)
 IDD(M1,1)=M9
-!     
+!
 do IJ=1,NCOL2
 AA11(IJ)=C11(IJ)+F11(IJ)
 61 CONTINUE
@@ -2834,7 +2834,7 @@ UDD(IJ,M9,3)=AA11(IJ)
 62 CONTINUE
 end do
 IDD(M9,3)=M1
-!     
+!
 M4=IDN(M2,KU)
 do IJ=1,NCOL2
 AA11(IJ)=UC11(IJ,M4,KU)
@@ -2858,7 +2858,7 @@ UDD(IJ,M1,2)=C11(IJ)+F11(IJ)
 10 CONTINUE
 end do
 IDD(M1,2)=M4
-!     
+!
 do IJ=1,NCOL2
 AA11(IJ)=C11(IJ)+F11(IJ)
 63 CONTINUE
@@ -2869,10 +2869,10 @@ UDD(IJ,M4,4)=AA11(IJ)
 64 CONTINUE
 end do
 IDD(M4,4)=M1
-!     
+!
 1 CONTINUE
 end do
-!     
+!
 RETURN
 end subroutine DIAG
 !**********************************************************
@@ -2883,21 +2883,21 @@ SUBROUTINE RENORMBS(UU1,UREN11)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
-!     
+!
 DIMENSION UU1(NCOL,NCOL),UREN11(NCOL,NCOL)
-complex(real32) UB1,UU1,CSUM,ADUM(NCOL,NCOL),UREN11
-complex(real32) A11(NCOL2),B11(NCOL2),C11(NCOL2)
+complex(real32) :: UB1,UU1,CSUM,ADUM(NCOL,NCOL),UREN11
+complex(real32) :: A11(NCOL2),B11(NCOL2),C11(NCOL2)
 !
 DO N2=1,NCOL
 DO N1=1,NCOL
 ADUM(N1,N2)=UU1(N1,N2)
 end do
 end do
-!     
+!
 do N2=1,NCOL
-!     
+!
 do N3=1,N2-1
-!     
+!
 CSUM=(0.0,0.0)
 do N1=1,NCOL
 CSUM=CSUM+ADUM(N1,N2)*CONJG(ADUM(N1,N3))
@@ -2907,10 +2907,10 @@ do N1=1,NCOL
 ADUM(N1,N2)=ADUM(N1,N2)-CSUM*ADUM(N1,N3)
 6 CONTINUE
 end do
-!     
+!
 10 CONTINUE
 end do
-!     
+!
 SUM=0.0
 do N1=1,NCOL
 SUM=SUM+ADUM(N1,N2)*CONJG(ADUM(N1,N2))
@@ -2921,7 +2921,7 @@ do N1=1,NCOL
 ADUM(N1,N2)=ADUM(N1,N2)*ANORM
 8 CONTINUE
 end do
-!     
+!
 20 CONTINUE
 end do
 !
@@ -2962,10 +2962,10 @@ SUBROUTINE RUNGRB(B11,C11)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
-!     
-complex(real32) B11(NCOL2),C11(NCOL2)
+!
+complex(real32) :: B11(NCOL2),C11(NCOL2)
 COMMON/SUBB/II1,JJ1,II2,JJ2,II3,JJ3,II4,JJ4
-!     
+!
 do LDU=1,NCOL-1
 do LDL=LDU+1,NCOL
 II1=LDU
@@ -2981,7 +2981,7 @@ CALL SUBGRB(LDU,LDL,B11,C11)
 end do
 10 CONTINUE
 end do
-!     
+!
 RETURN
 end subroutine RUNGRB
 !*********************************************************************
@@ -2991,25 +2991,25 @@ SUBROUTINE SUBGRB(LDU,LDL,B11,C11)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
-!     
+!
 COMMON/SUBB/II1,JJ1,II2,JJ2,II3,JJ3,II4,JJ4
-!     
-complex(real32) B11(NCOL,NCOL),C11(NCOL,NCOL)
-complex(real32) F11,F12,A11(NCOL,NCOL),S11(NCOL,NCOL)
-complex(real32) T11(NCOL,NCOL)
-!     
+!
+complex(real32) :: B11(NCOL,NCOL),C11(NCOL,NCOL)
+complex(real32) :: F11,F12,A11(NCOL,NCOL),S11(NCOL,NCOL)
+complex(real32) :: T11(NCOL,NCOL)
+!
 F11=(B11(II1,JJ1)+CONJG(B11(II2,JJ2)))*0.5
 F12=(B11(II3,JJ3)-CONJG(B11(II4,JJ4)))*0.5
 UMAG=SQRT(F11*CONJG(F11)+F12*CONJG(F12))
 UMAG=1./UMAG
 F11=F11*UMAG
 F12=F12*UMAG
-!     
+!
 A11(II1,JJ1)=CONJG(F11)
 A11(II4,JJ4)=CONJG(F12)
 A11(II3,JJ3)=-F12
 A11(II2,JJ2)=F11
-!     
+!
 do IJ1=1,NCOL
 S11(IJ1,LDU)=C11(IJ1,LDU)*(A11(LDU,LDU)-1.0) &
   & +C11(IJ1,LDL)*A11(LDL,LDU)
@@ -3028,7 +3028,7 @@ B11(IJ1,LDU)=B11(IJ1,LDU)+T11(IJ1,LDU)
 B11(IJ1,LDL)=B11(IJ1,LDL)+T11(IJ1,LDL)
 4 CONTINUE
 end do
-!     
+!
 RETURN
 end subroutine SUBGRB
 !*********************************************************************
@@ -3063,52 +3063,52 @@ DO L2=1,LX2
 DO L1=1,LX1
 NN=NN+1
 do ID=1,IBLOK+1
-!     
+!
 NU1=NN+LB(ID)
-IF((L1+LB(ID)).GT.(LX1*1)) NU1=NU1-LX1
-IF((L1+LB(ID)).GT.(LX1*2)) NU1=NU1-LX1
-IF((L1+LB(ID)).GT.(LX1*3)) NU1=NU1-LX1
-IF((L1+LB(ID)).GT.(LX1*4)) NU1=NU1-LX1
+IF((L1+LB(ID))>(LX1*1)) NU1=NU1-LX1
+IF((L1+LB(ID))>(LX1*2)) NU1=NU1-LX1
+IF((L1+LB(ID))>(LX1*3)) NU1=NU1-LX1
+IF((L1+LB(ID))>(LX1*4)) NU1=NU1-LX1
 IUPB(NN,1,ID)=NU1
 ND1=NN-LB(ID)
-IF((L1-LB(ID)).LT.(1-LX1*0)) ND1=ND1+LX1
-IF((L1-LB(ID)).LT.(1-LX1*1)) ND1=ND1+LX1
-IF((L1-LB(ID)).LT.(1-LX1*2)) ND1=ND1+LX1
-IF((L1-LB(ID)).LT.(1-LX1*3)) ND1=ND1+LX1
+IF((L1-LB(ID))<(1-LX1*0)) ND1=ND1+LX1
+IF((L1-LB(ID))<(1-LX1*1)) ND1=ND1+LX1
+IF((L1-LB(ID))<(1-LX1*2)) ND1=ND1+LX1
+IF((L1-LB(ID))<(1-LX1*3)) ND1=ND1+LX1
 IDNB(NN,1,ID)=ND1
-!     
+!
 NU2=NN+LB1(ID)
-IF((L2+LB(ID)).GT.(LX2*1)) NU2=NU2-LX12
-IF((L2+LB(ID)).GT.(LX2*2)) NU2=NU2-LX12
-IF((L2+LB(ID)).GT.(LX2*3)) NU2=NU2-LX12
-IF((L2+LB(ID)).GT.(LX2*4)) NU2=NU2-LX12
+IF((L2+LB(ID))>(LX2*1)) NU2=NU2-LX12
+IF((L2+LB(ID))>(LX2*2)) NU2=NU2-LX12
+IF((L2+LB(ID))>(LX2*3)) NU2=NU2-LX12
+IF((L2+LB(ID))>(LX2*4)) NU2=NU2-LX12
 IUPB(NN,2,ID)=NU2
 ND2=NN-LB1(ID)
-IF((L2-LB(ID)).LT.(1-LX2*0)) ND2=ND2+LX12
-IF((L2-LB(ID)).LT.(1-LX2*1)) ND2=ND2+LX12
-IF((L2-LB(ID)).LT.(1-LX2*2)) ND2=ND2+LX12
-IF((L2-LB(ID)).LT.(1-LX2*3)) ND2=ND2+LX12
+IF((L2-LB(ID))<(1-LX2*0)) ND2=ND2+LX12
+IF((L2-LB(ID))<(1-LX2*1)) ND2=ND2+LX12
+IF((L2-LB(ID))<(1-LX2*2)) ND2=ND2+LX12
+IF((L2-LB(ID))<(1-LX2*3)) ND2=ND2+LX12
 IDNB(NN,2,ID)=ND2
-!     
+!
 NU3=NN+LB12(ID)
-IF((L3+LB(ID)).GT.(LX3*1)) NU3=NU3-LX123
-IF((L3+LB(ID)).GT.(LX3*2)) NU3=NU3-LX123
-IF((L3+LB(ID)).GT.(LX3*3)) NU3=NU3-LX123
-IF((L3+LB(ID)).GT.(LX3*4)) NU3=NU3-LX123
+IF((L3+LB(ID))>(LX3*1)) NU3=NU3-LX123
+IF((L3+LB(ID))>(LX3*2)) NU3=NU3-LX123
+IF((L3+LB(ID))>(LX3*3)) NU3=NU3-LX123
+IF((L3+LB(ID))>(LX3*4)) NU3=NU3-LX123
 IUPB(NN,3,ID)=NU3
 ND3=NN-LB12(ID)
-IF((L3-LB(ID)).LT.(1-LX3*0)) ND3=ND3+LX123
-IF((L3-LB(ID)).LT.(1-LX3*1)) ND3=ND3+LX123
-IF((L3-LB(ID)).LT.(1-LX3*2)) ND3=ND3+LX123
-IF((L3-LB(ID)).LT.(1-LX3*3)) ND3=ND3+LX123
+IF((L3-LB(ID))<(1-LX3*0)) ND3=ND3+LX123
+IF((L3-LB(ID))<(1-LX3*1)) ND3=ND3+LX123
+IF((L3-LB(ID))<(1-LX3*2)) ND3=ND3+LX123
+IF((L3-LB(ID))<(1-LX3*3)) ND3=ND3+LX123
 IDNB(NN,3,ID)=ND3
-!     
+!
 3 CONTINUE
 end do
 end do
 end do
 end do
-!     
+!
 RETURN
 end subroutine SETUPB
 !*********************************************************************
@@ -3130,17 +3130,17 @@ COMMON/ARRAYS/U11(NCOL2,LSIZE,4)
 COMMON/NEXT/IUP(LSIZE,4),IDN(LSIZE,4)
 DIMENSION DUM11(NCOL2) &
   & ,A11(NCOL2),B11(NCOL2),C11(NCOL2),D11(NCOL2)
-complex(real32) U11,A11,B11,C11,D11,DUM11,ACT
+complex(real32) :: U11,A11,B11,C11,D11,DUM11,ACT
 !
 DIMENSION AVAC(NUMBIN),AVACSQ(NUMBIN)
 DIMENSION VAL(NUMBIN),AV(NUMBIN)
 !
 IBIN=NITER/NUMBIN
 !
-IF(IPR.EQ.0)THEN
+IF(IPR==0)THEN
 JBIN=(ITER-1)/IBIN+1
 !
-IF(ITER.EQ.1)THEN
+IF(ITER==1)THEN
 do NB=1,NUMBIN
 AVAC(NB)=0.0d0
 AVACSQ(NB)=0.0d0
@@ -3156,16 +3156,16 @@ VACTT=0.0
 DO NN=1,LSIZE
 DO MU=1,3
 M1=NN
-!     
+!
 do IJ=1,NCOL2
 A11(IJ)=U11(IJ,M1,MU)
 6 CONTINUE
 end do
 M2=IUP(M1,MU)
-!     
+!
 do NU=MU+1,4
 IPLAQ=6-NU-MU+5*(NU/4)
-!     
+!
 do IJ=1,NCOL2
 B11(IJ)=U11(IJ,M2,NU)
 7 CONTINUE
@@ -3187,12 +3187,12 @@ CALL TRVMX(1,B11,D11,ACT,1)
 ANN=1.0/NCOL
 ACT=ANN*REAL(ACT)
 ACTN(JBIN,IPLAQ)=ACTN(JBIN,IPLAQ)+ACT
-IF(NU.NE.4)THEN
+IF(NU/=4)THEN
 VACTS=VACTS+ACT
 ELSE
 VACTT=VACTT+ACT
 end if
-!     
+!
 11 CONTINUE
 end do
 end do
@@ -3206,7 +3206,7 @@ write (91,*) VACTS, VACTT, TOTACT
 AVACS(JBIN)=AVACS(JBIN)+VACTS
 AVACT(JBIN)=AVACT(JBIN)+VACTT
 !
-IF(ITER.EQ.NITER)THEN
+IF(ITER==NITER)THEN
 DO IP=1,6
 DO JB=1,NUMBIN
 ACTN(JB,IP)=ACTN(JB,IP)/(IBIN*LSIZE)
@@ -3216,15 +3216,15 @@ end if
 !
 end if
 !
-IF(IPR.EQ.1)THEN
+IF(IPR==1)THEN
 !
 WRITE(6,80)
-80 FORMAT(' *****************************************************')
+80 FORMAT(" *****************************************************")
 WRITE(6,100)
-100 FORMAT('                 ACTION            ')
+100 FORMAT("                 ACTION            ")
 WRITE(6,80)
 WRITE(6,81)
-81 FORMAT(' *  ')
+81 FORMAT(" *  ")
 do NB=1,NUMBIN
 AV(NB)=AVACS(NB)/IBIN
 20 CONTINUE
@@ -3236,9 +3236,9 @@ AV(NB)=AVACT(NB)/IBIN
 end do
 CALL JACKM(NUMBIN,AV,AVRT,ERT)
 WRITE(6,110) AVRS,ERS
-110 FORMAT('   AVER,ERR   SPACE ACTION =',2F12.8)
+110 FORMAT("   AVER,ERR   SPACE ACTION =",2F12.8)
 WRITE(6,112) AVRT,ERT
-112 FORMAT('   AVER,ERR   TIME  ACTION =',2F12.8)
+112 FORMAT("   AVER,ERR   TIME  ACTION =",2F12.8)
 WRITE(6,81)
 !
 end if
@@ -3265,14 +3265,14 @@ COMMON/NEXT/IUP(LSIZE,4),IDN(LSIZE,4)
 DIMENSION A11(NCOL2),B11(NCOL2),C11(NCOL2)
 DIMENSION AV1(NUMBIN),AV2(NUMBIN)
 !
-complex(real32) U11,A11,B11,C11,AKT1,TLINE,AVAC,CSUM
+complex(real32) :: U11,A11,B11,C11,AKT1,TLINE,AVAC,CSUM
 !
 IBIN=NITER/NUMBIN
-IF(IPR.EQ.1)go to 100
+IF(IPR==1)goto 100
 !
 JBIN=(ITER-1)/IBIN+1
 !
-IF(ITER.EQ.1)THEN
+IF(ITER==1)THEN
 do NB=1,NUMBIN
 AVAC(NB)=(0.0,0.0)
 3 CONTINUE
@@ -3334,30 +3334,30 @@ TLINE(ITER)=AKT1
 SQTLINE(ITER)=AKT2
 AVAC(JBIN)=AVAC(JBIN)+AKT1
 !
-go to 200
+goto 200
 100 CONTINUE
 !
 WRITE(6,80)
-80 FORMAT(' *****************************************************')
+80 FORMAT(" *****************************************************")
 WRITE(6,108)
-108 FORMAT('     THERMAL LINES           ')
+108 FORMAT("     THERMAL LINES           ")
 WRITE(6,80)
 WRITE(6,81)
-81 FORMAT(' *  ')
+81 FORMAT(" *  ")
 do NB=1,NUMBIN
 AV1(NB)=real(AVAC(NB))/IBIN
 AV2(NB)=aimag(AVAC(NB))/IBIN
 WRITE(6,109) NB,AV1(NB),AV2(NB)
-109 FORMAT(' BIN =',I4,'   REAL,IMAG  POLY =',2F9.4)
+109 FORMAT(" BIN =",I4,"   REAL,IMAG  POLY =",2F9.4)
 20 CONTINUE
 end do
 CALL JACKM(NUMBIN,AV1,AVR,ERR)
 CALL JACKM(NUMBIN,AV2,AVI,ERI)
 WRITE(6,81)
 WRITE(6,110) AVR,ERR
-110 FORMAT('   AV,ER  REAL POLY =',2F12.8)
+110 FORMAT("   AV,ER  REAL POLY =",2F12.8)
 WRITE(6,111) AVI,ERI
-111 FORMAT('   AV,ER  IMAG POLY =',2F12.8)
+111 FORMAT("   AV,ER  IMAG POLY =",2F12.8)
 WRITE(6,81)
 !
 200 RETURN
@@ -3374,10 +3374,10 @@ PARAMETER(LSIZE=LX1*LX2*LX3*LX4)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
 COMMON/ARRAYS/U11(NCOL,NCOL,LSIZE,4)
-complex(real32) ADUM(NCOL,NCOL),U11,CSUM
+complex(real32) :: ADUM(NCOL,NCOL),U11,CSUM
 !
-complex(real32) aa(ncol,ncol)
-complex(real32) det,cnorm,cdet,dncol
+complex(real32) :: aa(ncol,ncol)
+complex(real32) :: det,cnorm,cdet,dncol
 !
 DO MU=1,4
 DO NN=1,LSIZE
@@ -3401,7 +3401,7 @@ do N1=1,NCOL
 ADUM(N1,N2)=ADUM(N1,N2)-CSUM*ADUM(N1,N3)
 6 CONTINUE
 end do
-!     
+!
 10 CONTINUE
 end do
 !
@@ -3453,7 +3453,7 @@ SUBROUTINE DETNANT(NUMOP,DET,AA)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 !
-complex(real32) AA(NUMOP,NUMOP),B(NUMOP,NUMOP),det
+complex(real32) :: AA(NUMOP,NUMOP),B(NUMOP,NUMOP),det
 !
 NP=NUMOP
 !
@@ -3463,17 +3463,17 @@ B(I,J)=AA(I,J)
 end do
 end do
 CALL DETMAT(B,NP,DET)
-!     
+!
 RETURN
 end subroutine DETNANT
 !***************************************************************
 SUBROUTINE DETMAT(A,NP,DET)
 use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
-!     
+!
 DIMENSION INDX(NP)
-complex(real32) A(NP,NP),DET,DD
-!     
+complex(real32) :: A(NP,NP),DET,DD
+!
 N=NP
 CALL LUDCMP(A,N,NP,INDX,D)
 DD=D
@@ -3482,7 +3482,7 @@ DD=DD*A(J,J)
 13 CONTINUE
 end do
 DET=DD
-!     
+!
 RETURN
 end subroutine DETMAT
 !***************************************************************
@@ -3492,23 +3492,23 @@ use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(NCOL=2)
 PARAMETER(NMAX=NCOL,TINY=1.0E-20)
-!     
-complex(real32) A(NP,NP),SUM,CDUM
+!
+complex(real32) :: A(NP,NP),SUM,CDUM
 DIMENSION INDX(N),VV(NMAX)
-!     
+!
 D=1.
 do I=1,N
 AAMAX=0.
 do J=1,N
-IF(CABS(A(I,J)).GT.AAMAX) AAMAX=CABS(A(I,J))
+IF(CABS(A(I,J))>AAMAX) AAMAX=CABS(A(I,J))
 11 CONTINUE
 end do
 !     IF(AAMAX.EQ.0.) PAUSE 'SINGULAR MATRIX IN LUDCMP'
-IF(AAMAX.EQ.0.) return
+IF(AAMAX==0.) return
 VV(I)=1./AAMAX
 12 CONTINUE
 end do
-!     
+!
 do J=1,N
 do I=1,J-1
 SUM=A(I,J)
@@ -3519,7 +3519,7 @@ end do
 A(I,J)=SUM
 14 CONTINUE
 end do
-!     
+!
 AAMAX=0.
 do I=J,N
 SUM=A(I,J)
@@ -3529,14 +3529,14 @@ SUM=SUM-A(I,K)*A(K,J)
 end do
 A(I,J)=SUM
 DUM=VV(I)*CABS(SUM)
-IF(DUM.GE.AAMAX)THEN
+IF(DUM>=AAMAX)THEN
 IMAX=I
 AAMAX=DUM
 end if
 16 CONTINUE
 end do
-!     
-IF(J.NE.IMAX)THEN
+!
+IF(J/=IMAX)THEN
 do K=1,N
 CDUM=A(IMAX,K)
 A(IMAX,K)=A(J,K)
@@ -3546,20 +3546,20 @@ end do
 D=-D
 VV(IMAX)=VV(J)
 end if
-!     
+!
 INDX(J)=IMAX
-IF(CABS(A(J,J)).EQ.0.) A(J,J)=TINY
-IF(J.NE.N)THEN
+IF(CABS(A(J,J))==0.) A(J,J)=TINY
+IF(J/=N)THEN
 CDUM=1./A(J,J)
 do I=J+1,N
 A(I,J)=A(I,J)*CDUM
 18 CONTINUE
 end do
 end if
-!     
+!
 19 CONTINUE
 end do
-!     
+!
 RETURN
 end subroutine LUDCMP
 !****************************************************************
@@ -3585,35 +3585,35 @@ DO L3=1,LX3
 DO L2=1,LX2
 DO L1=1,LX1
 NN=NN+1
-!     
+!
 NU1=NN+1
-IF((L1+1).GT.LX1) NU1=NU1-LX1
+IF((L1+1)>LX1) NU1=NU1-LX1
 IUP(NN,1)=NU1
 ND1=NN-1
-IF((L1-1).LT.1) ND1=ND1+LX1
+IF((L1-1)<1) ND1=ND1+LX1
 IDN(NN,1)=ND1
-!     
+!
 NU2=NN+LX1
-IF((L2+1).GT.LX2) NU2=NU2-LX12
+IF((L2+1)>LX2) NU2=NU2-LX12
 IUP(NN,2)=NU2
 ND2=NN-LX1
-IF((L2-1).LT.1) ND2=ND2+LX12
+IF((L2-1)<1) ND2=ND2+LX12
 IDN(NN,2)=ND2
-!     
+!
 NU3=NN+LX12
-IF((L3+1).GT.LX3) NU3=NU3-LX123
+IF((L3+1)>LX3) NU3=NU3-LX123
 IUP(NN,3)=NU3
 ND3=NN-LX12
-IF((L3-1).LT.1) ND3=ND3+LX123
+IF((L3-1)<1) ND3=ND3+LX123
 IDN(NN,3)=ND3
-!     
+!
 NU4=NN+LX123
-IF((L4+1).GT.LX4) NU4=NU4-LX1234
+IF((L4+1)>LX4) NU4=NU4-LX1234
 IUP(NN,4)=NU4
 ND4=NN-LX123
-IF((L4-1).LT.1) ND4=ND4+LX1234
+IF((L4-1)<1) ND4=ND4+LX1234
 IDN(NN,4)=ND4
-!     
+!
 end do
 end do
 end do
@@ -3676,9 +3676,9 @@ DIFD(N)=SUMD-AVD(N)
 12 CONTINUE
 end do
 do N=1,NUM
-IF(DIFD(N).EQ.0.0d0)THEN
+IF(DIFD(N)==0.0d0)THEN
 ERR=99.0d0
-go to 99
+goto 99
 end if
 14 CONTINUE
 end do
@@ -3695,8 +3695,8 @@ ASUM=ASUM/NUM
 ESUM=ESUM/NUM
 ESUM=ESUM-ASUM*ASUM
 !
-IF(SUMD.NE.0.0) AVER=SUMU/SUMD
-IF(ESUM.GT.0.0) ERR=SQRT(ESUM*NUM)
+IF(SUMD/=0.0) AVER=SUMU/SUMD
+IF(ESUM>0.0) ERR=SQRT(ESUM*NUM)
 !
 99 CONTINUE
 RETURN
@@ -3723,10 +3723,10 @@ end do
 !
 do IB=1,NBIN
 !
-IF(ISUB.EQ.0)THEN
+IF(ISUB==0)THEN
 VACC=0.0d0
 do JB=1,NBIN
-IF(JB.EQ.IB)go to 4
+IF(JB==IB)goto 4
 VACC=VACC+VAC(JB)
 4 CONTINUE
 end do
@@ -3735,15 +3735,15 @@ end if
 do NT=1,LMAX
 CORR(NT)=0.0d0
 do JB=1,NBIN
-IF(JB.EQ.IB)go to 7
+IF(JB==IB)goto 7
 CORR(NT)=CORR(NT)+COR(JB,NT)
 7 CONTINUE
 end do
-IF(ISUB.EQ.0) CORR(NT)=CORR(NT)-VACC*VACC/(NBIN-1)
+IF(ISUB==0) CORR(NT)=CORR(NT)-VACC*VACC/(NBIN-1)
 6 CONTINUE
 end do
 ANORM=CORR(1)
-IF(ANORM.EQ.0.0)go to 99
+IF(ANORM==0.0)goto 99
 do NT=1,LMAX
 CORR(NT)=CORR(NT)/ANORM
 8 CONTINUE
@@ -3763,15 +3763,15 @@ do NT=1,LMAX
 ACOR(NT)=ACOR(NT)/NBIN
 SCOR(NT)=SCOR(NT)/NBIN
 SCOR(NT)=(SCOR(NT)-ACOR(NT)*ACOR(NT))*NBIN
-IF(SCOR(NT).GT.0.0) SCOR(NT)=SQRT(SCOR(NT))
+IF(SCOR(NT)>0.0) SCOR(NT)=SQRT(SCOR(NT))
 AMM(NT)=AMM(NT)/NBIN
 SMM(NT)=SMM(NT)/NBIN
 SMM(NT)=(SMM(NT)-AMM(NT)*AMM(NT))*NBIN
-IF(SMM(NT).GT.0.0) SMM(NT)=SQRT(SMM(NT))
+IF(SMM(NT)>0.0) SMM(NT)=SQRT(SMM(NT))
 10 CONTINUE
 end do
-!     
-IF(ISUB.EQ.0)THEN
+!
+IF(ISUB==0)THEN
 VACC=0.0d0
 do JB=1,NBIN
 VACC=VACC+VAC(JB)
@@ -3784,11 +3784,11 @@ do JB=1,NBIN
 CORR(NT)=CORR(NT)+COR(JB,NT)
 26 CONTINUE
 end do
-IF(ISUB.EQ.0) CORR(NT)=CORR(NT)-VACC*VACC/NBIN
+IF(ISUB==0) CORR(NT)=CORR(NT)-VACC*VACC/NBIN
 24 CONTINUE
 end do
 ANORM=CORR(1)
-IF(ANORM.EQ.0.0)go to 99
+IF(ANORM==0.0)goto 99
 do NT=1,LMAX
 CORR(NT)=CORR(NT)/ANORM
 28 CONTINUE
@@ -3821,20 +3821,20 @@ end do
 NTMAX=LT/2+1
 do I4=1,LT/2
 !  C
-IF(AW(I4).LE.0.000001.OR.AW(I4+1).LE.0.000001)THEN
+IF(AW(I4)<=0.000001.OR.AW(I4+1)<=0.000001)THEN
 NTMAX=I4-1
-go to 99
+goto 99
 end if
 AMSM=0.0d0
 FTM=(AW(I4)/AW(I4+1))
-IF(FTM.GT.1.0)THEN
+IF(FTM>1.0)THEN
 AML=DLOG(FTM)
 AMU=DLOG(2.0d0*FTM)
 do NS=1,20
 AMS=(AML+AMU)/2
 FTS=(EXP(-AMS*(I4-1))+EXP(-(LT-I4+1)*AMS)) &
   & /(EXP(-AMS*(I4))+EXP(-(LT-I4)*AMS))
-IF(FTS.LT.FTM)THEN
+IF(FTS<FTM)THEN
 AML=AMS
 ELSE
 AMU=AMS
@@ -3844,10 +3844,10 @@ end do
 AMSM=(AML+AMU)/2
 ELSE
 NTMAX=I4-1
-go to 99
+goto 99
 end if
 BW(I4)=AMSM
-!     
+!
 2 CONTINUE
 end do
 !
@@ -3862,7 +3862,7 @@ use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
-complex(real32) A(NCOL,NCOL),B(NCOL,NCOL),C(NCOL,NCOL),CSUM
+complex(real32) :: A(NCOL,NCOL),B(NCOL,NCOL),C(NCOL,NCOL),CSUM
 !
 DO J=1,NCOL
 DO I=1,NCOL
@@ -3887,7 +3887,7 @@ use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
-complex(real32) A(NCOL,NCOL),B(NCOL,NCOL),CC
+complex(real32) :: A(NCOL,NCOL),B(NCOL,NCOL),CC
 !
 CC=(0.0,0.0)
 DO I=1,NCOL
@@ -3908,7 +3908,7 @@ use iso_fortran_env, only : real32, real64, int32
 implicit real(real64) (A-H,O-Z)
 PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 !
-complex(real32) A11(NCOL,NCOL),DUM11(NCOL,NCOL)
+complex(real32) :: A11(NCOL,NCOL),DUM11(NCOL,NCOL)
 !
 DO I=1,NCOL
 DO J=1,NCOL
