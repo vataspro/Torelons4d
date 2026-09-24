@@ -483,8 +483,9 @@ program test_suite
         complex(real32) :: diag_check(NCOL, NCOL, SLICE_VOLUME, 4)
         integer :: diag_pointer_check(SLICE_VOLUME, 4)
         complex(real64) :: diag_computed(NCOL, NCOL, SLICE_VOLUME, 4)
-        integer :: diag_pointer_computed(SLICE_VOLUME, 4)
-        logical :: diag_equal, pointers_equal
+        integer :: diag_pointer_computed(SLICE_VOLUME, 4), i, j, printed
+        logical :: diag_equal, pointers_equal, &
+        diag_diff(NCOL, NCOL, SLICE_VOLUME, 4), pointer_diff(SLICE_VOLUME, 4)
 
         ! Load data from old code, stored in DIAG.DAT file
         open(11, file='DIAG.DAT', form='unformatted', status='old', access='stream')
@@ -500,8 +501,10 @@ program test_suite
         diag_computed, diag_pointer_computed)
 
         ! Check diagonal links and diagonal pointers are equal
-        diag_equal = all(abs(diag_computed - diag_check) <= epsilon(1.0))
-        pointers_equal = all(diag_pointer_computed == diag_pointer_check)
+        diag_diff = (abs(diag_computed - diag_check) <= epsilon(1.0))
+        diag_equal = all(diag_diff)
+        pointer_diff = (diag_pointer_computed == diag_pointer_check)
+        pointers_equal = all(pointer_diff)
         ierr = diag_equal.and.pointers_equal
         if (ierr) then
             write(*, "(a)") "get_diagonal_links test PASSED"
@@ -511,19 +514,59 @@ program test_suite
                 write(*, "(a)") "    diagonal links: CORRECT"
             else
                 write(*, "(a)") "    diagonal links: INCORRECT"
-                write(*, "(a)") "    Matrix (1,1) from file:"
-                call print_matrix(cmplx(diag_check(:,:,1,1), kind=real64))
-                write(*, "(a)") "    Matrix (1,1) computed:"
-                call print_matrix(diag_computed(:,:,1,1))
+                ! Output indices of all incorrect links and first 10 incorrect matrices
+                write(*, "(a)") "    Indices of incorrect links:"
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.all(diag_diff(:,:,i,j))) then
+                            write(*, "(a, i0, a, i0)") "    Site: ", i, "    Direction: ", j
+                        endif
+                    enddo
+                enddo
+                printed = 0
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.all(diag_diff(:,:,i,j))) then
+                            write(*, "(a, i0, a, i0, a)") "    Site: ", i, "    Direction: ", j, &
+                            "    Matrix (from file):"
+                            call print_matrix(cmplx(diag_check(:,:,i,j), kind=real64))
+                            write(*, "(a, i0, a, i0, a)") "    Site: ", i, "    Direction: ", j, &
+                            "    Matrix (computed):"
+                            call print_matrix(diag_computed(:,:,i,j))
+                            printed = printed + 1
+                        endif
+                        if (printed >= 10) exit
+                    enddo
+                    if (printed >= 10) exit
+                enddo
             endif
             if (pointers_equal) then
                 write(*, "(a)") "    pointers:       CORRECT"
             else
                 write(*, '(a)') "    pointers:       INCORRECT"
-                write(*, '(a)') "    First 4 pointers from file:"
-                print *, diag_pointer_check(1, :)
-                write(*, "(a)") "    First 4 pointers computed:"
-                print *, diag_pointer_computed(1, :)
+                ! Output indices of all incorrect links and first 10 incorrect matrices
+                write(*, "(a)") "    Indices of incorrect pointers:"
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.(pointer_diff(i,j))) then
+                            write(*, "(a, i0, a, i0)") "    Site: ", i, "    Direction: ", j
+                        endif
+                    enddo
+                enddo
+                printed = 0
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.(pointer_diff(i,j))) then
+                            write(*, "(a, i0, a, i0, a, i0)") "    Site: ", i, "    Direction: ", j, &
+                            "    Pointer (from file): ", diag_pointer_check(i,j)
+                            write(*, "(a, i0, a, i0, a, i0)") "    Site: ", i, "    Direction: ", j, &
+                            "    Pointer (computed):  ", diag_pointer_computed(i,j)
+                            printed = printed + 1
+                        endif
+                        if (printed >= 10) exit
+                    enddo
+                    if (printed >= 10) exit
+                enddo
             endif
         endif
     end subroutine
