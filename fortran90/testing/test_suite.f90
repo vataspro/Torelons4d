@@ -4,6 +4,35 @@ program test_suite
     use read_field_config
     implicit none
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !
+    ! ---------------------------------------------- TEST SUITE ----------------------------------------------
+    !
+    ! Use this program to test all functions written to calculate Torelon energies.
+    !
+    ! To write a testing function, follow the procedure below:
+    ! 1) Define a subroutine called test_<function_name>. This function should take only one argument, ierr,
+    !    which is a logical variable of intent(out). Upon completion of the test, if the test is successful,
+    !    ierr should be returned as .true., otherwise it should be returned as .false.
+    !
+    ! 2) Guide to writing test function:
+    !    2a) If the test function needs a field configuration, do this be calling load_gauge_field() at the
+    !        start of the test. It takes no arguments. This function loads the gauge field into memory only if
+    !        it is not already stored in memory. If it is, it takes no action. The gauge field is stored in the
+    !        gauge_field global variable. This should not be modified during the test unless loading from the
+    !        configuration file.
+    !    2b) The test should also write(*, "(a)") "<function_name> test PASSED/FAILED" depending on the outcome.
+    !        Also add a print statement print *, "" to add a new line after this message. This improves the
+    !        readability of the output of the test.
+    !
+    ! 3) To add the test to the list of tests, add the following line after the gauge field is allocated and
+    !    before the success statement is printed to the screen:
+    !        call check_success(test_<function_name>)
+    !    This will run the test and stop the program if the test fails.
+    !
+    ! Happy testing!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     complex(real64), allocatable :: gauge_field(:,:,:,:)
     logical :: gauge_field_loaded
 
@@ -31,6 +60,9 @@ program test_suite
 
     ! Test unitarisation procedure
     call check_success(test_unitarise_SVD)
+
+    ! Test determinant procedure
+    call check_success(test_det)
 
     ! Test smearing and blocking procedures
     call check_success(test_blocking_smearing)
@@ -320,7 +352,7 @@ program test_suite
 
         integer, parameter :: num_tests = 10
         complex(real64) :: matrix_sum(NCOL, NCOL), computed_det, correct_det
-        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), k
         real :: random_numbers(2*num_tests)
         logical :: real_good, imag_good
 
@@ -363,6 +395,74 @@ program test_suite
             endif
         enddo
         write(*, "(a)") "det test PASSED"
+        print *, ""
+    end subroutine
+
+    ! Test normalisation function
+    subroutine test_normalise_link(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        integer, parameter :: num_tests = 10
+        complex(real64) :: matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL), determinant
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
+        real :: random_numbers(2*num_tests)
+        logical :: diagonal_good, off_diagonal_good, diagonal_mask(NCOL, NCOL), off_diagonal_mask(NCOL, NCOL), &
+        real_good, imag_good
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Get random sites and random directions
+        call random_number(random_numbers)
+        random_numbers(1:num_tests) = random_numbers(1:num_tests) * LATTICE_VOLUME
+        random_sites = ceiling(random_numbers(1:num_tests))
+        random_numbers(num_tests+1:2*num_tests) = random_numbers(num_tests+1:2*num_tests) * 4
+        random_directions = ceiling(random_numbers(num_tests+1:2*num_tests))
+
+        ! Get mask for diagonal and off-diagonal elements
+        diagonal_mask = .false.
+        do i = 1, NCOL
+            diagonal_mask(i,i) = .true.
+        enddo
+        off_diagonal_mask = .not.diagonal_mask
+
+        ! For each random site and direction, add 2 consectutive links from that site and in that direction. Apply the unitarisation procedure to the sum and test the result for unitarity. If any are not unitary, return ierr = .false. and halt execution.
+        ierr = .true.
+        do k = 1, num_tests
+            site = random_sites(k)
+            mu = random_directions(k)
+
+            ! Sum consective links in direction mu from site
+            matrix_sum = gauge_field(:,:,site,mu) + gauge_field(:,:,move(site,mu),mu)
+
+            ! Normalise matrix_sum to lie in SU(N)
+            trial_U = normalise_link(matrix_sum)
+
+            ! Form trial identity matrix
+            trial_identity = matmul(herm(trial_U), trial_U)
+
+            ! Compute 2x2 determinant
+            determinant = trial_U(1,1) * trial_U(2,2) - trial_U(1,2) * trial_U(2,1)
+
+            ! Test if trial identity matrix is sufficiently close to the identity and determinant is sufficiently close to 1
+            diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.off_diagonal_mask)
+            off_diagonal_good = all((abs(trial_identity) < TOL_SVD).or.diagonal_mask)
+            real_good = (real(determinant - cmplx(1.0,0.0, kind=real64), kind=real64) <= epsilon(1.0d0))
+            imag_good = (aimag(determinant - cmplx(1.0,0.0, kind=real64)) <= epsilon(1.0d0))
+            ierr = diagonal_good.and.off_diagonal_good.and.real_good.and.imag_good
+            if (.not.ierr) then
+                write(*, "(a)") "normalise_link test FAILED"
+                write(*, "(a)") "Trial unitary matrix:"
+                call print_matrix(trial_U)
+                write(*, "(a)") "Trial identity matrix:"
+                call print_matrix(trial_identity)
+                write(*, "(a, f0.15, a, f0.15, a)") "Determinant", real(determinant, kind=real64), &
+                " + ", aimag(determinant), "i"
+                return
+            endif
+        enddo
+        write(*, "(a)") "normalise_link test PASSED"
         print *, ""
     end subroutine
 

@@ -387,6 +387,22 @@ module lattice
         det = M(n,n)
     end function
 
+    ! Normalise a link by projecting it back into SU(N)
+    function normalise_link(matrix) result(U)
+        implicit none
+        complex(real64), intent(in) :: matrix(NCOL, NCOL)
+        complex(real64) :: U(NCOL, NCOL), determinant
+
+        ! Unitarise smeared link to sit in U(N)
+        U = unitarise_SVD(matrix)
+
+        ! Normalise so that smeared links had determinant = 1, and thus sits in SU(N)
+        determinant = det(U)
+        determinant = determinant/abs(determinant) ! ensure det(U) is a phase as expected
+        ! Scale U to force det(U) = 1 whilst maintaining unitarity
+        U = U / (determinant**(1.0/real(NCOL)))
+    end function
+
     ! Get diagonal links (diagonal_links) and lattice pointers to sites diagonal links end on (lattice_pointers_diagonal)
     subroutine get_diagonal_links(gauge_field_slice, direction, blocking_level, diagonal_links, &
         lattice_pointers_diagonal)
@@ -540,13 +556,7 @@ module lattice
                 enddo
 
                 ! Unitarise smeared link to sit in SU(N)
-                smear(:, :, site, mu) = unitarise_SVD(smear(:, :, site, mu))
-
-                ! Normalise so that smeared links had determinant = 1
-                determinant = det(smear(:, :, site, mu))
-                determinant = determinant/abs(determinant) ! ensure det(U) is a phase as expected
-                ! Scale U to force det(U) = 1 whilst maintaining unitarity
-                smear(:, :, site, mu) = smear(:, :, site, mu) / (determinant**(1.0/real(NCOL)))
+                smear(:, :, site, mu) = normalise_link(smear(:, :, site, mu))
             enddo
         enddo
     end function get_smeared_gauge_field
