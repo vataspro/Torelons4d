@@ -20,7 +20,7 @@ C***************************************************************
 C
       PARAMETER(ICALLG=1,NITER=2,NMEASL=NITER/ICALLG)
       PARAMETER(ICMIN=134764,ICMAX=NITER+ICMIN-1)     
-      PARAMETER(IBLOK=5,IBING=109,NUMBIN=2)
+      PARAMETER(IBLOK=5,IBING=1,NUMBIN=2)
       PARAMETER(PARBS=0.30,PARBDS=0.12)
 C
 C******************************************************************************
@@ -916,7 +916,7 @@ C*******************************************************************
       SUBROUTINE MEASURE(ITER,NTOT)
       IMPLICIT REAL*8 (A-H,O-Z)
 C
-      PARAMETER(ICALLG=1,IBING=109,NUMBIN=2)
+      PARAMETER(ICALLG=1,IBING=1,NUMBIN=2)
 C
       COMMON/ITEM/ITERG,JBING,NTOTG
 C
