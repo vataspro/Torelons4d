@@ -339,6 +339,26 @@ module thermal_lines
         end select
     end function
 
+    ! Return the nxn identity matrix 
+    function get_I(n) result(eye_matrix)
+        implicit none
+        integer(int32), intent(in) :: n
+        integer(int32) ::  ic, jc
+        complex(real64) :: eye_matrix(NCOL, NCOL)
+
+        do ic=1,NCOL
+            do jc=1,NCOL
+                if (ic == jc) then
+                    eye_matrix(ic, jc) = 1
+                else
+                    eye_matrix(ic, jc) = 0
+                end if
+            end do
+        end do     
+
+        return
+    end function get_I
+
     ! Loop 1
     !##############################################
     !           SQUARE PULSES
