@@ -1,5 +1,6 @@
 module read_field_config
     use parameters
+    use lattice
     implicit none
 
     contains
@@ -60,13 +61,13 @@ module read_field_config
     subroutine read_gauge_field(gauge_field_filename, gauge_field)
         implicit none
         character(len=*), intent(in) :: gauge_field_filename
-        complex(real64), intent(out) :: gauge_field(:,:,:,:,:,:,:)
+        complex(real64), intent(out) :: gauge_field(:,:,:,:)
 
         integer :: ios
         character(len=256) :: iomsg
 
         integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
-        integer :: t, x, y, z, dir, dir_target, iun, iq
+        integer :: t, x, y, z, dir, dir_target, iun, iq, site
         real(real64) :: plaquette_read
 
         real(real64) :: quaternion(4)
@@ -78,20 +79,11 @@ module read_field_config
         if (size(gauge_field, dim=2) /= NCOL) then
             error stop "gauge_field must have size NCOL in 2nd dimension"
         end if
-        if (size(gauge_field, dim=3) /= LX1) then
-            error stop "gauge_field must have size LX1 in 3rd dimension"
+        if (size(gauge_field, dim=3) /= LATTICE_VOLUME) then
+            error stop "gauge_field must have size LATTICE_VOLUME in 3rd dimension"
         end if
-        if (size(gauge_field, dim=4) /= LX2) then
-            error stop "gauge_field must have size LX2 in 4th dimension"
-        end if
-        if (size(gauge_field, dim=5) /= LX3) then
-            error stop "gauge_field must have size LX3 in 5th dimension"
-        end if
-        if (size(gauge_field, dim=6) /= LX4) then
-            error stop "gauge_field must have size LX4 in 6th dimension"
-        end if
-        if (size(gauge_field, dim=7) /= 4) then
-            error stop "gauge_field must have size 4 in 7th dimension"
+        if (size(gauge_field, dim=4) /= 4) then
+            error stop "gauge_field must have size 4 in 4th dimension"
         end if
 
         ! Open gauge field file
@@ -119,6 +111,10 @@ module read_field_config
             do x = 1, LX1
                 do y = 1, LX2
                     do z = 1, LX3
+                        ! Get index of site referenced by these coordinates
+                        site = site_index(x, y, z, t)
+
+                        ! Import all links from this site
                         do dir = 1, 4
                             do iq = 1, size(quaternion)
                                 quaternion(iq) = read_be_real64(iun)
@@ -130,16 +126,16 @@ module read_field_config
                                 dir_target = dir-1
                             end if
 
-                            gauge_field(1, 1, x, y, z, t, dir_target) = &
+                            gauge_field(1, 1, site, dir_target) = &
                             cmplx(real(quaternion(1), kind=real64),real(quaternion(4), kind=real64), &
                             kind=real64)
-                            gauge_field(1, 2, x, y, z, t, dir_target) = &
+                            gauge_field(1, 2, site, dir_target) = &
                             cmplx(-real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
                             kind=real64)
-                            gauge_field(2, 1, x, y, z, t, dir_target) = &
+                            gauge_field(2, 1, site, dir_target) = &
                             cmplx(real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
                             kind=real64)
-                            gauge_field(2, 2, x, y, z, t, dir_target) = &
+                            gauge_field(2, 2, site, dir_target) = &
                             cmplx(real(quaternion(1), kind=real64),-real(quaternion(4), kind=real64), &
                             kind=real64)
 
