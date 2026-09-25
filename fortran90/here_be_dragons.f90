@@ -33,7 +33,7 @@ module here_be_dragons
         integer :: iu, ju, ku
 
         ! Blocking level variables
-        integer :: id, lrest, ids, idsm1, irem, li, ico
+        integer :: id, lrest, ids, idsm1, irem, li, ico, idsw
 
         ! Operator variables
         integer :: iddd, ieee
@@ -333,7 +333,7 @@ module here_be_dragons
 
                             B11 = gauge_field_blocked(:, :, m2, mu, idsm1)
                             m3 = move(m2, mu, idsm1)
-                            C11 = gauge_field_blocked(:, :, m3, ku, idg)
+                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
                             D11 = matmul(B11, C11)
                             m1 = move(m2, ku, idg)
                             B11 = herm(gauge_field_blocked(:, :, m1, mu, idsm1))
@@ -341,14 +341,14 @@ module here_be_dragons
                             UINT11 = UINT11 + C11
                             m3 = move(m2, -mu, idsm1)
                             B11 = herm(gauge_field_blocked(:, :, m3, mu, idsm1))
-                            C11 = gauge_field_blocked(:, :, m3, ku, idg)
+                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
                             D11 = matmul(B11, C11)
                             m1 = move(m3, ku, idg)
                             B11 = gauge_field_blocked(:, :, m1, mu, idsm1)
                             C11 = matmul(D11, B11)
                             UINT11 = UINT11 + C11
                         enddo
-                        B11 = gauge_field_blocked(:, :, m2, ku, idg)
+                                B11 = gauge_field_blocked(:, :, m2, ku, idg)
                         UINT11 = UINT11 + B11
                         B11 = normalise_link(UINT11)
                         C11 = matmul(REM11, B11)
@@ -397,2514 +397,2147 @@ module here_be_dragons
                             !                     UP Y
                             !**********************************************************************
                             if (iddd == 1) then
-                                do IC=1,NCOL2
-                                B11(IC)=UC11(IC,M2,JU)
-                                enddo
-                                M3=IUP(M2,JU)
-                                do IC=1,NCOL2
-                                C11(IC)=UC11(IC,M3,KU)
-                                enddo
-                                CALL VMX(1,B11,C11,D11,1)
-                                M3=IUP(M2,KU)
-                                M2=M3
-                                do IC=1,NCOL2
-                                C11(IC)=UC11(IC,M2,JU)
-                                enddo
-                                CALL HERM(1,C11,DUM11,1)
-                                CALL VMX(1,D11,C11,SQUY1,1)
-                                CALL VMX(1,A11,SQUY1,C11,1)
-       
-                                do IC=1,NCOL2
-                                A11(IC)=C11(IC)
-                                enddo
+                                B11 = gauge_field(:, :, M2, JU)
+                                M3 = move(M2, JU, ids)
+                                C11 = gauge_field(:, :, M3, KU)
+                                D11 = matmul(B11, C11)
+                                M3 = move(M2, KU, ids)
+                                M2 = M3
+                                C11 = gauge_field(:, :, M2, JU)
+                                C11 = herm(C11)
+                                SQUY1 = matmul(D11, C11)
+                                C11 = matmul(A11, SQUY1)
+                                A11 = C11
          
-                                IEEE=1
-         
+                                ieee = 1
                             endif 
                             !**********************************************************************C
                             !     UP Z                                                             C 
                             !**********************************************************************C
                             if (iddd == 2) then
-         
-                            do 16 IC=1,NCOL2
-                                B11(IC)=UC11(IC,M2,IU)
-    16                        continue
-                            M3=IUP(M2,IU)
-                            do 17 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M3,KU)
-    17                        continue
-                            CALL VMX(1,B11,C11,D11,1)
-                            M3=IUP(M2,KU)
-                            M2=M3
-                            do 18 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M2,IU)
-    18                        continue
-                            CALL HERM(1,C11,DUM11,1)
-                            CALL VMX(1,D11,C11,SQUZ1,1)
-                            CALL VMX(1,A11,SQUZ1,C11,1)
-    !     
-                            do 19 IC=1,NCOL2
-                                A11(IC)=C11(IC)
-    19                        continue
-    !     
-                            IEEE=2
-    !     
+                                B11 = gauge_field(:, :, M2, IU)
+                                M3 = move(M2, IU, ids)
+                                C11 = gauge_field(:, :, M3, KU)
+                                D11 = matmul(B11, C11)
+                                M3 = move(M2, KU, ids)
+                                M2 = M3
+                                C11 = gauge_field(:, :, M2, IU)
+                                C11 = herm(C11)
+                                SQUZ1 = matmul(D11, C11)
+                                C11 = matmul(A11, SQUZ1)     
+                                A11 = C11
+            
+                                ieee = 2
                             endif 
-    !**********************************************************************C 
-    !                       doWN Y                                         C
-    !**********************************************************************C
+                            !**********************************************************************C 
+                            !                       DOWN Y                                         C
+                            !**********************************************************************C
                             if (iddd == 3) then
-    !     
-                            M3=IDN(M2,JU)
-                            do 20 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M3,JU)
-    20                        continue
-                            CALL HERM(1,D11,DUM11,1)
-                            do 21 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M3,KU)
-    21                        continue
-                            CALL VMX(1,D11,C11,B11,1)
-                            M4=IUP(M3,KU)
-                            do 22 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M4,JU)
-    22                        continue
-                            CALL VMX(1,B11,D11,SQDY1,1)
-                            CALL VMX(1,A11,SQDY1,C11,1)
-    !     
-                            do 23 IC=1,NCOL2
-                                A11(IC)=C11(IC)
-    23                        continue
-    !     
-                            IEEE=3
-    !     
+                                M3 = move(M2, -JU, ids)
+                                D11 = gauge_field(:, :, M3, JU)
+                                D11 = herm(D11)
+                                C11 = gauge_field(:, :, M3, KU)
+                                B11 = matmul(D11, C11)
+                                M4 = move(M3, KU, ids)
+                                D11 = gauge_field(:, :, M4, JU)
+                                SQDY1 = matmul(B11, D11)
+                                C11 = matmul(A11, SQDY1)     
+                                A11 = C11
+            
+                                ieee = 3     
                             endif 
-    !**********************************************************************C 
-    !                       doWN Z                                 C
-    !**********************************************************************C
+                            !**********************************************************************C 
+                            !                       DOWN Z                                 C
+                            !**********************************************************************C
                             if (iddd == 4) then
-    !     
-                            M3=IDN(M2,IU)
-                            do 24 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M3,IU)
-    24                        continue
-                            CALL HERM(1,D11,DUM11,1)
-                            do 25 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M3,KU)
-    25                        continue
-                            CALL VMX(1,D11,C11,B11,1)
-                            M4=IUP(M3,KU)
-                            do 26 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M4,IU)
-    26                        continue
-                            CALL VMX(1,B11,D11,SQDZ1,1)
-                            CALL VMX(1,A11,SQDZ1,C11,1)
-    !     
-                            do 27 IC=1,NCOL2
-                                A11(IC)=C11(IC)
-    27                        continue
-    !     
-                            IEEE=4
-    !     
+                                M3 = move(M2, -IU, ids)
+                                D11 = gauge_field(:, :, M3, IU)
+                                D11 = herm(D11)
+                                C11 = gauge_field(:, :, M3, KU)
+                                B11 = matmul(D11, C11)
+                                M4 = move(M3, KU, ids)
+                                D11 = gauge_field(:, :, M4, IU)
+                                SQDZ1 = matmul(B11, D11)
+                                C11 = matmul(A11, SQDZ1)     
+                                A11 = C11
+            
+                                ieee = 4     
                             endif 
-    !**********************************************************************C
-    !                       UP - UP SQUARE PULSES                         *C 
-    !**********************************************************************C
-    !                       UP Y
-    !**********************************************************************C
+                            !**********************************************************************C
+                            !                       UP - UP SQUARE PULSES                         *C 
+                            !**********************************************************************C
+                            !                       UP Y
+                            !**********************************************************************C
                             if (iddd == 5) then
-    !     
-                            M3=IUP(M2,KU)
-                            do 28 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M3,JU)
-    28                        continue
-                            M4=IUP(M3,JU)
-                            do 29 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M4,KU)
-    29                        continue
-                            CALL VMX(1,D11,C11,B11,1)
-                            M2=IUP(M3,KU)
-                            do 30 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M2,JU)
-    30                        continue
-                            CALL HERM(1,C11,DUM11,1)
-                            CALL VMX(1,B11,C11,SQUY2,1)
-                            CALL VMX(1,SQUY1,SQUY2,A11,1)
-    !     
-                            IEEE=1
-    !     
+                                M3 = move(M2, KU, ids)
+                                D11 = gauge_field(:, :, M3, JU)
+                                M4 = move(M3, JU, ids)
+                                C11 = gauge_field(:, :, M4, KU)
+                                B11 = matmul(D11, C11)
+                                M2 = move(M3, KU, ids)
+                                C11 = gauge_field(:, :, M2, JU)
+                                C11 = herm(C11)
+                                SQUY2 = matmul(B11, C11)
+                                A11 = matmul(SQUY1, SQUY2)     
+                                
+                                ieee = 1     
                             endif 
-    !**********************************************************************C
-    !              UP Z
-    !**********************************************************************C
-                            if (iddd == 6) then
-    !     
-                            M3=IUP(M2,KU)
-                            do 31 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M3,IU)
-    31                        continue
-                            M4=IUP(M3,IU)
-                            do 32 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M4,KU)
-    32                        continue
-                            CALL VMX(1,D11,C11,B11,1)
-                            M2=IUP(M3,KU)
-                            do 33 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M2,IU)
-    33                        continue
-                            CALL HERM(1,C11,DUM11,1)
-                            CALL VMX(1,B11,C11,SQUZ2,1)
-                            CALL VMX(1,SQUZ1,SQUZ2,A11,1)
-    !     
-                            IEEE=2
-    !     
+                            !**********************************************************************C
+                            !              UP Z
+                            !**********************************************************************C
+                            if (iddd == 6) then  
+                                M3 = move(M2, KU, ids)
+                                D11 = gauge_field(:, :, M3, IU)
+                                M4 = move(M3, IU, ids)
+                                C11 = gauge_field(:, :, M4, KU)
+                                B11 = matmul(D11, C11)
+                                M2 = move(M3, KU, ids)
+                                C11 = gauge_field(:, :, M2, IU)
+                                C11 = herm(C11)
+                                SQUZ2 = matmul(B11, C11)
+                                A11 = matmul(SQUZ1, SQUZ2)
+            
+                                ieee = 2     
                             endif 
-    !**********************************************************************C 
-    !              doWN Y                                              C
-    !**********************************************************************C
-                            if (iddd == 7) then
-    !     
-                            M3=IUP(M2,KU)
-                            M4=IDN(M3,JU)
-                            do 34 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M4,JU)
-    34                        continue
-                            CALL HERM(1,D11,DUM11,1)
-                            do 35 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M4,KU)
-    35                        continue
-                            CALL VMX(1,D11,C11,B11,1)
-                            M1=IUP(M4,KU)
-                            do 36 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M1,JU)
-    36                        continue
-                            CALL VMX(1,B11,C11,SQDY2,1)
-                            CALL VMX(1,SQDY1,SQDY2,A11,1)
-                            M2=IUP(M3,KU)
-    !     
-                            IEEE=3
-    !     
+                            !**********************************************************************C 
+                            !              DOWN Y                                              C
+                            !**********************************************************************C
+                            if (iddd == 7) then     
+                                M3 = move(M2, KU, ids)
+                                M4 = move(M3, -JU, ids)
+                                D11 = gauge_field(:, :, M4, JU)
+                                D11 = herm(D11)
+                                C11 = gauge_field(:, :, M4, KU)
+                                B11 = matmul(D11, C11)
+                                M1 = move(M4, KU, ids)
+                                C11 = gauge_field(:, :, M1, JU)
+                                SQDY2 = matmul(B11, C11)
+                                A11 = matmul(SQDY1, SQDY2)
+                                M2 = move(M3, KU, ids)   
+                                
+                                ieee = 3     
                             endif 
-    !**********************************************************************C 
-    !              doWN Z                                              C
-    !**********************************************************************C
-                            if (iddd == 8) then
-    !     
-                            M3=IUP(M2,KU)
-                            M4=IDN(M3,IU)
-                            do 37 IC=1,NCOL2
-                                D11(IC)=UC11(IC,M4,IU)
-    37                        continue
-                            CALL HERM(1,D11,DUM11,1)
-                            do 38 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M4,KU)
-    38                        continue
-                            CALL VMX(1,D11,C11,B11,1)
-                            M1=IUP(M4,KU)
-                            do 39 IC=1,NCOL2
-                                C11(IC)=UC11(IC,M1,IU)
-    39                        continue
-                            CALL VMX(1,B11,C11,SQDZ2,1)
-                            CALL VMX(1,SQDZ1,SQDZ2,A11,1)
-                            M2=IUP(M3,KU)
-    !     
-                            IEEE=4
-    !     
+                            !**********************************************************************C 
+                            !              DOWN Z                                              C
+                            !**********************************************************************C
+                            if (iddd == 8) then     
+                                M3 = move(M2, KU, ids)
+                                M4 = move(M3, -IU, ids)
+                                D11 = gauge_field(:, :, M4, IU)
+                                D11 = herm(D11)
+                                C11 = gauge_field(:, :, M4, KU)
+                                B11 = matmul(D11, C11)
+                                M1 = move(M4, KU, ids)
+                                C11 = gauge_field(:, :, M1, IU)
+                                SQDZ2 = matmul(B11, C11)
+                                A11 = matmul(SQDZ1, SQDZ2)
+                                M2 = move(M3, KU, ids)
+
+                                ieee = 4     
                             endif 
-    !**********************************************************************C
-    !**********************************************************************C
-    !              UP - doWN SQUARE PULSES                                 C 
-    !**********************************************************************C
-    !**********************************************************************C
-    !                 UP Y 
-    !**********************************************************************C
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !              UP - DOWN SQUARE PULSES                                 C 
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                 UP Y 
+                            !**********************************************************************C
                             if (iddd == 9) then
-                            CALL VMX(1,SQUY1,SQDY2,SQUDY1,1)
-                            do IC=1, NCOL2
-                                A11(IC)=SQUDY1(IC) !NEW!
-                            enddo
-                            M3=IUP(M2,KU)
-                            M2=IUP(M3,KU)
-    !     
-                            IEEE=1
-    !     
+                                SQUDY1 = matmul(SQUY1, SQDY2)
+                                A11 = squdy1
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+
+                                ieee = 1     
                             endif 
-    !**********************************************************************C
-    !                 UP Z
-    !**********************************************************************C
+                            !**********************************************************************C
+                            !                 UP Z
+                            !**********************************************************************C
                             if (iddd == 10) then    
-                            CALL VMX(1,SQUZ1,SQDZ2,SQUDZ1,1)
-                            do IC=1, NCOL2
-                                A11(IC)=SQUDZ1(IC) !NEW!
-                            enddo
-                            M3=IUP(M2,KU)
-                            M2=IUP(M3,KU)
-    !     
-                            IEEE=2
-    !     
+                                SQUDZ1 = matmul(SQUZ1, SQDZ2)
+                                A11 = squdz1
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+        
+                                ieee = 2     
                             endif 
-    !**********************************************************************C 
-    !                 doWN Y
-    !**********************************************************************C
+                            !**********************************************************************C 
+                            !                 DOWN Y
+                            !**********************************************************************C
                             if (iddd == 11) then
-                            CALL VMX(1,SQDY1,SQUY2,SQDUY1,1)
-                            do IC=1, NCOL2
-                                A11(IC)=SQDUY1(IC) !NEW!
-                            enddo
-                            M3=IUP(M2,KU)
-                            M2=IUP(M3,KU)
-    !     
-                            IEEE=3
-    !     
+                                SQDUY1 = matmul(SQDY1, SQUY2)
+                                A11 = sqduy1
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+            
+                                ieee = 3     
                             endif 
-    !**********************************************************************C 
-    !                 doWN Z
-    !**********************************************************************C
+                            !**********************************************************************C 
+                            !                 DOWN Z
+                            !**********************************************************************C
                             if (iddd == 12) then
-                            CALL VMX(1,SQDZ1,SQUZ2,SQDUZ1,1)
-                            do IC=1, NCOL2
-                                A11(IC)=SQDUZ1(IC) !NEW!
-                            enddo
-                            M3=IUP(M2,KU)
-                            M2=IUP(M3,KU)
-    !
-                            IEEE=4
-    !     
+                                SQDUZ1 = matmul(SQDZ1, SQUZ2)
+                                A11 = sqduz1
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+        
+                                ieee = 4     
                             endif 
-!**********************************************************************C
-!**********************************************************************C
-!                 UP WAVE - LIKE PULSE                                *C
-!**********************************************************************C
-!**********************************************************************C
-!                 UP Y
-!**********************************************************************C
-                if (iddd == 13) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!     
-                    do 40 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M2,JU,idsW)
-40                  continue
-                    M3=IUPB(M2,JU,idsW)
-                    do 41 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-41                  continue
-                    CALL VMX(1,D11,C11,B11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 42 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,JU,idsW)
-42                  continue
-                    CALL HERM(1,C11,DUM11,1)
-                    CALL VMX(1,B11,C11,WSQUY1,1)
-!                     
-                    M3=IDNB(M2,JU,idsW)
-                    do 43 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,JU,idsW)
-43                  continue
-                    CALL HERM(1,B11,DUM11,1)
-                    do 44 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-44                  continue
-                    CALL VMX(1,B11,C11,D11,1)
-                    M4=IUPB(M3,KU,idsW)
-                    do 45 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M4,JU,idsW)
-45                  continue
-                    CALL VMX(1,D11,B11,WSQDY2,1)
-                    CALL VMX(1,WSQUY1,WSQDY2,WVUY1,1)
-                    do 46 IC=1,NCOL2
-                        A11(IC)=WVUY1(IC)
-46                  continue
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=1
-!
-                endif 
-!**********************************************************************C
-!                 UP Z
-!**********************************************************************C
-                if (iddd == 14) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!     
-                    do 47 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M2,IU,idsW)
-47                  continue
-                    M3=IUPB(M2,IU,idsW)
-                    do 48 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-48                  continue
-                    CALL VMX(1,D11,C11,B11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 49 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,IU,idsW)
-49                  continue
-                    CALL HERM(1,C11,DUM11,1)
-                    CALL VMX(1,B11,C11,WSQUZ1,1)
-!                     
-                    M3=IDNB(M2,IU,idsW)
-                    do 50 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,IU,idsW)
-50                  continue
-                    CALL HERM(1,B11,DUM11,1)
-                    do 51 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-51                  continue
-                    CALL VMX(1,B11,C11,D11,1)
-                    M4=IUPB(M3,KU,idsW)
-                    do 52 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M4,IU,idsW)
-52                  continue
-                    CALL VMX(1,D11,B11,WSQDZ2,1)
-                    CALL VMX(1,WSQUZ1,WSQDZ2,WVUZ1,1)
-                    do 53 IC=1,NCOL2
-                        A11(IC)=WVUZ1(IC)
-53                  continue
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=2
-!
-                endif 
-!**********************************************************************C
-!                 doWN Y                                              *C 
-!**********************************************************************C
-                if (iddd == 15) then
-!     
-                        idsW=ids-1
-!
-                        if (idsW == 0) then
-                        idsW=1
-                        endif 
-!     
-                        M3=IDNB(M2,JU,idsW)
-                        do 54 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M3,JU,idsW)
-54                     continue
-                        CALL HERM(1,D11,DUM11,1)
-                        do 55 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-55                     continue
-                        CALL VMX(1,D11,C11,B11,1)
-                        M4=IUPB(M3,KU,idsW)
-                        do 56 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,JU,idsW)
-56                     continue
-                        CALL VMX(1,B11,C11,WSQDY1,1)
-                        M3=IUPB(M2,KU,idsW)
-                        M2=M3
-!     
-                        do 57 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M2,JU,idsW)
-57                     continue
-                        M3=IUPB(M2,JU,idsW)
-                        do 58 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-58                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                        M3=IUPB(M2,KU,idsW)
-                        M2=M3
-                        do 59 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,JU,idsW)
-59                     continue
-                        CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,D11,C11,WSQUY2,1)
-                        CALL VMX(1,WSQDY1,WSQUY2,WVDY1,1)
-!     
-                        do 60 IC=1, NCOL2
-                        A11(IC)=WVDY1(IC)
-60                     continue
-!
-                        IEEE=3
-! 
-                endif 
-!**********************************************************************C
-!                 doWN Z                                              *C 
-!**********************************************************************C
-                if (iddd == 16) then
-!     
-                        idsW=ids-1
-!
-                        if (idsW == 0) then
-                        idsW=1
-                        endif 
-!     
-                        M3=IDNB(M2,IU,idsW)
-                        do 61 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M3,IU,idsW)
-61                     continue
-                        CALL HERM(1,D11,DUM11,1)
-                        do 62 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-62                     continue
-                        CALL VMX(1,D11,C11,B11,1)
-                        M4=IUPB(M3,KU,idsW)
-                        do 63 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,IU,idsW)
-63                     continue
-                        CALL VMX(1,B11,C11,WSQDZ1,1)
-                        M3=IUPB(M2,KU,idsW)
-                        M2=M3
-!     
-                        do 64 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M2,IU,idsW)
-64                     continue
-                        M3=IUPB(M2,IU,idsW)
-                        do 65 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-65                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                        M3=IUPB(M2,KU,idsW)
-                        M2=M3
-                        do 66 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,IU,idsW)
-66                     continue
-                        CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,D11,C11,WSQUZ2,1)
-                        CALL VMX(1,WSQDZ1,WSQUZ2,WVDZ1,1)
-!     
-                        do 67 IC=1, NCOL2
-                        A11(IC)=WVDZ1(IC)
-67                     continue
-!
-                        IEEE=4
-!     
-                endif 
-!**********************************************************************C
-!**********************************************************************C
-!              UP - UP WAVE-LIKE PULSE                                 C
-!**********************************************************************C
-!**********************************************************************C
-!              UP Y
-!**********************************************************************C
-                if (iddd == 17) then
-!
-                    idsW=ids-1
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                 UP WAVE - LIKE PULSE                                *C
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                 UP Y
+                            !**********************************************************************C
+                            if (iddd == 13) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                 
+                                D11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                M3 = move(M2, JU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                C11 = herm(C11)
+                                WSQUY1 = matmul(B11, C11)
+                                 
+                                M3 = move(M2, -JU, idsW)
+                                B11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                B11 = herm(B11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M4 = move(M3, KU, idsW)
+                                B11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                WSQDY2 = matmul(D11, B11)
+                                WVUY1 = matmul(WSQUY1, WSQDY2)
+                                A11 = WVUY1
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                ieee = 1
+                            endif 
+                            !**********************************************************************C
+                            !                 UP Z
+                            !**********************************************************************C
+                            if (iddd == 14) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                 
+                                D11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                M3 = move(M2, IU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                C11 = herm(C11)
+                                WSQUZ1 = matmul(B11, C11)
+                                 
+                                M3 = move(M2, -IU, idsW)
+                                B11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                B11 = herm(B11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M4 = move(M3, KU, idsW)
+                                B11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                WSQDZ2 = matmul(D11, B11)
+                                WVUZ1 = matmul(WSQUZ1, WSQDZ2)
+                                A11 = WVUZ1
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                ieee = 2
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Y                                              *C 
+                            !**********************************************************************C
+                            if (iddd == 15) then     
+                                idsW=ids-1
 
-                    if (idsW == 0) then 
-                        idsW=1
-                    endif 
-! 
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-! 
-                    do 68 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M2,JU,idsW)
-68                  continue 
-                    M3=IUPB(M2,JU,idsW)
-                    do 69 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-69                  continue
-                    CALL VMX(1,D11,C11,B11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 70 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,JU,idsW)
-70                  continue
-                    CALL HERM(1,C11,DUM11,1)
-                    CALL VMX(1,B11,C11,WSQUY3,1)
-!
-                    M3=IDNB(M2,JU,idsW)
-                    do 71 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,JU,idsW)
-71                  continue
-                    CALL HERM(1,B11,DUM11,1)
-                    do 72 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-72                  continue
-                    CALL VMX(1,B11,C11,D11,1)
-                    M4=IUPB(M3,KU,idsW)
-                    do 73 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M4,JU,idsW)
-73                  continue
-                    CALL VMX(1,D11,B11,WSQDY4,1)
-                    CALL VMX(1,WSQUY3,WSQDY4,WVUY2,1)
-                    CALL VMX(1,WVUY1,WVUY2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=1
-!     
-                endif 
-!**********************************************************************C
-!                 UP Z
-!**********************************************************************C
-                if (iddd == 18) then
-!
-                    idsW=ids-1
+                                if (idsW == 0) then
+                                idsW=1
+                                endif 
+                
+                                M3 = move(M2, -JU, idsW)
+                                D11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                D11 = herm(D11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M4 = move(M3, KU, idsW)
+                                C11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                WSQDY1 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                
+                                B11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                M3 = move(M2, JU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                C11 = herm(C11)
+                                WSQUY2 = matmul(D11, C11)
+                                WVDY1 = matmul(WSQDY1, WSQUY2)    
+                                A11 = WVDY1
+        
+                                ieee = 3 
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Z                                              *C 
+                            !**********************************************************************C
+                            if (iddd == 16) then     
+                                idsW=ids-1
+        
+                                if (idsW == 0) then
+                                idsW=1
+                                endif 
+                
+                                M3 = move(M2, -IU, idsW)
+                                D11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                D11 = herm(D11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M4 = move(M3, KU, idsW)
+                                C11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                WSQDZ1 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                 
+                                B11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                M3 = move(M2, IU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                C11 = herm(C11)
+                                WSQUZ2 = matmul(D11, C11)
+                                WVDZ1 = matmul(WSQDZ1, WSQUZ2)
+                                A11 = WVDZ1
+        
+                                ieee = 4     
+                            endif 
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !              UP - UP WAVE-LIKE PULSE                                 C
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !              UP Y
+                            !**********************************************************************C
+                            if (iddd == 17) then
+                                idsW=ids-1
 
-                    if (idsW == 0) then 
-                        idsW=1
-                    endif 
-! 
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-! 
-                    do 74 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M2,IU,idsW)
-74                  continue 
-                    M3=IUPB(M2,IU,idsW)
-                    do 75 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-75                  continue
-                    CALL VMX(1,D11,C11,B11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 76 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,IU,idsW)
-76                  continue
-                    CALL HERM(1,C11,DUM11,1)
-                    CALL VMX(1,B11,C11,WSQUZ3,1)
-!
-                    M3=IDNB(M2,IU,idsW)
-                    do 77 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,IU,idsW)
-77                  continue
-                    CALL HERM(1,B11,DUM11,1)
-                    do 78 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-78                  continue
-                    CALL VMX(1,B11,C11,D11,1)
-                    M4=IUPB(M3,KU,idsW)
-                    do 79 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M4,IU,idsW)
-79                  continue
-                    CALL VMX(1,D11,B11,WSQDZ4,1)
-                    CALL VMX(1,WSQUZ3,WSQDZ4,WVUZ2,1)
-                    CALL VMX(1,WVUZ1,WVUZ2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=2
-!     
-                endif 
-!**********************************************************************C
-!                 doWN Y                                               C
-!**********************************************************************C
-                if (iddd == 19) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!     
-                    M3=IDNB(M2,JU,idsW)
-                    do 80 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M3,JU,idsW)
-80                  continue
-                    CALL HERM(1,D11,DUM11,1)
-                    do 81 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-81                  continue
-                    CALL VMX(1,D11,C11,B11,1)
-                    M4=IUPB(M3,KU,idsW)
-                    do 82 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,JU,idsW)
-82                  continue
-                    CALL VMX(1,B11,C11,WSQDY3,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 83 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M2,JU,idsW)
-83                  continue
-                    M3=IUPB(M2,JU,idsW)
-                    do 84 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-84                  continue
-                    CALL VMX(1,B11,C11,D11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 85 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,JU,idsW)
-85                  continue
-                    CALL HERM(1,C11,DUM11,1)
-                    CALL VMX(1,D11,C11,WSQUY4,1)
-                    CALL VMX(1,WSQDY3,WSQUY4,WVDY2,1)
-                    CALL VMX(1,WVDY1,WVDY2,A11,1)
-!
-                        IEEE=3
-!     
-                endif 
-!**********************************************************************C
-!                 doWN Y                                               C
-!**********************************************************************C
-                if (iddd == 20) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!     
-                    M3=IDNB(M2,IU,idsW)
-                    do 86 IC=1,NCOL2
-                        D11(IC)=UB11(IC,M3,IU,idsW)
-86                  continue
-                    CALL HERM(1,D11,DUM11,1)
-                    do 87 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-87                  continue
-                    CALL VMX(1,D11,C11,B11,1)
-                    M4=IUPB(M3,KU,idsW)
-                    do 88 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,IU,idsW)
-88                  continue
-                    CALL VMX(1,B11,C11,WSQDZ3,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 89 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M2,IU,idsW)
-89                  continue
-                    M3=IUPB(M2,IU,idsW)
-                    do 90 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M3,KU,idsW)
-90                  continue
-                    CALL VMX(1,B11,C11,D11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    do 91 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M2,IU,idsW)
-91                  continue
-                    CALL HERM(1,C11,DUM11,1)
-                    CALL VMX(1,D11,C11,WSQUZ4,1)
-                    CALL VMX(1,WSQDZ3,WSQUZ4,WVDZ2,1)
-                    CALL VMX(1,WVDZ1,WVDZ2,A11,1)
-!
-                        IEEE=4
-!     
-                endif 
-!**********************************************************************C
-!**********************************************************************C
-!                 UP - doWN WAVE-LIKE PULSE                           *C
-!**********************************************************************C
-!**********************************************************************C
-!                 UP Y                                                 C
-!**********************************************************************C
-                if (iddd == 21) then
-!     
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!     
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVUY1,WVDY2,A11,1)
-!
-                        IEEE=1
-!
-                endif 
-!**********************************************************************C
-!                 UP Z                                                 C
-!**********************************************************************C
-                if (iddd == 22) then
-!     
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!     
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVUZ1,WVDZ2,A11,1)
-!
-                        IEEE=2
-!
-                endif 
-!**********************************************************************C
-!                 doWN Y                                              *C
-!**********************************************************************C
-                if (iddd == 23) then
-!     
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!     
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVDY1,WVUY2,A11,1)
-!
-                        IEEE=3
-!     
-                endif 
-!**********************************************************************C
-!                 doWN Z                                              *C
-!**********************************************************************C
-                if (iddd == 24) then
-!     
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!     
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVDZ1,WVUZ2,A11,1)
-!
-                        IEEE=4
-!     
-                endif 
-!**********************************************************************C
-!**********************************************************************C
-!                   /\_____/\  UP PULSE                                C
-!**********************************************************************C
-!**********************************************************************C
-!                  UP Y
-!**********************************************************************C
-                if (iddd == 25) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 139 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,KU,idsW)
-139                    continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 140 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,KU,idsW)
-140                    continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 141 IC=1, NCOL2
-                        D11(IC)=UB11(IC,M3,KU,idsW+1)
-141                    continue
-                    endif 
-!
-                    CALL VMX(1,WSQUY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUY4,A11,1)
-!
-!
-                        IEEE=1
-!
-                endif 
-!**********************************************************************C
-!                  UP Z
-!**********************************************************************C
-                if (iddd == 26) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 142 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,KU,idsW)
-142                    continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 143 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,KU,idsW)
-143                    continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 144 IC=1, NCOL2
-                        D11(IC)=UB11(IC,M3,KU,idsW+1)
-144                    continue
-                    endif 
-!
-                    CALL VMX(1,WSQUZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUZ4,A11,1)
-!
-                        IEEE=2
-!
-                endif 
-!**********************************************************************C
-!                   doWN Y                                             C
-!**********************************************************************C
-                if (iddd == 27) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 145 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-145                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 146 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-146                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 147 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-147                     continue
-                    endif 
-!     
-                    CALL VMX(1,WSQDY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDY4,A11,1)
-!
-                        IEEE=3
-!
-                endif 
-!**********************************************************************C
-!                   doWN Z                                             C
-!**********************************************************************C
-                if (iddd == 28) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 149 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-149                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 150 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-150                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 151 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-151                     continue
-                    endif 
-!     
-                    CALL VMX(1,WSQDZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDZ4,A11,1)
-!
-                        IEEE=4
-!
-                endif 
-!**********************************************************************C
-!**********************************************************************C
-!                   /\-----\/  PULSE                                   C
-!**********************************************************************C
-!**********************************************************************C
-!                  UP Y
-!**********************************************************************C
-                if (iddd == 29) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 152 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-152                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 153 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-153                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 154 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-154                     continue
-                    endif 
-!
-                    CALL VMX(1,WSQUY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDY4,A11,1)
-!
-                        IEEE=1
-!
-                endif 
-!**********************************************************************C
-!                  UP Z
-!**********************************************************************C
-                if (iddd == 30) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 155 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-155                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 156 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-156                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 157 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-157                     continue
-                    endif 
-!
-                    CALL VMX(1,WSQUZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDZ4,A11,1)
-!
-                        IEEE=2
-!
-                endif 
-!**********************************************************************C
-!                 doWN Y                                               C
-!**********************************************************************C
-                if (iddd == 31) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 158 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,KU,idsW)
-158                    continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 159 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,KU,idsW)  
-159                    continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 160 IC=1, NCOL2
-                        D11(IC)=UB11(IC,M3,KU,idsW+1)
-160                    continue
-                    endif 
-!     
-                    CALL VMX(1,WSQDY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUY4,A11,1)
-!
-                        IEEE=3
-!     
-                endif 
-!**********************************************************************C
-!                 doWN Z                                               C
-!**********************************************************************C
-                if (iddd == 32) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 161 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,KU,idsW)
-161                    continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 162 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,KU,idsW)  
-162                    continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 262 IC=1, NCOL2
-                        D11(IC)=UB11(IC,M3,KU,idsW+1)
-262                    continue
-                    endif 
-!     
-                    CALL VMX(1,WSQDZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUZ4,A11,1)
-!
-                        IEEE=4
-!     
-                endif 
-!**********************************************************************
-!     TT-1 OPERATORS
-!**********************************************************************
-                        if (iddd == 33)then
-!     
-                        CALL VMX(1,SQUY1,SQUZ2,A11,1)
-!
-                        do IC=1, NCOL2
-                            WANGL1(IC)=A11(IC) !NEW!
-                        enddo
-!                           
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        IEEE=1
-!     
-                        endif 
-!**********************************************************************
-                        if (iddd == 34) then
-!     
-                        CALL VMX(1,SQUZ1,SQDY2,A11,1)
-!
-                        do IC=1, NCOL2
-                            WANGL2(IC)=A11(IC) !NEW!
-                        enddo
-!                                                      
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        IEEE=2
-!     
-                        endif 
-!**********************************************************************
-                        if (iddd == 35) then
-!     
-                        CALL VMX(1,SQDY1,SQDZ2,A11,1)
-!    
-                        do IC=1, NCOL2
-                            WANGL3(IC)=A11(IC) !NEW!
-                        enddo
-!                           
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        IEEE=3
-!     
-                        endif 
-!**********************************************************************
-                        if (iddd == 36) then
-!     
-                        CALL VMX(1,SQDZ1,SQUY2,A11,1)
-!                           
-                        do IC=1, NCOL2
-                            WANGL4(IC)=A11(IC) !NEW!
-                        enddo                           
-!
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        IEEE=4
-!     
-                        endif 
-!**********************************************************************
-                        if (iddd == 37) then
-!     
-                        CALL VMX(1,SQUY1,SQDZ2,A11,1)
-!                           
-                        do IC=1, NCOL2
-                            WANGL5(IC)=A11(IC) !NEW!
-                        enddo                           
-!
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        IEEE=5
-!     
-                        endif 
-!**********************************************************************
-                        if (iddd == 38) then
-!     
-                        CALL VMX(1,SQUZ1,SQUY2,A11,1)
-!                           
-                        do IC=1, NCOL2
-                            WANGL6(IC)=A11(IC) !NEW!
-                        enddo                           
-!
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        IEEE=6
-!     
-                        endif 
-!**********************************************************************
-                        if (iddd == 39) then
-!     
-                        CALL VMX(1,SQDY1,SQUZ2,A11,1)
-!                           
-                        do IC=1, NCOL2
-                            WANGL7(IC)=A11(IC) !NEW!
-                        enddo                           
-!                           
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        IEEE=7
-!     
-                        endif 
-!**********************************************************************
-                        if (iddd == 40) then
-                        M3=IUP(M2,KU)
-                        M2=IUP(M3,KU)
-!     
-                        CALL VMX(1,SQDZ1,SQDY2,A11,1)
-!                           
-                        do IC=1, NCOL2
-                            WANGL8(IC)=A11(IC) !NEW!
-                        enddo                                                      
-!     
-                        IEEE=8
-!     
-                        endif 
-!**********************************************************************
-!     TT-2 OPERATORS
-!**********************************************************************
-                if (iddd == 41) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVUY1,WVUZ2,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************
-                if (iddd == 42) then
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVUZ1,WVDY2,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************
-                if (iddd == 43) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVDY1,WVDZ2,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************
-                if (iddd == 44) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVDZ1,WVUY2,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************
-                if (iddd == 45) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVUZ1,WVUY2,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************
-                if (iddd == 46) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVDY1,WVUZ2,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************
-                if (iddd == 47) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVDZ1,WVDY2,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************
-                if (iddd == 48) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-!
-                    M3=IUPB(M2,KU,idsW)
-                    M4=IUPB(M3,KU,idsW)
-                    M1=IUPB(M4,KU,idsW)
-                    M2=IUPB(M1,KU,idsW)
-!
-                    CALL VMX(1,WVUY1,WVDZ2,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-!**********************************************************************C
-!                   /\----/_/  UP PULSE-TT3                            C
-!**********************************************************************C
-!**********************************************************************C
-!                  1
-!**********************************************************************C
-                if (iddd == 49) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 301 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,KU,idsW)
-301                    continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 302 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,KU,idsW)
-302                    continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 303 IC=1, NCOL2
-                        D11(IC)=UB11(IC,M3,KU,idsW+1)
-303                    continue
-                    endif 
-!                    !   WARNING WE CAN SPEED UP THE COMPUTATION  !
-                    CALL VMX(1,WSQUY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUZ4,A11,1)
-!
-!
-                        IEEE=1
-!
-                endif 
-!**********************************************************************C
-!                  2
-!**********************************************************************C
-                if (iddd == 50) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 304 IC=1,NCOL2
-                        B11(IC)=UB11(IC,M3,KU,idsW)
-304                    continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 305 IC=1,NCOL2
-                        C11(IC)=UB11(IC,M4,KU,idsW)
-305                    continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 306 IC=1, NCOL2
-                        D11(IC)=UB11(IC,M3,KU,idsW+1)
-306                    continue
-                    endif 
-!
-                    CALL VMX(1,WSQUZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDY4,A11,1)
-!
-                        IEEE=2
-!
-                endif 
-!**********************************************************************C
-!                   3                                             C
-!**********************************************************************C
-                if (iddd == 51) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 307 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-307                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 308 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-308                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 309 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-309                     continue
-                    endif 
-!     
-                    CALL VMX(1,WSQDY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDZ4,A11,1)
-!
-                        IEEE=3
-!
-                endif 
-!**********************************************************************C
-!                 4                                                    C
-!**********************************************************************C
-                if (iddd == 52) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 310 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-310                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 311 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-311                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 312 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-312                     continue
-                    endif 
-!     
-                    CALL VMX(1,WSQDZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUY4,A11,1)
-!
-                        IEEE=4
-!
-                endif 
-!**********************************************************************C
-!                 5                                                    C
-!**********************************************************************C
-                if (iddd == 53) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 313 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-313                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 314 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-314                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 315 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-315                     continue
-                    endif 
-!
-                    CALL VMX(1,WSQUY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDZ4,A11,1)     
-!
-                        IEEE=5
-!
-                endif 
-!**********************************************************************C
-!                 6                                                    C
-!**********************************************************************C
-                if (iddd == 54) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 316 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-316                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 317 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-317                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 318 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-318                     continue
-                    endif 
-!
-                    CALL VMX(1,WSQUZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUY4,A11,1)     
-!
-                        IEEE=6
-!
-                endif 
-!**********************************************************************C
-!                 7                                                    C
-!**********************************************************************C
-                if (iddd == 55) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 319 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-319                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 320 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-320                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 321 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-321                     continue
-                    endif 
-!
-                    CALL VMX(1,WSQDY1,D11,C11,1)
-                    CALL VMX(1,C11,WSQUZ4,A11,1)     
-!
-                        IEEE=7
-!
-                endif 
-!**********************************************************************C
-!                 8                                                    C
-!**********************************************************************C
-                if (iddd == 56) then
-!
-                    idsW=ids-1
-!
-                    if (idsW == 0) then
-                        idsW=1
-                        M3=IUPB(M2,KU,idsW)
-                        do 322 IC=1,NCOL2
-                            B11(IC)=UB11(IC,M3,KU,idsW)
-322                     continue
-                        M4=IUPB(M3,KU,idsW)
-                        do 323 IC=1,NCOL2
-                            C11(IC)=UB11(IC,M4,KU,idsW)  
-323                     continue
-                        CALL VMX(1,B11,C11,D11,1)
-                    ELSE
-                        M3=IUPB(M2,KU,idsW)
-                        do 324 IC=1, NCOL2
-                            D11(IC)=UB11(IC,M3,KU,idsW+1)
-324                     continue
-                    endif 
-!
-                    CALL VMX(1,WSQDZ1,D11,C11,1)
-                    CALL VMX(1,C11,WSQDY4,A11,1)     
-!
-                        IEEE=8
-!
-                endif 
-!**********************************************************************
-!                 T-T4 OPERATORS
-!**********************************************************************
-                if (iddd == 57) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,ZIG1W1,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,ZIG2W1,1)
-                    CALL VMX(1,ZIG1W1,ZIG2W1,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************
-                if (iddd == 58) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,ZIG1W2,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,ZIG2W2,1)
-                    CALL VMX(1,ZIG1W2,ZIG2W2,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************
-                if (iddd == 59) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,ZIG1W3,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,ZIG2W3,1)
-                    CALL VMX(1,ZIG1W3,ZIG2W3,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************
-                if (iddd == 60) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,ZIG1W4,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,ZIG2W4,1)
-                    CALL VMX(1,ZIG1W4,ZIG2W4,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************
-                if (iddd == 61) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,TIG1W4,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,TIG2W4,1)
-                    CALL VMX(1,TIG1W4,TIG2W4,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************
-                if (iddd == 62) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,TIG1W1,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,TIG2W1,1)
-                    CALL VMX(1,TIG1W1,TIG2W1,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************
-                if (iddd == 63) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,TIG1W2,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,TIG2W2,1)
-                    CALL VMX(1,TIG1W2,TIG2W2,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************
-                if (iddd == 64) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,TIG1W3,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,TIG2W3,1)
-                    CALL VMX(1,TIG1W3,TIG2W3,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************
-!                 T-T5 OPERATORS
-!**********************************************************************
-                if (iddd == 65) then
-!
-                    CALL VMX(1,WSQUY1,WSQUY2,DUY1,1)
-                    CALL VMX(1,WSQUY3,WSQUY4,DUY2,1)
-                    CALL VMX(1,DUY1,DUY2,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 66) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUZ2,DUZ1,1)
-                    CALL VMX(1,WSQUZ3,WSQUZ4,DUZ2,1)
-                    CALL VMX(1,DUZ1,DUZ2,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 67) then
-!
-                    CALL VMX(1,WSQDY1,WSQDY2,DDY1,1)
-                    CALL VMX(1,WSQDY3,WSQDY4,DDY2,1)
-                    CALL VMX(1,DDY1,DDY2,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 68) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDZ2,DDZ1,1)
-                    CALL VMX(1,WSQDZ3,WSQDZ4,DDZ2,1)
-                    CALL VMX(1,DDZ1,DDZ2,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-!                 TT-6 OPERATORS
-!**********************************************************************C
-                if (iddd == 69) then
-!
-                    CALL VMX(1,DUY1,DDY2,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 70) then
-!
-                    CALL VMX(1,DUZ1,DDZ2,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 71) then
-!
-                    CALL VMX(1,DDY1,DUY2,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 72) then
-!
-                    CALL VMX(1,DDZ1,DUZ2,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-!                 T-T 7 OPERATORS
-!**********************************************************************C
-                if (iddd == 73) then
-!
-                    CALL VMX(1,DUY1,DUZ2,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 74) then
-!
-                    CALL VMX(1,DUZ1,DDY2,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 75) then
-!
-                    CALL VMX(1,DDY1,DDZ2,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 76) then
-!
-                    CALL VMX(1,DDZ1,DUY2,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 77) then
-!
-                    CALL VMX(1,DDZ1,DDY2,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 78) then
-!
-                    CALL VMX(1,DUY1,DDZ2,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 79) then
-!
-                    CALL VMX(1,DUZ1,DUY2,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 80) then
-!
-                    CALL VMX(1,DDY1,DUZ2,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-!                 T-T 8 OPERATORS
-!**********************************************************************C
-                if (iddd == 81) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 82) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 83) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 84) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 85) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 86) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 87) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 88) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-!                 T-T 9 OPERATORS
-!**********************************************************************C
-                if (iddd == 89) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 90) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 91) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 92) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 93) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 94) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 95) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 96) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-!                 T-T 10 OPERATORS
-!**********************************************************************C
-                if (iddd == 97) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 98) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 99) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 100) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 101) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 102) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 103) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 104) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-!                 T-T 11 OPERATORS
-!**********************************************************************C
-                if (iddd == 105) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 106) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 107) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 108) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 109) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 110) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 111) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 112) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-!                 T-T 12 OPERATORS
-!**********************************************************************C
-                if (iddd == 113) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 114) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 115) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 116) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 117) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 118) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 119) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 120) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 121) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=9
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 122) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=10
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 123) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=11
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 124) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=12
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 125) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=13
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 126) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=14
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 127) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=15
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 128) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=16
-!
-                endif 
-!**********************************************************************C
-!                 T-T 13 OPERATORS
-!**********************************************************************C
-                if (iddd == 129) then
-!
-                    CALL VMX(1,WSQUY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=1
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 130) then
-!
-                    CALL VMX(1,WSQUZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=2
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 131) then
-!
-                    CALL VMX(1,WSQDY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=3
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 132) then
-!
-                    CALL VMX(1,WSQDZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 133) then
-!
-                    CALL VMX(1,WSQUZ1,WSQUY2,B11,1)
-                    CALL VMX(1,WSQDZ3,WSQDY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=5
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 134) then
-!
-                    CALL VMX(1,WSQDY1,WSQUZ2,B11,1)
-                    CALL VMX(1,WSQUY3,WSQDZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=6
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 135) then
-!
-                    CALL VMX(1,WSQDZ1,WSQDY2,B11,1)
-                    CALL VMX(1,WSQUZ3,WSQUY4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=7
-!
-                endif 
-!**********************************************************************c
-                if (iddd == 136) then
-!
-                    CALL VMX(1,WSQUY1,WSQDZ2,B11,1)
-                    CALL VMX(1,WSQDY3,WSQUZ4,C11,1)
-                    CALL VMX(1,B11,C11,A11,1)
-!
-                    IEEE=8
-!
-                endif 
-!**********************************************************************C
-!**********************************************************************C
-!                 T-T 14 OPERATORS
-!**********************************************************************C
-                if (iddd == 137) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQUY1,WSQUZ2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=1
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 138) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQUZ1,WSQDY2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=2
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 139) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQDY1,WSQDZ2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=3
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 140) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQDZ1,WSQUY2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=4
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 141) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQUY1,WSQDZ2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=5
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 142) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQUZ1,WSQUY2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=6
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 143) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQDY1,WSQUZ2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=7
-!
-                endif 
-!**********************************************************************C
-                if (iddd == 144) then
-!     
-                    idsW=ids-1
-!     
-                    if (idsW == 0) then
-                        idsW=1
-                    endif 
-                    CALL VMX(1,WSQDZ1,WSQDY2,A11,1)
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-                    M3=IUPB(M2,KU,idsW)
-                    M2=M3
-!
-                        IEEE=8
-!
-                endif 
+                                if (idsW == 0) then 
+                                    idsW=1
+                                endif 
+             
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3 
+                                D11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                M3 = move(M2, JU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                C11 = herm(C11)
+                                WSQUY3 = matmul(B11, C11)
+            
+                                M3 = move(M2, -JU, idsW)
+                                B11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                B11 = herm(B11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M4 = move(M3, KU, idsW)
+                                B11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                WSQDY4 = matmul(D11, B11)
+                                WVUY2 = matmul(WSQUY3, WSQDY4)
+                                A11 = matmul(WVUY1, WVUY2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                ieee = 1     
+                            endif 
+                            !**********************************************************************C
+                            !                 UP Z
+                            !**********************************************************************C
+                            if (iddd == 18) then
+                                idsW=ids-1
+
+                                if (idsW == 0) then 
+                                    idsW=1
+                                endif  
+
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+             
+                                D11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                M3 = move(M2, IU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                C11 = herm(C11)
+                                WSQUZ3 = matmul(B11, C11)
+            
+                                M3 = move(M2, -IU, idsW)
+                                B11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                B11 = herm(B11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M4 = move(M3, KU, idsW)
+                                B11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                WSQDZ4 = matmul(D11, B11)
+                                WVUZ2 = matmul(WSQUZ3, WSQDZ4)
+                                A11 = matmul(WVUZ1, WVUZ2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                
+                                ieee = 2     
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Y                                               C
+                            !**********************************************************************C
+                            if (iddd == 19) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                 
+                                M3 = move(M2, -JU, idsW)
+                                D11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                D11 = herm(D11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M4 = move(M3, KU, idsW)
+                                C11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                WSQDY3 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                B11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                M3 = move(M2, JU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                C11 = herm(C11)
+                                WSQUY4 = matmul(D11, C11)
+                                WVDY2 = matmul(WSQDY3, WSQUY4)
+                                A11 = matmul(WVDY1, WVDY2)
+            
+                                ieee = 3
+                 
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Y                                               C
+                            !**********************************************************************C
+                            if (iddd == 20) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                 
+                                M3 = move(M2, -IU, idsW)
+                                D11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                D11 = herm(D11)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                B11 = matmul(D11, C11)
+                                M4 = move(M3, KU, idsW)
+                                C11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                WSQDZ3 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                B11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                M3 = move(M2, IU, idsW)
+                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                D11 = matmul(B11, C11)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                C11 = herm(C11)
+                                WSQUZ4 = matmul(D11, C11)
+                                WVDZ2 = matmul(WSQDZ3, WSQUZ4)
+                                A11 = matmul(WVDZ1, WVDZ2)
+            
+                                ieee = 4     
+                            endif 
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                 UP - DOWN WAVE-LIKE PULSE                           *C
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                 UP Y                                                 C
+                            !**********************************************************************C
+                            if (iddd == 21) then     
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                 
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVUY1, WVDY2)
+            
+                                ieee = 1
+                            endif 
+                            !**********************************************************************C
+                            !                 UP Z                                                 C
+                            !**********************************************************************C
+                            if (iddd == 22) then     
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                 
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVUZ1, WVDZ2)
+            
+                                ieee = 2
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Y                                              *C
+                            !**********************************************************************C
+                            if (iddd == 23) then     
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                 
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVDY1, WVUY2)
+            
+                                ieee = 3
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Z                                              *C
+                            !**********************************************************************C
+                            if (iddd == 24) then
+                 
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                 
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVDZ1, WVUZ2)
+            
+                                ieee = 4     
+                            endif 
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                   /\_____/\  UP PULSE                                C
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                  UP Y
+                            !**********************************************************************C
+                            if (iddd == 25) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQUY1, D11)
+                                A11 = matmul(C11, WSQUY4)
+            
+                                ieee = 1
+                            endif 
+                            !**********************************************************************C
+                            !                  UP Z
+                            !**********************************************************************C
+                            if (iddd == 26) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQUZ1, D11)
+                                A11 = matmul(C11, WSQUZ4)
+            
+                                ieee = 2
+                            endif 
+                            !**********************************************************************C
+                            !                   DOWN Y                                             C
+                            !**********************************************************************C
+                            if (iddd == 27) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+                 
+                                C11 = matmul(WSQDY1, D11)
+                                A11 = matmul(C11, WSQDY4)
+            
+                                ieee = 3
+                            endif 
+                            !**********************************************************************C
+                            !                   DOWN Z                                             C
+                            !**********************************************************************C
+                            if (iddd == 28) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+
+                                C11 = matmul(WSQDZ1, D11)
+                                A11 = matmul(C11, WSQDZ4)
+            
+                                ieee = 4
+                            endif 
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                   /\-----\/  PULSE                                   C
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                  UP Y
+                            !**********************************************************************C
+                            if (iddd == 29) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQUY1, D11)
+                                A11 = matmul(C11, WSQDY4)
+            
+                                ieee = 1
+                            endif 
+                            !**********************************************************************C
+                            !                  UP Z
+                            !**********************************************************************C
+                            if (iddd == 30) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQUZ1, D11)
+                                A11 = matmul(C11, WSQDZ4)
+            
+                                ieee = 2
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Y                                               C
+                            !**********************************************************************C
+                            if (iddd == 31) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+                 
+                                C11 = matmul(WSQDY1, D11)
+                                A11 = matmul(C11, WSQUY4)
+            
+                                ieee = 3     
+                            endif 
+                            !**********************************************************************C
+                            !                 DOWN Z                                               C
+                            !**********************************************************************C
+                            if (iddd == 32) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+                 
+                                C11 = matmul(WSQDZ1, D11)
+                                A11 = matmul(C11, WSQUZ4)
+            
+                                ieee = 4     
+                            endif 
+
+                            !**********************************************************************
+                            !     TT-1 OPERATORS
+                            !**********************************************************************
+                            if (iddd == 33)then
+                                A11 = matmul(SQUY1, SQUZ2)
+                                wangl1 = A11
+                                
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+            
+                                ieee = 1
+        
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 34) then     
+                                A11 = matmul(SQUZ1, SQDY2)
+                                wangl2 = A11
+                                                              
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+             
+                                ieee = 2    
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 35) then    
+                                A11 = matmul(SQDY1, SQDZ2)
+                                wangl3 = A11
+                               
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+             
+                                ieee = 3     
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 36) then     
+                                A11 = matmul(SQDZ1, SQUY2)
+                                wangl4 = A11                         
+        
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+             
+                                ieee = 4     
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 37) then
+                                A11 = matmul(SQUY1, SQDZ2)
+                                wangl5 = A11                                                      
+
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+            
+                                ieee = 5     
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 38) then
+             
+                                A11 = matmul(SQUZ1, SQUY2)
+                                wangl6 = A11                                                  
+        
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+             
+                                ieee = 6     
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 39) then     
+                                A11 = matmul(SQDY1, SQUZ2)
+                                wangl7 = A11                         
+                                   
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+             
+                                ieee = 7     
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 40) then
+                                M3 = move(M2, KU, ids)
+                                M2 = move(M3, KU, ids)
+
+                                A11 = matmul(SQDZ1, SQDY2)
+                                wangl8 = A11                                                    
+             
+                                ieee = 8     
+                            endif 
+
+                            !**********************************************************************
+                            !     TT-2 OPERATORS
+                            !**********************************************************************
+                            if (iddd == 41) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVUY1, WVUZ2)
+            
+                                ieee = 1
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 42) then
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVUZ1, WVDY2)
+            
+                                ieee = 2
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 43) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVDY1, WVDZ2)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 44) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVDZ1, WVUY2)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 45) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVUZ1, WVUY2)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 46) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVDY1, WVUZ2)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 47) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVDZ1, WVDY2)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 48) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+            
+                                M3 = move(M2, KU, idsW)
+                                M4 = move(M3, KU, idsW)
+                                M1 = move(M4, KU, idsW)
+                                M2 = move(M1, KU, idsW)
+            
+                                A11 = matmul(WVUY1, WVDZ2)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                   /\----/_/  UP PULSE-TT3                            C
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                  1
+                            !**********************************************************************C
+                            if (iddd == 49) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+                                !   WARNING WE CAN SPEED UP THE COMPUTATION  !
+                                ! Thanks dude, warning heeded
+                                C11 = matmul(WSQUY1, D11)
+                                A11 = matmul(C11, WSQUZ4)
+            
+            
+                                ieee = 1
+                            endif 
+                            !**********************************************************************C
+                            !                  2
+                            !**********************************************************************C
+                            if (iddd == 50) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQUZ1, D11)
+                                A11 = matmul(C11, WSQDY4)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************C
+                            !                   3                                             C
+                            !**********************************************************************C
+                            if (iddd == 51) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQDY1, D11)
+                                A11 = matmul(C11, WSQDZ4)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 4                                                    C
+                            !**********************************************************************C
+                            if (iddd == 52) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQDZ1, D11)
+                                A11 = matmul(C11, WSQUY4)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 5                                                    C
+                            !**********************************************************************C
+                            if (iddd == 53) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQUY1, D11)
+                                A11 = matmul(C11, WSQDZ4)     
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 6                                                    C
+                            !**********************************************************************C
+                            if (iddd == 54) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQUZ1, D11)
+                                A11 = matmul(C11, WSQUY4)     
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 7                                                    C
+                            !**********************************************************************C
+                            if (iddd == 55) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQDY1, D11)
+                                A11 = matmul(C11, WSQUZ4)     
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 8                                                    C
+                            !**********************************************************************C
+                            if (iddd == 56) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                    M3 = move(M2, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                else
+                                    M3 = move(M2, KU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                endif 
+            
+                                C11 = matmul(WSQDZ1, D11)
+                                A11 = matmul(C11, WSQDY4)     
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************
+                            !                 T-T4 OPERATORS
+                            !**********************************************************************
+                            if (iddd == 57) then
+            
+                                ZIG1W1 = matmul(WSQUY1, WSQUZ2)
+                                ZIG2W1 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(ZIG1W1, ZIG2W1)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 58) then
+            
+                                ZIG1W2 = matmul(WSQUZ1, WSQDY2)
+                                ZIG2W2 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(ZIG1W2, ZIG2W2)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 59) then
+            
+                                ZIG1W3 = matmul(WSQDY1, WSQDZ2)
+                                ZIG2W3 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(ZIG1W3, ZIG2W3)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 60) then
+            
+                                ZIG1W4 = matmul(WSQDZ1, WSQUY2)
+                                ZIG2W4 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(ZIG1W4, ZIG2W4)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 61) then
+            
+                                TIG1W4 = matmul(WSQDZ1, WSQDY2)
+                                TIG2W4 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(TIG1W4, TIG2W4)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 62) then
+            
+                                TIG1W1 = matmul(WSQUY1, WSQDZ2)
+                                TIG2W1 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(TIG1W1, TIG2W1)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 63) then
+            
+                                TIG1W2 = matmul(WSQUZ1, WSQUY2)
+                                TIG2W2 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(TIG1W2, TIG2W2)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************
+                            if (iddd == 64) then
+            
+                                TIG1W3 = matmul(WSQDY1, WSQUZ2)
+                                TIG2W3 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(TIG1W3, TIG2W3)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************
+                            !                 T-T5 OPERATORS
+                            !**********************************************************************
+                            if (iddd == 65) then
+            
+                                DUY1 = matmul(WSQUY1, WSQUY2)
+                                DUY2 = matmul(WSQUY3, WSQUY4)
+                                A11 = matmul(DUY1, DUY2)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 66) then
+            
+                                DUZ1 = matmul(WSQUZ1, WSQUZ2)
+                                DUZ2 = matmul(WSQUZ3, WSQUZ4)
+                                A11 = matmul(DUZ1, DUZ2)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 67) then
+            
+                                DDY1 = matmul(WSQDY1, WSQDY2)
+                                DDY2 = matmul(WSQDY3, WSQDY4)
+                                A11 = matmul(DDY1, DDY2)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 68) then
+            
+                                DDZ1 = matmul(WSQDZ1, WSQDZ2)
+                                DDZ2 = matmul(WSQDZ3, WSQDZ4)
+                                A11 = matmul(DDZ1, DDZ2)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 TT-6 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 69) then
+            
+                                A11 = matmul(DUY1, DDY2)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 70) then
+            
+                                A11 = matmul(DUZ1, DDZ2)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 71) then
+            
+                                A11 = matmul(DDY1, DUY2)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 72) then
+            
+                                A11 = matmul(DDZ1, DUZ2)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 T-T 7 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 73) then
+            
+                                A11 = matmul(DUY1, DUZ2)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 74) then
+            
+                                A11 = matmul(DUZ1, DDY2)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 75) then
+            
+                                A11 = matmul(DDY1, DDZ2)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 76) then
+            
+                                A11 = matmul(DDZ1, DUY2)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 77) then
+            
+                                A11 = matmul(DDZ1, DDY2)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 78) then
+            
+                                A11 = matmul(DUY1, DDZ2)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 79) then
+            
+                                A11 = matmul(DUZ1, DUY2)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 80) then
+            
+                                A11 = matmul(DDY1, DUZ2)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 T-T 8 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 81) then
+            
+                                B11 = matmul(WSQUY1, WSQUZ2)
+                                C11 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 82) then
+            
+                                B11 = matmul(WSQUZ1, WSQDY2)
+                                C11 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 83) then
+            
+                                B11 = matmul(WSQDY1, WSQDZ2)
+                                C11 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 84) then
+            
+                                B11 = matmul(WSQDZ1, WSQUY2)
+                                C11 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 85) then
+            
+                                B11 = matmul(WSQDY1, WSQUZ2)
+                                C11 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 86) then
+            
+                                B11 = matmul(WSQUZ1, WSQUY2)
+                                C11 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 87) then
+            
+                                B11 = matmul(WSQUY1, WSQDZ2)
+                                C11 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 88) then
+            
+                                B11 = matmul(WSQDZ1, WSQDY2)
+                                C11 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 T-T 9 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 89) then
+            
+                                B11 = matmul(WSQUY1, WSQUZ2)
+                                C11 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 90) then
+            
+                                B11 = matmul(WSQUZ1, WSQDY2)
+                                C11 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 91) then
+            
+                                B11 = matmul(WSQDY1, WSQDZ2)
+                                C11 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 92) then
+            
+                                B11 = matmul(WSQDZ1, WSQUY2)
+                                C11 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 93) then
+            
+                                B11 = matmul(WSQUY1, WSQDZ2)
+                                C11 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 94) then
+            
+                                B11 = matmul(WSQUZ1, WSQUY2)
+                                C11 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 95) then
+            
+                                B11 = matmul(WSQDY1, WSQUZ2)
+                                C11 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 96) then
+            
+                                B11 = matmul(WSQDZ1, WSQDY2)
+                                C11 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 T-T 10 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 97) then
+            
+                                B11 = matmul(WSQUY1, WSQUZ2)
+                                C11 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 98) then
+            
+                                B11 = matmul(WSQUZ1, WSQDY2)
+                                C11 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 99) then
+            
+                                B11 = matmul(WSQDY1, WSQDZ2)
+                                C11 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 100) then
+            
+                                B11 = matmul(WSQDZ1, WSQUY2)
+                                C11 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 101) then
+            
+                                B11 = matmul(WSQDY1, WSQUZ2)
+                                C11 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 102) then
+            
+                                B11 = matmul(WSQUZ1, WSQUY2)
+                                C11 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 103) then
+            
+                                B11 = matmul(WSQUY1, WSQDZ2)
+                                C11 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 104) then
+            
+                                B11 = matmul(WSQDZ1, WSQDY2)
+                                C11 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 T-T 11 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 105) then
+            
+                                B11 = matmul(WSQUY1, WSQUZ2)
+                                C11 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 106) then
+            
+                                B11 = matmul(WSQUZ1, WSQDY2)
+                                C11 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 107) then
+            
+                                B11 = matmul(WSQDY1, WSQDZ2)
+                                C11 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 108) then
+            
+                                B11 = matmul(WSQDZ1, WSQUY2)
+                                C11 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 109) then
+            
+                                B11 = matmul(WSQDY1, WSQUZ2)
+                                C11 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 110) then
+            
+                                B11 = matmul(WSQUZ1, WSQUY2)
+                                C11 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 111) then
+            
+                                B11 = matmul(WSQUY1, WSQDZ2)
+                                C11 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 112) then
+            
+                                B11 = matmul(WSQDZ1, WSQDY2)
+                                C11 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 T-T 12 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 113) then
+            
+                                B11 = matmul(WSQUY1, WSQUZ2)
+                                C11 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 114) then
+            
+                                B11 = matmul(WSQUZ1, WSQDY2)
+                                C11 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 115) then
+            
+                                B11 = matmul(WSQDY1, WSQDZ2)
+                                C11 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 116) then
+            
+                                B11 = matmul(WSQDZ1, WSQUY2)
+                                C11 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 117) then
+            
+                                B11 = matmul(WSQUZ1, WSQDY2)
+                                C11 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 118) then
+            
+                                B11 = matmul(WSQDY1, WSQDZ2)
+                                C11 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 119) then
+            
+                                B11 = matmul(WSQDZ1, WSQUY2)
+                                C11 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 120) then
+            
+                                B11 = matmul(WSQUY1, WSQUZ2)
+                                C11 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 121) then
+            
+                                B11 = matmul(WSQDY1, WSQUZ2)
+                                C11 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 9
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 122) then
+            
+                                B11 = matmul(WSQUZ1, WSQUY2)
+                                C11 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 10
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 123) then
+            
+                                B11 = matmul(WSQUY1, WSQDZ2)
+                                C11 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 11
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 124) then
+            
+                                B11 = matmul(WSQDZ1, WSQDY2)
+                                C11 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 12
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 125) then
+            
+                                B11 = matmul(WSQUZ1, WSQUY2)
+                                C11 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 13
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 126) then
+            
+                                B11 = matmul(WSQUY1, WSQDZ2)
+                                C11 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 14
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 127) then
+            
+                                B11 = matmul(WSQDZ1, WSQDY2)
+                                C11 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 15
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 128) then
+            
+                                B11 = matmul(WSQDY1, WSQUZ2)
+                                C11 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 16
+            
+                            endif 
+                            !**********************************************************************C
+                            !                 T-T 13 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 129) then
+            
+                                B11 = matmul(WSQUY1, WSQUZ2)
+                                C11 = matmul(WSQDY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 1
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 130) then
+            
+                                B11 = matmul(WSQUZ1, WSQDY2)
+                                C11 = matmul(WSQDZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 2
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 131) then
+            
+                                B11 = matmul(WSQDY1, WSQDZ2)
+                                C11 = matmul(WSQUY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 3
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 132) then
+            
+                                B11 = matmul(WSQDZ1, WSQUY2)
+                                C11 = matmul(WSQUZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 133) then
+            
+                                B11 = matmul(WSQUZ1, WSQUY2)
+                                C11 = matmul(WSQDZ3, WSQDY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 5
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 134) then
+            
+                                B11 = matmul(WSQDY1, WSQUZ2)
+                                C11 = matmul(WSQUY3, WSQDZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 6
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 135) then
+            
+                                B11 = matmul(WSQDZ1, WSQDY2)
+                                C11 = matmul(WSQUZ3, WSQUY4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 7
+            
+                            endif 
+                            !**********************************************************************c
+                            if (iddd == 136) then
+            
+                                B11 = matmul(WSQUY1, WSQDZ2)
+                                C11 = matmul(WSQDY3, WSQUZ4)
+                                A11 = matmul(B11, C11)
+            
+                                ieee = 8
+            
+                            endif 
+                            !**********************************************************************C
+                            !**********************************************************************C
+                            !                 T-T 14 OPERATORS
+                            !**********************************************************************C
+                            if (iddd == 137) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQUY1, WSQUZ2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 1
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 138) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQUZ1, WSQDY2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 2
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 139) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQDY1, WSQDZ2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 3
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 140) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQDZ1, WSQUY2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 4
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 141) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQUY1, WSQDZ2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 5
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 142) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQUZ1, WSQUY2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 6
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 143) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQDY1, WSQUZ2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 7
+            
+                            endif 
+                            !**********************************************************************C
+                            if (iddd == 144) then
+            
+                                idsW=ids-1
+            
+                                if (idsW == 0) then
+                                    idsW=1
+                                endif 
+                                A11 = matmul(WSQDZ1, WSQDY2)
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+                                M3 = move(M2, KU, idsW)
+                                M2 = M3
+            
+                                    ieee = 8
+            
+                            endif 
 !**********************************************************************C
 !                         NORMAL POLYAKOV LOOP                         C
 !**********************************************************************C
@@ -2920,214 +2553,166 @@ module here_be_dragons
 !***                      UP Y OPERATOR
 !**********************************************************************C
                         if  (iddd == 146) then
-                        do 401 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M2,JU)
-401                       continue
-                        M3=IUP(M2,JU)
-                        do 402 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,IU)
-402                       continue
-                        CALL VMX(1,B11,C11,D11,1)
-                        M3=IUP(M2,IU)
-                        do 403 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M3,JU)
-403                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        CALL VMX(1,D11,B11,C11,1)
-                        do 404 IC=1,NCOL2
-                            D11(IC)=UC11(IC,M2,IU)
-404                       continue
-                        CALL HERM(1,D11,DUM11,1)
-                        CALL VMX(1,C11,D11,PLQ1,1)
-!     
-                        CALL VMX(1,PLQ1,PL,PQ1,1)
-!
-                        do 505 IC=1,NCOL2
-                            A11(IC)=PQ1(IC)
-505                       continue
-!
-                        IEEE=1
-!     
+B11 = gauge_field(:, :, M2, JU)
+                        M3 = move(M2, JU, ids)
+C11 = gauge_field(:, :, M3, IU)
+                        D11 = matmul(B11, C11)
+                        M3 = move(M2, IU, ids)
+B11 = gauge_field(:, :, M3, JU)
+                        B11 = herm(B11)
+                        C11 = matmul(D11, B11)
+D11 = gauge_field(:, :, M2, IU)
+                        D11 = herm(D11)
+                        PLQ1 = matmul(C11, D11)
+
+                        PQ1 = matmul(PLQ1, PL)
+
+A11 = PQ1
+
+                        ieee = 1
+
                         endif 
 !**********************************************************************C
 !***                      UP Z OPERATOR
 !**********************************************************************C
                         if (iddd == 147) then
-!     
-                        do 405 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M2,IU)
-405                       continue
-                        M3=IUP(M2,IU)
-                        M1=IDN(M3,JU)
-                        do 406 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M1,JU)
-406                       continue
-                        CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,B11,C11,D11,1)
-                        M3=IDN(M2,JU)
-                        do 407 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,IU)
-407                       continue
-                        CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,D11,C11,B11,1)
-                        do 408 IC=1, NCOL2
-                            D11(IC)=UC11(IC,M3,JU)
-408                       continue
-                        CALL VMX(1,B11,D11,PLQ2,1)
-!     
-                        CALL VMX(1,PLQ2,PL,PQ2,1)
-!     
-                        do 509 IC=1,NCOL2
-                            A11(IC)=PQ2(IC)
-509                       continue
-!
-                        IEEE=2
-!     
+
+B11 = gauge_field(:, :, M2, IU)
+                        M3 = move(M2, IU, ids)
+                        M1 = move(M3, -JU, ids)
+C11 = gauge_field(:, :, M1, JU)
+                        C11 = herm(C11)
+                        D11 = matmul(B11, C11)
+                        M3 = move(M2, -JU, ids)
+C11 = gauge_field(:, :, M3, IU)
+                        C11 = herm(C11)
+                        B11 = matmul(D11, C11)
+D11 = gauge_field(:, :, M3, JU)
+                        PLQ2 = matmul(B11, D11)
+
+                        PQ2 = matmul(PLQ2, PL)
+
+A11 = PQ2
+
+                        ieee = 2
+
                         endif 
 !**********************************************************************C
-!***                      doWN Y OPERATOR
+!***                      DOWN Y OPERATOR
 !**********************************************************************C
                         if (iddd == 148) then
-!     
-                        M3=IDN(M2,JU)
-                        do 409 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,JU)
-409                       continue
-                        CALL HERM(1,C11,DUM11,1)
-                        M1=IDN(M3,IU)
-                        do 410 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M1,IU)
-410                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        CALL VMX(1,C11,B11,D11,1)
-                        do 411 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M1,JU)
-411                       continue
-                        CALL VMX(1,D11,C11,B11,1)
-                        M3=IDN(M2,IU)
-                        do 412 IC=1, NCOL2
-                            D11(IC)=UC11(IC,M3,IU)
-412                       continue
-                        CALL VMX(1,B11,D11,PLQ3,1)
-!     
-                        CALL VMX(1,PLQ3,PL,PQ3,1)
-!
-                        do 513 IC=1,NCOL2
-                            A11(IC)=PQ3(IC)
-513                       continue
-!     
-                        IEEE=3
-!     
+
+                        M3 = move(M2, -JU, ids)
+C11 = gauge_field(:, :, M3, JU)
+                        C11 = herm(C11)
+                        M1 = move(M3, -IU, ids)
+B11 = gauge_field(:, :, M1, IU)
+                        B11 = herm(B11)
+                        D11 = matmul(C11, B11)
+C11 = gauge_field(:, :, M1, JU)
+                        B11 = matmul(D11, C11)
+                        M3 = move(M2, -IU, ids)
+D11 = gauge_field(:, :, M3, IU)
+                        PLQ3 = matmul(B11, D11)
+
+                        PQ3 = matmul(PLQ3, PL)
+
+A11 = PQ3
+
+                        ieee = 3
+
                         endif 
 !**********************************************************************C
-!***                      doWN Z OPERATOR
+!***                      DOWN Z OPERATOR
 !**********************************************************************C
                         if (iddd == 149) then
-!     
-                        M3=IDN(M2,IU)
-                        do 413 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M3,IU)
-413                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        do 414 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,JU)
-414                       continue
-                        CALL VMX(1,B11,C11,D11,1)
-                        M1=IUP(M3,JU)
-                        do 415 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M1,IU)
-415                       continue
-                        CALL VMX(1,D11,B11,C11,1)
-                        do 416 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M2,JU)
-416                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        CALL VMX(1,C11,B11,PLQ4,1)
-!     
-                        CALL VMX(1,PLQ4,PL,PQ4,1)
-!
-                        do 517 IC=1,NCOL2
-                            A11(IC)=PQ4(IC)
-517                       continue
-!
-                        IEEE=4
-!     
+
+                        M3 = move(M2, -IU, ids)
+B11 = gauge_field(:, :, M3, IU)
+                        B11 = herm(B11)
+C11 = gauge_field(:, :, M3, JU)
+                        D11 = matmul(B11, C11)
+                        M1 = move(M3, JU, ids)
+B11 = gauge_field(:, :, M1, IU)
+                        C11 = matmul(D11, B11)
+B11 = gauge_field(:, :, M2, JU)
+                        B11 = herm(B11)
+                        PLQ4 = matmul(C11, B11)
+
+                        PQ4 = matmul(PLQ4, PL)
+
+A11 = PQ4
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
 !***                       UP Y OPERATOR +
 !******************************************************************C
                         if (iddd == 150)then
-!
+
                         do 801 IC=1, NCOL2
                             PLQ5(IC)=PLQ2(IC)
 801                       continue
-!
+
                         CALL HERM(1,PLQ5,DUM11,1)
-                        CALL VMX(1,PLQ5,PL,PQ5,1)
-!
-                        do 518 IC=1,NCOL2
-                            A11(IC)=PQ5(IC)
-518                       continue
-!     
-                        IEEE=5
-!     
+                        PQ5 = matmul(PLQ5, PL)
+
+A11 = PQ5
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
 !***                       UP Z OPERATOR +
 !******************************************************************C
                         if (iddd == 151)then
-!     
+
                         do 802 IC=1, NCOL2
                             PLQ6(IC)=PLQ1(IC)
 802                       continue
-!
+
                         CALL HERM(1,PLQ6,DUM11,1)
-                        CALL VMX(1,PLQ6,PL,PQ6,1)
-!
-                        do 519 IC=1,NCOL2
-                            A11(IC)=PQ6(IC)
-519                       continue
-!
-                        IEEE=6
-!     
+                        PQ6 = matmul(PLQ6, PL)
+
+A11 = PQ6
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
-!***                       doWN Y OPERATOR +
+!***                       DOWN Y OPERATOR +
 !******************************************************************C
                         if (iddd == 152)then
-!     
+
                         do 803 IC=1, NCOL2
                             PLQ7(IC)=PLQ4(IC)
 803                       continue
-!
+
                         CALL HERM(1,PLQ7,DUM11,1)
-                        CALL VMX(1,PLQ7,PL,PQ7,1)
-!     
-                        do 520 IC=1,NCOL2
-                            A11(IC)=PQ7(IC)
-520                       continue
-!
-                        IEEE=7
-!     
+                        PQ7 = matmul(PLQ7, PL)
+
+A11 = PQ7
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
-!***                       doWN Z OPERATOR +
+!***                       DOWN Z OPERATOR +
 !******************************************************************C
                         if (iddd == 153)then
-!     
+
                         do 804 IC=1, NCOL2
                             PLQ8(IC)=PLQ3(IC)
 804                       continue
-!
+
                         CALL HERM(1,PLQ8,DUM11,1)
-                        CALL VMX(1,PLQ8,PL,PQ8,1)
-!
-                        do 521 IC=1,NCOL2
-                            A11(IC)=PQ8(IC)
-521                       continue
-!
-                        IEEE=8
-!
+                        PQ8 = matmul(PLQ8, PL)
+
+A11 = PQ8
+
+                        ieee = 8
+
                         endif 
 !**********************************************************************C
 !***                      PLAQUETTE OPERATOR 2                      ***C
@@ -3135,2007 +2720,1967 @@ module here_be_dragons
 !***                      UP Y OPERATOR
 !**********************************************************************C
                         if  (iddd == 154) then
-                        M5=IUP(M2,KU)
-                        do 601 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M5,JU)
-601                       continue
-                        M3=IUP(M5,JU)
-                        do 602 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,IU)
-602                       continue
-                        CALL VMX(1,B11,C11,D11,1)
-                        M3=IUP(M5,IU)
-                        do 603 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M3,JU)
-603                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        CALL VMX(1,D11,B11,C11,1)
-                        do 604 IC=1,NCOL2
-                            D11(IC)=UC11(IC,M5,IU)
-604                       continue
-                        CALL HERM(1,D11,DUM11,1)
-                        CALL VMX(1,C11,D11,DPLQ1,1)
-!     
-                        CALL VMX(1,PQ1,DPLQ1,A11,1)
-!
-                        IEEE=1
-!     
+                        M5 = move(M2, KU, ids)
+B11 = gauge_field(:, :, M5, JU)
+                        M3 = move(M5, JU, ids)
+C11 = gauge_field(:, :, M3, IU)
+                        D11 = matmul(B11, C11)
+                        M3 = move(M5, IU, ids)
+B11 = gauge_field(:, :, M3, JU)
+                        B11 = herm(B11)
+                        C11 = matmul(D11, B11)
+D11 = gauge_field(:, :, M5, IU)
+                        D11 = herm(D11)
+                        DPLQ1 = matmul(C11, D11)
+
+                        A11 = matmul(PQ1, DPLQ1)
+
+                        ieee = 1
+
                         endif 
 !**********************************************************************C
 !***                      UP Z OPERATOR
 !**********************************************************************C
                         if (iddd == 155) then
-!     
-                        M5=IUP(M2,KU)
-                        do 605 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M5,IU)
-605                       continue
-                        M3=IUP(M5,IU)
-                        M1=IDN(M3,JU)
-                        do 606 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M1,JU)
-606                       continue
-                        CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,B11,C11,D11,1)
-                        M3=IDN(M5,JU)
-                        do 607 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,IU)
-607                       continue
-                        CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,D11,C11,B11,1)
-                        do 608 IC=1, NCOL2
-                            D11(IC)=UC11(IC,M3,JU)
-608                       continue
-                        CALL VMX(1,B11,D11,DPLQ2,1)
-!     
-                        CALL VMX(1,PQ2,DPLQ2,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        M5 = move(M2, KU, ids)
+B11 = gauge_field(:, :, M5, IU)
+                        M3 = move(M5, IU, ids)
+                        M1 = move(M3, -JU, ids)
+C11 = gauge_field(:, :, M1, JU)
+                        C11 = herm(C11)
+                        D11 = matmul(B11, C11)
+                        M3 = move(M5, -JU, ids)
+C11 = gauge_field(:, :, M3, IU)
+                        C11 = herm(C11)
+                        B11 = matmul(D11, C11)
+D11 = gauge_field(:, :, M3, JU)
+                        DPLQ2 = matmul(B11, D11)
+
+                        A11 = matmul(PQ2, DPLQ2)
+
+                        ieee = 2
+
                         endif 
 !**********************************************************************C
-!***                      doWN Y OPERATOR
+!***                      DOWN Y OPERATOR
 !**********************************************************************C
                         if (iddd == 156) then
-!     
-                        M5=IUP(M2,KU)
-                        M3=IDN(M5,JU)
-                        do 609 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,JU)
-609                       continue
-                        CALL HERM(1,C11,DUM11,1)
-                        M1=IDN(M3,IU)
-                        do 610 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M1,IU)
-610                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        CALL VMX(1,C11,B11,D11,1)
-                        do 611 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M1,JU)
-611                       continue
-                        CALL VMX(1,D11,C11,B11,1)
-                        M3=IDN(M5,IU)
-                        do 612 IC=1, NCOL2
-                            D11(IC)=UC11(IC,M3,IU)
-612                       continue
-                        CALL VMX(1,B11,D11,DPLQ3,1)
-!     
-                        CALL VMX(1,PQ3,DPLQ3,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        M5 = move(M2, KU, ids)
+                        M3 = move(M5, -JU, ids)
+C11 = gauge_field(:, :, M3, JU)
+                        C11 = herm(C11)
+                        M1 = move(M3, -IU, ids)
+B11 = gauge_field(:, :, M1, IU)
+                        B11 = herm(B11)
+                        D11 = matmul(C11, B11)
+C11 = gauge_field(:, :, M1, JU)
+                        B11 = matmul(D11, C11)
+                        M3 = move(M5, -IU, ids)
+D11 = gauge_field(:, :, M3, IU)
+                        DPLQ3 = matmul(B11, D11)
+
+                        A11 = matmul(PQ3, DPLQ3)
+
+                        ieee = 3
+
                         endif 
 !**********************************************************************C
-!***                      doWN Z OPERATOR
+!***                      DOWN Z OPERATOR
 !**********************************************************************C
                         if (iddd == 157) then
-!     
-                        M5=IUP(M2,KU)
-                        M3=IDN(M5,IU)
-                        do 613 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M3,IU)
-613                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        do 614 IC=1, NCOL2
-                            C11(IC)=UC11(IC,M3,JU)
-614                       continue
-                        CALL VMX(1,B11,C11,D11,1)
-                        M1=IUP(M3,JU)
-                        do 615 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M1,IU)
-615                       continue
-                        CALL VMX(1,D11,B11,C11,1)
-                        do 616 IC=1, NCOL2
-                            B11(IC)=UC11(IC,M5,JU)
-616                       continue
-                        CALL HERM(1,B11,DUM11,1)
-                        CALL VMX(1,C11,B11,DPLQ4,1)
-!     
-                        CALL VMX(1,PQ4,DPLQ4,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        M5 = move(M2, KU, ids)
+                        M3 = move(M5, -IU, ids)
+B11 = gauge_field(:, :, M3, IU)
+                        B11 = herm(B11)
+C11 = gauge_field(:, :, M3, JU)
+                        D11 = matmul(B11, C11)
+                        M1 = move(M3, JU, ids)
+B11 = gauge_field(:, :, M1, IU)
+                        C11 = matmul(D11, B11)
+B11 = gauge_field(:, :, M5, JU)
+                        B11 = herm(B11)
+                        DPLQ4 = matmul(C11, B11)
+
+                        A11 = matmul(PQ4, DPLQ4)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
 !***                       UP Y OPERATOR +
 !******************************************************************C
                         if (iddd == 158)then
-!
+
                         do 701 IC=1, NCOL2
                             DPLQ5(IC)=DPLQ2(IC)
 701                       continue
-!     
+
                         CALL HERM(1,DPLQ5,DUM11,1)
-                        CALL VMX(1,PQ5,DPLQ5,A11,1)
-!     
-                        IEEE=5
-!     
+                        A11 = matmul(PQ5, DPLQ5)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
 !***                       UP Z OPERATOR +
 !******************************************************************C
                         if (iddd == 159)then
-!     
+
                         do 702 IC=1, NCOL2
                             DPLQ6(IC)=DPLQ1(IC)
 702                       continue
-!
+
                         CALL HERM(1,DPLQ6,DUM11,1)
-                        CALL VMX(1,PQ6,DPLQ6,A11,1)
-!     
-                        IEEE=6
-!     
+                        A11 = matmul(PQ6, DPLQ6)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
-!***  doWN Y OPERATOR +
+!***  DOWN Y OPERATOR +
 !******************************************************************C
                         if (iddd == 160)then
-!     
+
                         do 703 IC=1, NCOL2
                             DPLQ7(IC)=DPLQ4(IC)
 703                       continue
-!
+
                         CALL HERM(1,DPLQ7,DUM11,1)
-                        CALL VMX(1,PQ7,DPLQ7,A11,1)
-!     
-                        IEEE=7
-!     
+                        A11 = matmul(PQ7, DPLQ7)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
-!***                       doWN Z OPERATOR +
+!***                       DOWN Z OPERATOR +
 !******************************************************************C
                         if (iddd == 161)then
-!     
+
                         do 704 IC=1, NCOL2
                             DPLQ8(IC)=DPLQ3(IC)
 704                       continue
-!
+
                         CALL HERM(1,DPLQ8,DUM11,1)
-                        CALL VMX(1,PQ8,DPLQ8,A11,1)
-!
-                        IEEE=8
-!
+                        A11 = matmul(PQ8, DPLQ8)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
 !***             PLAQUETTE OPERATPORS 3
 !******************************************************************C
                         if (iddd == 162)then
-!
+
 !                           do 705 IC=1, NCOL2
 !                              B11(IC)=DPLQ1(IC)
 ! 705                       continue
-!
-!                           CALL HERM(1,B11,DUM11,1)
-!                           CALL VMX(1,PQ1,B11,A11,1)
-                            CALL VMX(1,PQ1,DPLQ6,A11,1) ! New altered !                           
-!     
-                        IEEE=1
-!
+
+!                           B11 = herm(B11)
+!                           A11 = matmul(PQ1, B11)
+                            A11 = matmul(PQ1, DPLQ6) ! New altered !                           
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 163)then
-!
+
 !                           do 706 IC=1, NCOL2
 !                              B11(IC)=DPLQ2(IC)
 ! 706                       continue
 !C
-!                          CALL HERM(1,B11,DUM11,1)
-!                           CALL VMX(1,PQ2,B11,A11,1)                           
-                        CALL VMX(1,PQ2,DPLQ5,A11,1) ! New altered !                           
-!     
-                        IEEE=2
-!
+!                          B11 = herm(B11)
+!                           A11 = matmul(PQ2, B11)                           
+                        A11 = matmul(PQ2, DPLQ5) ! New altered !                           
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 164)then
-!
+
 !                           do 707 IC=1, NCOL2
 !                              B11(IC)=DPLQ3(IC)
 ! 707                       continue
 !C
-!                           CALL HERM(1,B11,DUM11,1)
-!                           CALL VMX(1,PQ3,B11,A11,1)
+!                           B11 = herm(B11)
+!                           A11 = matmul(PQ3, B11)
                         
-                            CALL VMX(1,PQ3,DPLQ8,A11,1) ! New altered !
-!     
-                        IEEE=3
-!
+                            A11 = matmul(PQ3, DPLQ8) ! New altered !
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 165)then
-!
+
 !                           do 708 IC=1, NCOL2
 !                              B11(IC)=DPLQ4(IC)
 ! 708                       continue
 !C
-!                          CALL HERM(1,B11,DUM11,1)
-!                           CALL VMX(1,PQ4,B11,A11,1)                           
-                        CALL VMX(1,PQ4,DPLQ7,A11,1) ! New altered ! 
-!     
-                        IEEE=4
-!
+!                          B11 = herm(B11)
+!                           A11 = matmul(PQ4, B11)                           
+                        A11 = matmul(PQ4, DPLQ7) ! New altered ! 
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 166)then
-!
-                        CALL VMX(1,PQ5,DPLQ2,A11,1)
-!     
-                        IEEE=5
-!
+
+                        A11 = matmul(PQ5, DPLQ2)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 167)then
-!
-                        CALL VMX(1,PQ6,DPLQ1,A11,1)
-!     
-                        IEEE=6
-!
+
+                        A11 = matmul(PQ6, DPLQ1)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 168)then
-!
-                        CALL VMX(1,PQ7,DPLQ4,A11,1)
-!     
-                        IEEE=7
-!
+
+                        A11 = matmul(PQ7, DPLQ4)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 169)then
-!
-                        CALL VMX(1,PQ8,DPLQ3,A11,1)
-!     
-                        IEEE=8
-!
+
+                        A11 = matmul(PQ8, DPLQ3)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 4 
 !******************************************************************C
                         if (iddd == 170)then
-!
+
 !                           do 709 IC=1, NCOL2
 !                              C11(IC)=DPLQ1(IC)
 ! 709                       continue
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ1,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ6,A11,1)
-!
-                        IEEE=1
-!
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ1, SQUZ1)
+                        A11 = matmul(B11, DPLQ6)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 171)then
-!
+
 !                           do 710 IC=1, NCOL2
 !                              C11(IC)=DPLQ2(IC)
 ! 710                       continue
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ2,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ5,A11,1)
-!
-                        IEEE=2
-!
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ2, SQDY1)
+                        A11 = matmul(B11, DPLQ5)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 172)then
-!
+
 !                           do 711 IC=1, NCOL2
 !                              C11(IC)=DPLQ3(IC)
 ! 711                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ3,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ8,A11,1)
-!
-                        IEEE=3
-!
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ3, SQDZ1)
+                        A11 = matmul(B11, DPLQ8)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 173)then
-!
+
 !                           do 712 IC=1, NCOL2
 !                              C11(IC)=DPLQ4(IC)
 ! 712                       continue
-!
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ4,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ7,A11,1)
-!
-                        IEEE=4
-!
+
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ4, SQUY1)
+                        A11 = matmul(B11, DPLQ7)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 174)then
-!
+
 !                           do 713 IC=1, NCOL2
 !                              C11(IC)=PLQ2(IC)
 ! 713                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ5,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ2,A11,1)
-!
-                        IEEE=5
-!
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ5, SQUZ1)
+                        A11 = matmul(B11, DPLQ2)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 175)then
-!
+
 !                           do 714 IC=1, NCOL2
 !                              C11(IC)=PLQ1(IC)
 ! 714                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ6,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ1,A11,1)
-!
-                        IEEE=6
-!
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ6, SQUY1)
+                        A11 = matmul(B11, DPLQ1)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 176)then
-!
+
 !                           do 715 IC=1, NCOL2
 !                              C11(IC)=PLQ4(IC)
 ! 715                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ7,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ4,A11,1)
-!
-                        IEEE=7
-!
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ7, SQDZ1)
+                        A11 = matmul(B11, DPLQ4)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 177)then
-!
+
 !                           do 716 IC=1, NCOL2
 !                              C11(IC)=PLQ3(IC)
 ! 716                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PLQ8,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ3,A11,1)
-!
-                        IEEE=8
-!
+!                           C11 = herm(C11)
+                        B11 = matmul(PLQ8, SQDY1)
+                        A11 = matmul(B11, DPLQ3)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 5
 !******************************************************************C
                         if (iddd == 178)then
-!
+
 !                           do 717 IC=1, NCOL2
 !                              C11(IC)=DPLQ3(IC)
 ! 717                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ1,DPLQ8,A11,1)
-!
-                        IEEE=1
-!
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ1, DPLQ8)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 179)then
-!
+
 !                           do 718 IC=1, NCOL2
 !                              C11(IC)=DPLQ4(IC)
 ! 718                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ2,DPLQ7,A11,1)
-!
-                        IEEE=2
-!
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ2, DPLQ7)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 180)then
-!
+
 !                           do 719 IC=1, NCOL2
 !                              C11(IC)=DPLQ1(IC)
 ! 719                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ3,DPLQ6,A11,1)
-!
-                        IEEE=3
-!
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ3, DPLQ6)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 181)then
-!
+
 !                           do 720 IC=1, NCOL2
 !                              C11(IC)=DPLQ2(IC)
 ! 720                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ4,DPLQ5,A11,1)
-!
-                        IEEE=4
-!
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ4, DPLQ5)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 182)then
-!
-                        CALL VMX(1,PQ5,DPLQ4,A11,1)
-!
-                        IEEE=5
-!
+
+                        A11 = matmul(PQ5, DPLQ4)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 183)then
-!
-                        CALL VMX(1,PQ6,DPLQ3,A11,1)
-!
-                        IEEE=6
-!
+
+                        A11 = matmul(PQ6, DPLQ3)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 184)then
-!
-                        CALL VMX(1,PQ7,DPLQ2,A11,1)
-!
-                        IEEE=7
-!
+
+                        A11 = matmul(PQ7, DPLQ2)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 185)then
-!
-                        CALL VMX(1,PQ8,DPLQ1,A11,1)
-!
-                        IEEE=8
-!
+
+                        A11 = matmul(PQ8, DPLQ1)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 6
 !******************************************************************C
                         if (iddd == 186)then
-!
-                        CALL VMX(1,PQ1,DPLQ3,A11,1)
-!     
-                        IEEE=1
-!
+
+                        A11 = matmul(PQ1, DPLQ3)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 187)then
-!
-                        CALL VMX(1,PQ2,DPLQ4,A11,1)
-!     
-                        IEEE=2
-!
+
+                        A11 = matmul(PQ2, DPLQ4)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 188)then
-!
-                        CALL VMX(1,PQ3,DPLQ1,A11,1)
-!     
-                        IEEE=3
-!
+
+                        A11 = matmul(PQ3, DPLQ1)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 189)then
-!
-                        CALL VMX(1,PQ4,DPLQ2,A11,1)
-!     
-                        IEEE=4
-!
+
+                        A11 = matmul(PQ4, DPLQ2)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 190)then
-!
+
 !                           do 721 IC=1, NCOL2
 !                              C11(IC)=DPLQ4(IC)
 ! 721                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ5,DPLQ7,A11,1)
-!     
-                        IEEE=5
-!
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ5, DPLQ7)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 191)then
-!
+
 !                           do 722 IC=1, NCOL2
 !                              C11(IC)=DPLQ3(IC)
 ! 722                       continue
-!
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ6,DPLQ8,A11,1)
-!     
-                        IEEE=6
-!
+
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ6, DPLQ8)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 192)then
-!
+
 !                           do 723 IC=1, NCOL2
 !                              C11(IC)=DPLQ2(IC)
 ! 723                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ7,DPLQ5,A11,1)
-!     
-                        IEEE=7
-!
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ7, DPLQ5)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 193)then
-!
+
 !                           do 724 IC=1, NCOL2
 !                              C11(IC)=DPLQ1(IC)
 ! 724                       continue
 !C
-!                           CALL HERM(1,C11,DUM11,1)
-                        CALL VMX(1,PQ8,DPLQ6,A11,1)
-!     
-                        IEEE=8
-!
+!                           C11 = herm(C11)
+                        A11 = matmul(PQ8, DPLQ6)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 7
 !******************************************************************C
                         if (iddd == 194)then
-!
-                        CALL VMX(1,SQUY1,DPLQ1,B11,1)
-                        CALL VMX(1,B11,SQDZ2,A11,1)
-!     
-                        IEEE=1
-!
+
+                        B11 = matmul(SQUY1, DPLQ1)
+                        A11 = matmul(B11, SQDZ2)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 195)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ2,B11,1)
-                        CALL VMX(1,B11,SQUY2,A11,1)
-!     
-                        IEEE=2
-!
+
+                        B11 = matmul(SQUZ1, DPLQ2)
+                        A11 = matmul(B11, SQUY2)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 196)then
-!
-                        CALL VMX(1,SQDY1,DPLQ3,B11,1)
-                        CALL VMX(1,B11,SQUZ2,A11,1)
-!     
-                        IEEE=3
-!
+
+                        B11 = matmul(SQDY1, DPLQ3)
+                        A11 = matmul(B11, SQUZ2)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 197)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ4,B11,1)
-                        CALL VMX(1,B11,SQDY2,A11,1)
-!     
-                        IEEE=4
-!
+
+                        B11 = matmul(SQDZ1, DPLQ4)
+                        A11 = matmul(B11, SQDY2)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 198)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ6,B11,1)
-                        CALL VMX(1,B11,SQUY2,A11,1)
-!     
-                        IEEE=5
-!
+
+                        B11 = matmul(SQDZ1, DPLQ6)
+                        A11 = matmul(B11, SQUY2)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 199)then
-!
-                        CALL VMX(1,SQUY1,DPLQ5,B11,1)
-                        CALL VMX(1,B11,SQUZ2,A11,1)
-!     
-                        IEEE=6
-!
+
+                        B11 = matmul(SQUY1, DPLQ5)
+                        A11 = matmul(B11, SQUZ2)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 200)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ8,B11,1)
-                        CALL VMX(1,B11,SQDY2,A11,1)
-!     
-                        IEEE=7
-!
+
+                        B11 = matmul(SQUZ1, DPLQ8)
+                        A11 = matmul(B11, SQDY2)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 201)then
-!
-                        CALL VMX(1,SQDY1,DPLQ7,B11,1)
-                        CALL VMX(1,B11,SQDZ2,A11,1)
-!     
-                        IEEE=8
-!
+
+                        B11 = matmul(SQDY1, DPLQ7)
+                        A11 = matmul(B11, SQDZ2)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 202)then
-!
-                        CALL VMX(1,SQDY1,DPLQ5,B11,1)
-                        CALL VMX(1,B11,SQDZ2,A11,1)
-!     
-                        IEEE=9
-!
+
+                        B11 = matmul(SQDY1, DPLQ5)
+                        A11 = matmul(B11, SQDZ2)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 203)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ6,B11,1)
-                        CALL VMX(1,B11,SQDY2,A11,1)
-!     
-                        IEEE=10
-!
+
+                        B11 = matmul(SQUZ1, DPLQ6)
+                        A11 = matmul(B11, SQDY2)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 204)then
-!
-                        CALL VMX(1,SQUY1,DPLQ7,B11,1)
-                        CALL VMX(1,B11,SQUZ2,A11,1)
-!     
-                        IEEE=11
-!
+
+                        B11 = matmul(SQUY1, DPLQ7)
+                        A11 = matmul(B11, SQUZ2)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 205)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ8,B11,1)
-                        CALL VMX(1,B11,SQUY2,A11,1)
-!     
-                        IEEE=12
-!
+
+                        B11 = matmul(SQDZ1, DPLQ8)
+                        A11 = matmul(B11, SQUY2)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 206)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ2,B11,1)
-                        CALL VMX(1,B11,SQDY2,A11,1)
-!     
-                        IEEE=13
-!
+
+                        B11 = matmul(SQDZ1, DPLQ2)
+                        A11 = matmul(B11, SQDY2)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 207)then
-!
-                        CALL VMX(1,SQDY1,DPLQ1,B11,1)
-                        CALL VMX(1,B11,SQUZ2,A11,1)
-!     
-                        IEEE=14
-!
+
+                        B11 = matmul(SQDY1, DPLQ1)
+                        A11 = matmul(B11, SQUZ2)
+
+                        ieee = 14
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 208)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ4,B11,1)
-                        CALL VMX(1,B11,SQUY2,A11,1)
-!     
-                        IEEE=15
-!
+
+                        B11 = matmul(SQUZ1, DPLQ4)
+                        A11 = matmul(B11, SQUY2)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C                        
                         if (iddd == 209)then
-!
-                        CALL VMX(1,SQUY1,DPLQ3,B11,1)
-                        CALL VMX(1,B11,SQDZ2,A11,1)
-!     
-                        IEEE=16
-!
+
+                        B11 = matmul(SQUY1, DPLQ3)
+                        A11 = matmul(B11, SQDZ2)
+
+                        ieee = 16
+
                         endif                             
 !******************************************************************C
 !     PLAQUETTE OPERATORS 8
 !******************************************************************C
                         if (iddd == 210)then
-!
-                        CALL VMX(1,SQUY1,DPLQ1,B11,1)
-                        CALL VMX(1,B11,DPLQ2,A11,1)
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(SQUY1, DPLQ1)
+                        A11 = matmul(B11, DPLQ2)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************c
                         if (iddd == 211)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ2,B11,1)
-                        CALL VMX(1,B11,DPLQ3,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ2)
+                        A11 = matmul(B11, DPLQ3)
+
+                        ieee = 2
+
                         endif  
 !******************************************************************c
                         if (iddd == 212)then
-!
-                        CALL VMX(1,SQDY1,DPLQ3,B11,1)
-                        CALL VMX(1,B11,DPLQ4,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(SQDY1, DPLQ3)
+                        A11 = matmul(B11, DPLQ4)
+
+                        ieee = 3
+
                         endif  
 !******************************************************************c
                         if (iddd == 213)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ4,B11,1)
-                        CALL VMX(1,B11,DPLQ1,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ4)
+                        A11 = matmul(B11, DPLQ1)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************c
                         if (iddd == 214)then
-!
-                        CALL VMX(1,PLQ5,PLQ6,B11,1)
-                        CALL VMX(1,B11,SQUY1,A11,1)
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(PLQ5, PLQ6)
+                        A11 = matmul(B11, SQUY1)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************c
                         if (iddd == 215)then
-!
-                        CALL VMX(1,PLQ8,PLQ5,B11,1)
-                        CALL VMX(1,B11,SQUZ1,A11,1)
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(PLQ8, PLQ5)
+                        A11 = matmul(B11, SQUZ1)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************c
                         if (iddd == 216)then
-!
-                        CALL VMX(1,PLQ7,PLQ8,B11,1)
-                        CALL VMX(1,B11,SQDY1,A11,1)
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(PLQ7, PLQ8)
+                        A11 = matmul(B11, SQDY1)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************c
                         if (iddd == 217)then
-!
-                        CALL VMX(1,PLQ6,PLQ7,B11,1)
-                        CALL VMX(1,B11,SQDZ1,A11,1)
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(PLQ6, PLQ7)
+                        A11 = matmul(B11, SQDZ1)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************c
                         if (iddd == 218)then
-!
-                        CALL VMX(1,SQDY1,DPLQ5,B11,1)
-                        CALL VMX(1,B11,DPLQ6,A11,1)
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(SQDY1, DPLQ5)
+                        A11 = matmul(B11, DPLQ6)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************c
                         if (iddd == 219)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ6,B11,1)
-                        CALL VMX(1,B11,DPLQ7,A11,1)
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ6)
+                        A11 = matmul(B11, DPLQ7)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************c
                         if (iddd == 220)then
-!
-                        CALL VMX(1,SQUY1,DPLQ7,B11,1)
-                        CALL VMX(1,B11,DPLQ8,A11,1)
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(SQUY1, DPLQ7)
+                        A11 = matmul(B11, DPLQ8)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************c
                         if (iddd == 221)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ8,B11,1)
-                        CALL VMX(1,B11,DPLQ5,A11,1)
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ8)
+                        A11 = matmul(B11, DPLQ5)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************c
                         if (iddd == 222)then
-!
-                        CALL VMX(1,PLQ1,PLQ2,B11,1)
-                        CALL VMX(1,B11,SQDY1,A11,1)
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(PLQ1, PLQ2)
+                        A11 = matmul(B11, SQDY1)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************c
                         if (iddd == 223)then
-!
-                        CALL VMX(1,PLQ4,PLQ1,B11,1)
-                        CALL VMX(1,B11,SQUZ1,A11,1)
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(PLQ4, PLQ1)
+                        A11 = matmul(B11, SQUZ1)
+
+                        ieee = 14
+
                         endif 
 !******************************************************************c
                         if (iddd == 224)then
-!
-                        CALL VMX(1,PLQ3,PLQ4,B11,1)
-                        CALL VMX(1,B11,SQUY1,A11,1)
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(PLQ3, PLQ4)
+                        A11 = matmul(B11, SQUY1)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************c
                         if (iddd == 225)then
-!
-                        CALL VMX(1,PLQ2,PLQ3,B11,1)
-                        CALL VMX(1,B11,SQDZ1,A11,1)
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(PLQ2, PLQ3)
+                        A11 = matmul(B11, SQDZ1)
+
+                        ieee = 16
+
                         endif                         
 !******************************************************************C
 !     PLAQUETTE OPERATORS 9
 !******************************************************************C
                         if (iddd == 226)then
-!     
-                        CALL VMX(1,SQUY1,DPLQ1,B11,1)
-                        CALL VMX(1,B11,DPLQ2,C11,1)
-                        CALL VMX(1,C11,DPLQ3,A11,1)                           
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(SQUY1, DPLQ1)
+                        C11 = matmul(B11, DPLQ2)
+                        A11 = matmul(C11, DPLQ3)                           
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 227)then
-!     
-                        CALL VMX(1,SQUZ1,DPLQ2,B11,1)
-                        CALL VMX(1,B11,DPLQ3,C11,1)
-                        CALL VMX(1,C11,DPLQ4,A11,1)                           
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ2)
+                        C11 = matmul(B11, DPLQ3)
+                        A11 = matmul(C11, DPLQ4)                           
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 228)then
-!     
-                        CALL VMX(1,SQDY1,DPLQ3,B11,1)
-                        CALL VMX(1,B11,DPLQ4,C11,1)
-                        CALL VMX(1,C11,DPLQ1,A11,1)                           
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(SQDY1, DPLQ3)
+                        C11 = matmul(B11, DPLQ4)
+                        A11 = matmul(C11, DPLQ1)                           
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 229)then
-!     
-                        CALL VMX(1,SQDZ1,DPLQ4,B11,1)
-                        CALL VMX(1,B11,DPLQ1,C11,1)
-                        CALL VMX(1,C11,DPLQ2,A11,1)                           
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ4)
+                        C11 = matmul(B11, DPLQ1)
+                        A11 = matmul(C11, DPLQ2)                           
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 230)then
-!     
-                        CALL VMX(1,PLQ8,PLQ5,B11,1)
-                        CALL VMX(1,B11,PLQ6,C11,1)
-                        CALL VMX(1,C11,SQUY1,A11,1)                           
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(PLQ8, PLQ5)
+                        C11 = matmul(B11, PLQ6)
+                        A11 = matmul(C11, SQUY1)                           
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 231)then
-!     
-                        CALL VMX(1,PLQ7,PLQ8,B11,1)
-                        CALL VMX(1,B11,PLQ5,C11,1)
-                        CALL VMX(1,C11,SQUZ1,A11,1)                           
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(PLQ7, PLQ8)
+                        C11 = matmul(B11, PLQ5)
+                        A11 = matmul(C11, SQUZ1)                           
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 232)then
-!     
-                        CALL VMX(1,PLQ6,PLQ7,B11,1)
-                        CALL VMX(1,B11,PLQ8,C11,1)
-                        CALL VMX(1,C11,SQDY1,A11,1)                           
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(PLQ6, PLQ7)
+                        C11 = matmul(B11, PLQ8)
+                        A11 = matmul(C11, SQDY1)                           
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 233)then
-!     
-                        CALL VMX(1,PLQ5,PLQ6,B11,1)
-                        CALL VMX(1,B11,PLQ7,C11,1)
-                        CALL VMX(1,C11,SQDZ1,A11,1)                           
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(PLQ5, PLQ6)
+                        C11 = matmul(B11, PLQ7)
+                        A11 = matmul(C11, SQDZ1)                           
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
                         if (iddd == 234)then
-!
-                        CALL VMX(1,SQDY1,DPLQ5,B11,1)
-                        CALL VMX(1,B11,DPLQ6,C11,1)
-                        CALL VMX(1,C11,DPLQ7,A11,1)    
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(SQDY1, DPLQ5)
+                        C11 = matmul(B11, DPLQ6)
+                        A11 = matmul(C11, DPLQ7)    
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C
                         if (iddd == 235)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ6,B11,1)
-                        CALL VMX(1,B11,DPLQ7,C11,1)
-                        CALL VMX(1,C11,DPLQ8,A11,1)    
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ6)
+                        C11 = matmul(B11, DPLQ7)
+                        A11 = matmul(C11, DPLQ8)    
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C
                         if (iddd == 236)then
-!
-                        CALL VMX(1,SQUY1,DPLQ7,B11,1)
-                        CALL VMX(1,B11,DPLQ8,C11,1)
-                        CALL VMX(1,C11,DPLQ5,A11,1)    
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(SQUY1, DPLQ7)
+                        C11 = matmul(B11, DPLQ8)
+                        A11 = matmul(C11, DPLQ5)    
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C
                         if (iddd == 237)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ8,B11,1)
-                        CALL VMX(1,B11,DPLQ5,C11,1)
-                        CALL VMX(1,C11,DPLQ6,A11,1)    
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ8)
+                        C11 = matmul(B11, DPLQ5)
+                        A11 = matmul(C11, DPLQ6)    
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C
                         if (iddd == 238)then
-!
-                        CALL VMX(1,PLQ4,PLQ1,B11,1)
-                        CALL VMX(1,B11,PLQ2,C11,1)
-                        CALL VMX(1,C11,SQDY1,A11,1)    
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(PLQ4, PLQ1)
+                        C11 = matmul(B11, PLQ2)
+                        A11 = matmul(C11, SQDY1)    
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C
                         if (iddd == 239)then
-!
-                        CALL VMX(1,PLQ3,PLQ4,B11,1)
-                        CALL VMX(1,B11,PLQ1,C11,1)
-                        CALL VMX(1,C11,SQUZ1,A11,1)    
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(PLQ3, PLQ4)
+                        C11 = matmul(B11, PLQ1)
+                        A11 = matmul(C11, SQUZ1)    
+
+                        ieee = 14
+
                         endif 
 !******************************************************************C
                         if (iddd == 240)then
-!
-                        CALL VMX(1,PLQ2,PLQ3,B11,1)
-                        CALL VMX(1,B11,PLQ4,C11,1)
-                        CALL VMX(1,C11,SQUY1,A11,1)    
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(PLQ2, PLQ3)
+                        C11 = matmul(B11, PLQ4)
+                        A11 = matmul(C11, SQUY1)    
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C
                         if (iddd == 241)then
-!
-                        CALL VMX(1,PLQ1,PLQ2,B11,1)
-                        CALL VMX(1,B11,PLQ3,C11,1)
-                        CALL VMX(1,C11,SQDZ1,A11,1)    
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(PLQ1, PLQ2)
+                        C11 = matmul(B11, PLQ3)
+                        A11 = matmul(C11, SQDZ1)    
+
+                        ieee = 16
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 10
 !******************************************************************C
                         if (iddd == 242)then
-!     
-                        CALL VMX(1,PLQ2,PLQ7,B11,1)
-                        CALL VMX(1,B11,SQDZ1,A11,1)
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(PLQ2, PLQ7)
+                        A11 = matmul(B11, SQDZ1)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 243)then
-!     
-                        CALL VMX(1,PLQ3,PLQ6,B11,1)
-                        CALL VMX(1,B11,SQUY1,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(PLQ3, PLQ6)
+                        A11 = matmul(B11, SQUY1)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 244)then
-!     
-                        CALL VMX(1,PLQ4,PLQ5,B11,1)
-                        CALL VMX(1,B11,SQUZ1,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(PLQ4, PLQ5)
+                        A11 = matmul(B11, SQUZ1)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 245)then
-!     
-                        CALL VMX(1,PLQ1,PLQ8,B11,1)
-                        CALL VMX(1,B11,SQDY1,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(PLQ1, PLQ8)
+                        A11 = matmul(B11, SQDY1)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 246)then
-!     
-                        CALL VMX(1,SQDZ1,DPLQ4,B11,1)
-                        CALL VMX(1,B11,DPLQ5,A11,1)
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ4)
+                        A11 = matmul(B11, DPLQ5)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 247)then
-!     
-                        CALL VMX(1,SQUY1,DPLQ1,B11,1)
-                        CALL VMX(1,B11,DPLQ8,A11,1)
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(SQUY1, DPLQ1)
+                        A11 = matmul(B11, DPLQ8)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 248)then
-!     
-                        CALL VMX(1,SQUZ1,DPLQ2,B11,1)
-                        CALL VMX(1,B11,DPLQ7,A11,1)
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ2)
+                        A11 = matmul(B11, DPLQ7)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 249)then
-!     
-                        CALL VMX(1,SQDY1,DPLQ3,B11,1)
-                        CALL VMX(1,B11,DPLQ6,A11,1)
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(SQDY1, DPLQ3)
+                        A11 = matmul(B11, DPLQ6)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
                         if (iddd == 250)then
-!     
-                        CALL VMX(1,PLQ6,PLQ3,B11,1)
-                        CALL VMX(1,B11,SQDZ1,A11,1)
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(PLQ6, PLQ3)
+                        A11 = matmul(B11, SQDZ1)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C
                         if (iddd == 251)then
-!     
-                        CALL VMX(1,PLQ7,PLQ2,B11,1)
-                        CALL VMX(1,B11,SQDY1,A11,1)
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(PLQ7, PLQ2)
+                        A11 = matmul(B11, SQDY1)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C
                         if (iddd == 252)then
-!     
-                        CALL VMX(1,PLQ8,PLQ1,B11,1)
-                        CALL VMX(1,B11,SQUZ1,A11,1)
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(PLQ8, PLQ1)
+                        A11 = matmul(B11, SQUZ1)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C
                         if (iddd == 253)then
-!     
-                        CALL VMX(1,PLQ5,PLQ4,B11,1)
-                        CALL VMX(1,B11,SQUY1,A11,1)
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(PLQ5, PLQ4)
+                        A11 = matmul(B11, SQUY1)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C
                         if (iddd == 254)then
-!     
-                        CALL VMX(1,SQDZ1,DPLQ8,B11,1)
-                        CALL VMX(1,B11,DPLQ1,A11,1)
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ8)
+                        A11 = matmul(B11, DPLQ1)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C
                         if (iddd == 255)then
-!     
-                        CALL VMX(1,SQDY1,DPLQ5,B11,1)
-                        CALL VMX(1,B11,DPLQ4,A11,1)
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(SQDY1, DPLQ5)
+                        A11 = matmul(B11, DPLQ4)
+
+                        ieee = 14
+
                         endif 
 !******************************************************************C
                         if (iddd == 256)then
-!     
-                        CALL VMX(1,SQUZ1,DPLQ6,B11,1)
-                        CALL VMX(1,B11,DPLQ3,A11,1)
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ6)
+                        A11 = matmul(B11, DPLQ3)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C
                         if (iddd == 257)then
-!     
-                        CALL VMX(1,SQUY1,DPLQ7,B11,1)
-                        CALL VMX(1,B11,DPLQ2,A11,1)
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(SQUY1, DPLQ7)
+                        A11 = matmul(B11, DPLQ2)
+
+                        ieee = 16
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 11
 !******************************************************************C
                         if (iddd == 258)then
-!     
-                        CALL VMX(1,PLQ2,PLQ4,B11,1)
-                        CALL VMX(1,B11,SQUY1,A11,1)
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(PLQ2, PLQ4)
+                        A11 = matmul(B11, SQUY1)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 259)then
-!     
-                        CALL VMX(1,PLQ3,PLQ1,B11,1)
-                        CALL VMX(1,B11,SQUZ1,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(PLQ3, PLQ1)
+                        A11 = matmul(B11, SQUZ1)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 260)then
-!     
-                        CALL VMX(1,PLQ4,PLQ2,B11,1)
-                        CALL VMX(1,B11,SQDY1,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(PLQ4, PLQ2)
+                        A11 = matmul(B11, SQDY1)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 261)then
-!     
-                        CALL VMX(1,PLQ1,PLQ3,B11,1)
-                        CALL VMX(1,B11,SQDZ1,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(PLQ1, PLQ3)
+                        A11 = matmul(B11, SQDZ1)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 262)then
-!
-                        CALL VMX(1,SQUY1,DPLQ7,B11,1)
-                        CALL VMX(1,B11,DPLQ5,A11,1)
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(SQUY1, DPLQ7)
+                        A11 = matmul(B11, DPLQ5)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 263)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ6,B11,1)
-                        CALL VMX(1,B11,DPLQ8,A11,1)
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ6)
+                        A11 = matmul(B11, DPLQ8)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 264)then
-!
-                        CALL VMX(1,SQDY1,DPLQ5,B11,1)
-                        CALL VMX(1,B11,DPLQ7,A11,1)
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(SQDY1, DPLQ5)
+                        A11 = matmul(B11, DPLQ7)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 265)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ8,B11,1)
-                        CALL VMX(1,B11,DPLQ6,A11,1)
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ8)
+                        A11 = matmul(B11, DPLQ6)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
                         if (iddd == 266)then
-!     
-                        CALL VMX(1,PLQ6,PLQ8,B11,1)
-                        CALL VMX(1,B11,SQDY1,A11,1)
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(PLQ6, PLQ8)
+                        A11 = matmul(B11, SQDY1)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C
                         if (iddd == 267)then
-!     
-                        CALL VMX(1,PLQ7,PLQ5,B11,1)
-                        CALL VMX(1,B11,SQUZ1,A11,1)
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(PLQ7, PLQ5)
+                        A11 = matmul(B11, SQUZ1)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C
                         if (iddd == 268)then
-!     
-                        CALL VMX(1,PLQ8,PLQ6,B11,1)
-                        CALL VMX(1,B11,SQUY1,A11,1)
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(PLQ8, PLQ6)
+                        A11 = matmul(B11, SQUY1)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C
                         if (iddd == 269)then
-!     
-                        CALL VMX(1,PLQ5,PLQ7,B11,1)
-                        CALL VMX(1,B11,SQDZ1,A11,1)
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(PLQ5, PLQ7)
+                        A11 = matmul(B11, SQDZ1)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C
                         if (iddd == 270)then
-!
-                        CALL VMX(1,SQDY1,DPLQ3,B11,1)
-                        CALL VMX(1,B11,DPLQ1,A11,1)
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(SQDY1, DPLQ3)
+                        A11 = matmul(B11, DPLQ1)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C
                         if (iddd == 271)then
-!
-                        CALL VMX(1,SQUZ1,DPLQ2,B11,1)
-                        CALL VMX(1,B11,DPLQ4,A11,1)
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(SQUZ1, DPLQ2)
+                        A11 = matmul(B11, DPLQ4)
+
+                        ieee = 14
+
                         endif                         
 !******************************************************************C
                         if (iddd == 272)then
-!
-                        CALL VMX(1,SQUY1,DPLQ1,B11,1)
-                        CALL VMX(1,B11,DPLQ3,A11,1)
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(SQUY1, DPLQ1)
+                        A11 = matmul(B11, DPLQ3)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C
                         if (iddd == 273)then
-!
-                        CALL VMX(1,SQDZ1,DPLQ4,B11,1)
-                        CALL VMX(1,B11,DPLQ2,A11,1)
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(SQDZ1, DPLQ4)
+                        A11 = matmul(B11, DPLQ2)
+
+                        ieee = 16
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 12
 !******************************************************************C
                         if (iddd == 274)then
-!     
-                        CALL VMX(1,PLQ2,PLQ3,B11,1)
-                        CALL VMX(1,B11,SQUY1,C11,1)
-                        CALL VMX(1,C11,DPLQ7,A11,1)
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(PLQ2, PLQ3)
+                        C11 = matmul(B11, SQUY1)
+                        A11 = matmul(C11, DPLQ7)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 275)then
-!     
-                        CALL VMX(1,PLQ3,PLQ4,B11,1)
-                        CALL VMX(1,B11,SQUZ1,C11,1)
-                        CALL VMX(1,C11,DPLQ6,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(PLQ3, PLQ4)
+                        C11 = matmul(B11, SQUZ1)
+                        A11 = matmul(C11, DPLQ6)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 276)then
-!     
-                        CALL VMX(1,PLQ4,PLQ1,B11,1)
-                        CALL VMX(1,B11,SQDY1,C11,1)
-                        CALL VMX(1,C11,DPLQ5,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(PLQ4, PLQ1)
+                        C11 = matmul(B11, SQDY1)
+                        A11 = matmul(C11, DPLQ5)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 277)then
-!     
-                        CALL VMX(1,PLQ1,PLQ2,B11,1)
-                        CALL VMX(1,B11,SQDZ1,C11,1)
-                        CALL VMX(1,C11,DPLQ8,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(PLQ1, PLQ2)
+                        C11 = matmul(B11, SQDZ1)
+                        A11 = matmul(C11, DPLQ8)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 278)then
-!     
-                        CALL VMX(1,PLQ4,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ8,C11,1)
-                        CALL VMX(1,C11,DPLQ5,A11,1)
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(PLQ4, SQUY1)
+                        C11 = matmul(B11, DPLQ8)
+                        A11 = matmul(C11, DPLQ5)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 279)then
-!     
-                        CALL VMX(1,PLQ1,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ7,C11,1)
-                        CALL VMX(1,C11,DPLQ8,A11,1)
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(PLQ1, SQUZ1)
+                        C11 = matmul(B11, DPLQ7)
+                        A11 = matmul(C11, DPLQ8)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 280)then
-!     
-                        CALL VMX(1,PLQ2,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ6,C11,1)
-                        CALL VMX(1,C11,DPLQ7,A11,1)
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(PLQ2, SQDY1)
+                        C11 = matmul(B11, DPLQ6)
+                        A11 = matmul(C11, DPLQ7)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 281)then
-!     
-                        CALL VMX(1,PLQ3,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ5,C11,1)
-                        CALL VMX(1,C11,DPLQ6,A11,1)
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(PLQ3, SQDZ1)
+                        C11 = matmul(B11, DPLQ5)
+                        A11 = matmul(C11, DPLQ6)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
                         if (iddd == 282)then
-!     
-                        CALL VMX(1,PLQ6,PLQ7,B11,1)
-                        CALL VMX(1,B11,SQDY1,C11,1)
-                        CALL VMX(1,C11,DPLQ3,A11,1)
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(PLQ6, PLQ7)
+                        C11 = matmul(B11, SQDY1)
+                        A11 = matmul(C11, DPLQ3)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C
                         if (iddd == 283)then
-!     
-                        CALL VMX(1,PLQ7,PLQ8,B11,1)
-                        CALL VMX(1,B11,SQUZ1,C11,1)
-                        CALL VMX(1,C11,DPLQ2,A11,1)
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(PLQ7, PLQ8)
+                        C11 = matmul(B11, SQUZ1)
+                        A11 = matmul(C11, DPLQ2)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C
                         if (iddd == 284)then
-!     
-                        CALL VMX(1,PLQ8,PLQ5,B11,1)
-                        CALL VMX(1,B11,SQUY1,C11,1)
-                        CALL VMX(1,C11,DPLQ1,A11,1)
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(PLQ8, PLQ5)
+                        C11 = matmul(B11, SQUY1)
+                        A11 = matmul(C11, DPLQ1)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C
                         if (iddd == 285)then
-!     
-                        CALL VMX(1,PLQ5,PLQ6,B11,1)
-                        CALL VMX(1,B11,SQDZ1,C11,1)
-                        CALL VMX(1,C11,DPLQ4,A11,1)
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(PLQ5, PLQ6)
+                        C11 = matmul(B11, SQDZ1)
+                        A11 = matmul(C11, DPLQ4)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C
                         if (iddd == 286)then
-!     
-                        CALL VMX(1,PLQ8,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ4,C11,1)
-                        CALL VMX(1,C11,DPLQ1,A11,1)
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(PLQ8, SQDY1)
+                        C11 = matmul(B11, DPLQ4)
+                        A11 = matmul(C11, DPLQ1)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C
                         if (iddd == 287)then
-!     
-                        CALL VMX(1,PLQ5,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ3,C11,1)
-                        CALL VMX(1,C11,DPLQ4,A11,1)
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(PLQ5, SQUZ1)
+                        C11 = matmul(B11, DPLQ3)
+                        A11 = matmul(C11, DPLQ4)
+
+                        ieee = 14
+
                         endif 
 !******************************************************************C
                         if (iddd == 288)then
-!     
-                        CALL VMX(1,PLQ6,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ2,C11,1)
-                        CALL VMX(1,C11,DPLQ3,A11,1)
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(PLQ6, SQUY1)
+                        C11 = matmul(B11, DPLQ2)
+                        A11 = matmul(C11, DPLQ3)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C
                         if (iddd == 289)then
-!     
-                        CALL VMX(1,PLQ7,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ1,C11,1)
-                        CALL VMX(1,C11,DPLQ2,A11,1)
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(PLQ7, SQDZ1)
+                        C11 = matmul(B11, DPLQ1)
+                        A11 = matmul(C11, DPLQ2)
+
+                        ieee = 16
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 13
 !******************************************************************C
                         if (iddd == 290)then
-!     
-                        CALL VMX(1,PLQ2,PLQ3,B11,1)
-                        CALL VMX(1,B11,PLQ4,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ1,C11,1)
-                        CALL VMX(1,C11,DPLQ2,A11,1)
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(PLQ2, PLQ3)
+                        C11 = matmul(B11, PLQ4)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ1)
+                        A11 = matmul(C11, DPLQ2)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 291)then
-!     
-                        CALL VMX(1,PLQ3,PLQ4,B11,1)
-                        CALL VMX(1,B11,PLQ1,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ2,C11,1)
-                        CALL VMX(1,C11,DPLQ3,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(PLQ3, PLQ4)
+                        C11 = matmul(B11, PLQ1)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ2)
+                        A11 = matmul(C11, DPLQ3)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 292)then
-!     
-                        CALL VMX(1,PLQ4,PLQ1,B11,1)
-                        CALL VMX(1,B11,PLQ2,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ3,C11,1)
-                        CALL VMX(1,C11,DPLQ4,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(PLQ4, PLQ1)
+                        C11 = matmul(B11, PLQ2)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ3)
+                        A11 = matmul(C11, DPLQ4)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 293)then
-!     
-                        CALL VMX(1,PLQ1,PLQ2,B11,1)
-                        CALL VMX(1,B11,PLQ3,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ4,C11,1)
-                        CALL VMX(1,C11,DPLQ1,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(PLQ1, PLQ2)
+                        C11 = matmul(B11, PLQ3)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ4)
+                        A11 = matmul(C11, DPLQ1)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 294)then
-!     
-                        CALL VMX(1,PLQ5,PLQ6,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ7,B11,1)
-                        CALL VMX(1,B11,DPLQ8,C11,1)
-                        CALL VMX(1,C11,DPLQ5,A11,1)
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(PLQ5, PLQ6)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ7)
+                        C11 = matmul(B11, DPLQ8)
+                        A11 = matmul(C11, DPLQ5)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 295)then
-!     
-                        CALL VMX(1,PLQ8,PLQ5,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ6,B11,1)
-                        CALL VMX(1,B11,DPLQ7,C11,1)
-                        CALL VMX(1,C11,DPLQ8,A11,1)
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(PLQ8, PLQ5)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ6)
+                        C11 = matmul(B11, DPLQ7)
+                        A11 = matmul(C11, DPLQ8)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 296)then
-!     
-                        CALL VMX(1,PLQ7,PLQ8,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ5,B11,1)
-                        CALL VMX(1,B11,DPLQ6,C11,1)
-                        CALL VMX(1,C11,DPLQ7,A11,1)
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(PLQ7, PLQ8)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ5)
+                        C11 = matmul(B11, DPLQ6)
+                        A11 = matmul(C11, DPLQ7)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 297)then
-!     
-                        CALL VMX(1,PLQ6,PLQ7,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ8,B11,1)
-                        CALL VMX(1,B11,DPLQ5,C11,1)
-                        CALL VMX(1,C11,DPLQ6,A11,1)
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(PLQ6, PLQ7)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ8)
+                        C11 = matmul(B11, DPLQ5)
+                        A11 = matmul(C11, DPLQ6)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
                         if (iddd == 298)then
-!     
-                        CALL VMX(1,PLQ6,PLQ7,B11,1)
-                        CALL VMX(1,B11,PLQ8,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ5,C11,1)
-                        CALL VMX(1,C11,DPLQ6,A11,1)
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(PLQ6, PLQ7)
+                        C11 = matmul(B11, PLQ8)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ5)
+                        A11 = matmul(C11, DPLQ6)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C
                         if (iddd == 299)then
-!     
-                        CALL VMX(1,PLQ7,PLQ8,B11,1)
-                        CALL VMX(1,B11,PLQ5,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ6,C11,1)
-                        CALL VMX(1,C11,DPLQ7,A11,1)
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(PLQ7, PLQ8)
+                        C11 = matmul(B11, PLQ5)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ6)
+                        A11 = matmul(C11, DPLQ7)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C
                         if (iddd == 300)then
-!     
-                        CALL VMX(1,PLQ8,PLQ5,B11,1)
-                        CALL VMX(1,B11,PLQ6,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ7,C11,1)
-                        CALL VMX(1,C11,DPLQ8,A11,1)
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(PLQ8, PLQ5)
+                        C11 = matmul(B11, PLQ6)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ7)
+                        A11 = matmul(C11, DPLQ8)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C
                         if (iddd == 301)then
-!     
-                        CALL VMX(1,PLQ5,PLQ6,B11,1)
-                        CALL VMX(1,B11,PLQ7,C11,1)
-                        CALL VMX(1,C11,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ8,C11,1)
-                        CALL VMX(1,C11,DPLQ5,A11,1)
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(PLQ5, PLQ6)
+                        C11 = matmul(B11, PLQ7)
+                        B11 = matmul(C11, PL)
+                        C11 = matmul(B11, DPLQ8)
+                        A11 = matmul(C11, DPLQ5)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C
                         if (iddd == 302)then
-!     
-                        CALL VMX(1,PLQ1,PLQ2,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ3,B11,1)
-                        CALL VMX(1,B11,DPLQ4,C11,1)
-                        CALL VMX(1,C11,DPLQ1,A11,1)
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(PLQ1, PLQ2)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ3)
+                        C11 = matmul(B11, DPLQ4)
+                        A11 = matmul(C11, DPLQ1)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C
                         if (iddd == 303)then
-!     
-                        CALL VMX(1,PLQ4,PLQ1,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ2,B11,1)
-                        CALL VMX(1,B11,DPLQ3,C11,1)
-                        CALL VMX(1,C11,DPLQ4,A11,1)
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(PLQ4, PLQ1)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ2)
+                        C11 = matmul(B11, DPLQ3)
+                        A11 = matmul(C11, DPLQ4)
+
+                        ieee = 14
+
                         endif 
 !******************************************************************C
                         if (iddd == 304)then
-!     
-                        CALL VMX(1,PLQ3,PLQ4,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ1,B11,1)
-                        CALL VMX(1,B11,DPLQ2,C11,1)
-                        CALL VMX(1,C11,DPLQ3,A11,1)
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(PLQ3, PLQ4)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ1)
+                        C11 = matmul(B11, DPLQ2)
+                        A11 = matmul(C11, DPLQ3)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C
                         if (iddd == 305)then
-!     
-                        CALL VMX(1,PLQ2,PLQ3,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ4,B11,1)
-                        CALL VMX(1,B11,DPLQ1,C11,1)
-                        CALL VMX(1,C11,DPLQ2,A11,1)
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(PLQ2, PLQ3)
+                        C11 = matmul(B11, PL)
+                        B11 = matmul(C11, DPLQ4)
+                        C11 = matmul(B11, DPLQ1)
+                        A11 = matmul(C11, DPLQ2)
+
+                        ieee = 16
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 14
 !******************************************************************C
                         if (iddd == 306)then
-!     
-                        CALL VMX(1,PLQ2,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ7,A11,1)
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(PLQ2, SQUY1)
+                        A11 = matmul(B11, DPLQ7)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 307)then
-!     
-                        CALL VMX(1,PLQ3,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ6,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(PLQ3, SQUZ1)
+                        A11 = matmul(B11, DPLQ6)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 308)then
-!     
-                        CALL VMX(1,PLQ4,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ5,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(PLQ4, SQDY1)
+                        A11 = matmul(B11, DPLQ5)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 309)then
-!     
-                        CALL VMX(1,PLQ1,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ8,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(PLQ1, SQDZ1)
+                        A11 = matmul(B11, DPLQ8)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 310)then
-!     
-                        CALL VMX(1,PLQ4,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ5,A11,1)
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(PLQ4, SQUY1)
+                        A11 = matmul(B11, DPLQ5)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 311)then
-!     
-                        CALL VMX(1,PLQ1,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ8,A11,1)
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(PLQ1, SQUZ1)
+                        A11 = matmul(B11, DPLQ8)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 312)then
-!     
-                        CALL VMX(1,PLQ2,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ7,A11,1)
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(PLQ2, SQDY1)
+                        A11 = matmul(B11, DPLQ7)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 313)then
-!     
-                        CALL VMX(1,PLQ3,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ6,A11,1)
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(PLQ3, SQDZ1)
+                        A11 = matmul(B11, DPLQ6)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
                         if (iddd == 314)then
-!     
-                        CALL VMX(1,PLQ6,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ3,A11,1)
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(PLQ6, SQDY1)
+                        A11 = matmul(B11, DPLQ3)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C
                         if (iddd == 315)then
-!     
-                        CALL VMX(1,PLQ7,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ2,A11,1)
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(PLQ7, SQUZ1)
+                        A11 = matmul(B11, DPLQ2)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C
                         if (iddd == 316)then
-!     
-                        CALL VMX(1,PLQ8,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ1,A11,1)
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(PLQ8, SQUY1)
+                        A11 = matmul(B11, DPLQ1)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C
                         if (iddd == 317)then
-!     
-                        CALL VMX(1,PLQ5,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ4,A11,1)
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(PLQ5, SQDZ1)
+                        A11 = matmul(B11, DPLQ4)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C
                         if (iddd == 318)then
-!     
-                        CALL VMX(1,PLQ8,SQDY1,B11,1)
-                        CALL VMX(1,B11,DPLQ1,A11,1)
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(PLQ8, SQDY1)
+                        A11 = matmul(B11, DPLQ1)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C
                         if (iddd == 319)then
-!     
-                        CALL VMX(1,PLQ5,SQUZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ4,A11,1)
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(PLQ5, SQUZ1)
+                        A11 = matmul(B11, DPLQ4)
+
+                        ieee = 14
+
                         endif 
 !******************************************************************C
                         if (iddd == 320)then
-!     
-                        CALL VMX(1,PLQ6,SQUY1,B11,1)
-                        CALL VMX(1,B11,DPLQ3,A11,1)
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(PLQ6, SQUY1)
+                        A11 = matmul(B11, DPLQ3)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C
                         if (iddd == 321)then
-!     
-                        CALL VMX(1,PLQ7,SQDZ1,B11,1)
-                        CALL VMX(1,B11,DPLQ2,A11,1)
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(PLQ7, SQDZ1)
+                        A11 = matmul(B11, DPLQ2)
+
+                        ieee = 16
+
                         endif 
 !******************************************************************C
 !     PLAQUETTE OPERATORS 15
 !******************************************************************C
                         if (iddd == 322)then
-!     
-                        CALL VMX(1,PLQ2,PLQ7,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ6,A11,1)
-!     
-                        IEEE=1
-!     
+
+                        B11 = matmul(PLQ2, PLQ7)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ6)
+
+                        ieee = 1
+
                         endif 
 !******************************************************************C
                         if (iddd == 323)then
-!     
-                        CALL VMX(1,PLQ3,PLQ6,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ5,A11,1)
-!     
-                        IEEE=2
-!     
+
+                        B11 = matmul(PLQ3, PLQ6)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ5)
+
+                        ieee = 2
+
                         endif 
 !******************************************************************C
                         if (iddd == 324)then
-!     
-                        CALL VMX(1,PLQ4,PLQ5,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ8,A11,1)
-!     
-                        IEEE=3
-!     
+
+                        B11 = matmul(PLQ4, PLQ5)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ8)
+
+                        ieee = 3
+
                         endif 
 !******************************************************************C
                         if (iddd == 325)then
-!     
-                        CALL VMX(1,PLQ1,PLQ8,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ7,A11,1)
-!     
-                        IEEE=4
-!     
+
+                        B11 = matmul(PLQ1, PLQ8)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ7)
+
+                        ieee = 4
+
                         endif 
 !******************************************************************C
                         if (iddd == 326)then
-!     
-                        CALL VMX(1,PLQ1,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ4,C11,1)
-                        CALL VMX(1,C11,DPLQ5,A11,1)
-!     
-                        IEEE=5
-!     
+
+                        B11 = matmul(PLQ1, PL)
+                        C11 = matmul(B11, DPLQ4)
+                        A11 = matmul(C11, DPLQ5)
+
+                        ieee = 5
+
                         endif 
 !******************************************************************C
                         if (iddd == 327)then
-!     
-                        CALL VMX(1,PLQ2,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ1,C11,1)
-                        CALL VMX(1,C11,DPLQ8,A11,1)
-!     
-                        IEEE=6
-!     
+
+                        B11 = matmul(PLQ2, PL)
+                        C11 = matmul(B11, DPLQ1)
+                        A11 = matmul(C11, DPLQ8)
+
+                        ieee = 6
+
                         endif 
 !******************************************************************C
                         if (iddd == 328)then
-!     
-                        CALL VMX(1,PLQ3,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ2,C11,1)
-                        CALL VMX(1,C11,DPLQ7,A11,1)
-!     
-                        IEEE=7
-!     
+
+                        B11 = matmul(PLQ3, PL)
+                        C11 = matmul(B11, DPLQ2)
+                        A11 = matmul(C11, DPLQ7)
+
+                        ieee = 7
+
                         endif 
 !******************************************************************C
                         if (iddd == 329)then
-!     
-                        CALL VMX(1,PLQ4,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ3,C11,1)
-                        CALL VMX(1,C11,DPLQ6,A11,1)
-!     
-                        IEEE=8
-!     
+
+                        B11 = matmul(PLQ4, PL)
+                        C11 = matmul(B11, DPLQ3)
+                        A11 = matmul(C11, DPLQ6)
+
+                        ieee = 8
+
                         endif 
 !******************************************************************C
                         if (iddd == 330)then
-!     
-                        CALL VMX(1,PLQ6,PLQ3,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ2,A11,1)
-!     
-                        IEEE=9
-!     
+
+                        B11 = matmul(PLQ6, PLQ3)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ2)
+
+                        ieee = 9
+
                         endif 
 !******************************************************************C
                         if (iddd == 331)then
-!     
-                        CALL VMX(1,PLQ7,PLQ2,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ1,A11,1)
-!     
-                        IEEE=10
-!     
+
+                        B11 = matmul(PLQ7, PLQ2)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ1)
+
+                        ieee = 10
+
                         endif 
 !******************************************************************C
                         if (iddd == 332)then
-!     
-                        CALL VMX(1,PLQ8,PLQ1,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ4,A11,1)
-!     
-                        IEEE=11
-!     
+
+                        B11 = matmul(PLQ8, PLQ1)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ4)
+
+                        ieee = 11
+
                         endif 
 !******************************************************************C
                         if (iddd == 333)then
-!     
-                        CALL VMX(1,PLQ5,PLQ4,B11,1)
-                        CALL VMX(1,B11,PL,C11,1)
-                        CALL VMX(1,C11,DPLQ3,A11,1)
-!     
-                        IEEE=12
-!     
+
+                        B11 = matmul(PLQ5, PLQ4)
+                        C11 = matmul(B11, PL)
+                        A11 = matmul(C11, DPLQ3)
+
+                        ieee = 12
+
                         endif 
 !******************************************************************C
                         if (iddd == 334)then
-!     
-                        CALL VMX(1,PLQ5,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ8,C11,1)
-                        CALL VMX(1,C11,DPLQ1,A11,1)
-!     
-                        IEEE=13
-!     
+
+                        B11 = matmul(PLQ5, PL)
+                        C11 = matmul(B11, DPLQ8)
+                        A11 = matmul(C11, DPLQ1)
+
+                        ieee = 13
+
                         endif 
 !******************************************************************C
                         if (iddd == 335)then
-!     
-                        CALL VMX(1,PLQ6,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ5,C11,1)
-                        CALL VMX(1,C11,DPLQ4,A11,1)
-!     
-                        IEEE=14
-!     
+
+                        B11 = matmul(PLQ6, PL)
+                        C11 = matmul(B11, DPLQ5)
+                        A11 = matmul(C11, DPLQ4)
+
+                        ieee = 14
+
                         endif 
 !******************************************************************C
                         if (iddd == 336)then
-!     
-                        CALL VMX(1,PLQ7,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ6,C11,1)
-                        CALL VMX(1,C11,DPLQ3,A11,1)
-!     
-                        IEEE=15
-!     
+
+                        B11 = matmul(PLQ7, PL)
+                        C11 = matmul(B11, DPLQ6)
+                        A11 = matmul(C11, DPLQ3)
+
+                        ieee = 15
+
                         endif 
 !******************************************************************C
                         if (iddd == 337)then
-!     
-                        CALL VMX(1,PLQ8,PL,B11,1)
-                        CALL VMX(1,B11,DPLQ7,C11,1)
-                        CALL VMX(1,C11,DPLQ2,A11,1)
-!     
-                        IEEE=16
-!     
+
+                        B11 = matmul(PLQ8, PL)
+                        C11 = matmul(B11, DPLQ7)
+                        A11 = matmul(C11, DPLQ2)
+
+                        ieee = 16
+
                         endif                         
 !******************************************************************c
         endif 
 !******************************************************************C
 ! If the operator does not fit in this blocking level (more than once)
             if (lcnt(ids) < ico) then
-                do 168 IC=1, NCOL2
-                    A11(IC)=LIN0(IC)
-168              continue
+A11 = LIN0
                 M2=ML
-            ELSE
+            else
                 if (ico == 1) then
-                    CALL VMX(1,A11,LIN1,C11,1)
-                    do 169 IC=1,NCOL2
-                        A11(IC)=C11(IC)
-169                 continue
+                    C11 = matmul(A11, LIN1)
+A11 = C11
                 endif 
-!
+
                 if (ico == 2) then
-                    CALL VMX(1,A11,LIN2,C11,1)
-                    do 170 IC=1,NCOL2
-                        A11(IC)=C11(IC)
-170                 continue
+                    C11 = matmul(A11, LIN2)
+A11 = C11
                 endif 
-!
+
                 if (ico == 4) then
-                    CALL VMX(1,A11,LIN4,C11,1)
-                    do 171 IC=1,NCOL2
-                        A11(IC)=C11(IC)
-171                 continue
+                    C11 = matmul(A11, LIN4)
+A11 = C11
                 endif 
                 M2=ML
             endif 
 !***********************************************************************
             endif 
-            CALL VMX(1,A11,REM11,B11,1)
+            B11 = matmul(A11, REM11)
 !***********************************************************************
 !            CALL RENORMBS(B11,UREN11)
 !            do IJ=1,NCOL2
@@ -5166,7 +4711,7 @@ module here_be_dragons
 !               CSUMSMOM(IEEE,3)=CSUMSMOM(IEEE,3)+AKT1*PF(3)
 !               CSUMSMOM(IEEE,4)=CSUMSMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 4).and.(iddd < 9)) then
             CSUM2S(IEEE)=CSUM2S(IEEE)+AKT1
             CSUM2SMOM(IEEE,1)=CSUM2SMOM(IEEE,1)+AKT1*PF(1)
@@ -5174,7 +4719,7 @@ module here_be_dragons
 !               CSUM2SMOM(IEEE,3)=CSUM2SMOM(IEEE,3)+AKT1*PF(3)
 !               CSUM2SMOM(IEEE,4)=CSUM2SMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 8).and.(iddd < 13)) then
             CSUM2WS(IEEE)=CSUM2WS(IEEE)+AKT1
             CSUM2WSMOM(IEEE,1)=CSUM2WSMOM(IEEE,1)+AKT1*PF(1)
@@ -5182,7 +4727,7 @@ module here_be_dragons
 !               CSUM2WSMOM(IEEE,3)=CSUM2WSMOM(IEEE,3)+AKT1*PF(3)
 !               CSUM2WSMOM(IEEE,4)=CSUM2WSMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 12).and.(iddd < 17)) then
             CSUMW(IEEE)=CSUMW(IEEE)+AKT1
             CSUMWMOM(IEEE,1)=CSUMWMOM(IEEE,1)+AKT1*PF(1)
@@ -5190,7 +4735,7 @@ module here_be_dragons
 !               CSUMWMOM(IEEE,3)=CSUMWMOM(IEEE,3)+AKT1*PF(3)
 !               CSUMWMOM(IEEE,4)=CSUMWMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 16).and.(iddd < 21)) then
             CSUM2W(IEEE)=CSUM2W(IEEE)+AKT1
             CSUM2WMOM(IEEE,1)=CSUM2WMOM(IEEE,1)+AKT1*PF(1)
@@ -5198,7 +4743,7 @@ module here_be_dragons
 !               CSUM2WMOM(IEEE,3)=CSUM2WMOM(IEEE,3)+AKT1*PF(3)
 !               CSUM2WMOM(IEEE,4)=CSUM2WMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 20).and.(iddd < 25)) then
             CSUM3W(IEEE)=CSUM3W(IEEE)+AKT1
             CSUM3WMOM(IEEE,1)=CSUM3WMOM(IEEE,1)+AKT1*PF(1)
@@ -5206,7 +4751,7 @@ module here_be_dragons
 !               CSUM3WMOM(IEEE,3)=CSUM3WMOM(IEEE,3)+AKT1*PF(3)
 !               CSUM3WMOM(IEEE,4)=CSUM3WMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 24).and.(iddd < 29)) then
             CSUMUP(IEEE)=CSUMUP(IEEE)+AKT1
             CSUMUPMOM(IEEE,1)=CSUMUPMOM(IEEE,1)+AKT1*PF(1)
@@ -5214,7 +4759,7 @@ module here_be_dragons
 !               CSUMUPMOM(IEEE,3)=CSUMUPMOM(IEEE,3)+AKT1*PF(3)
 !               CSUMUPMOM(IEEE,4)=CSUMUPMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 28).and.(iddd < 33)) then
             CSUMUD(IEEE)=CSUMUD(IEEE)+AKT1
             CSUMUDMOM(IEEE,1)=CSUMUDMOM(IEEE,1)+AKT1*PF(1)
@@ -5222,7 +4767,7 @@ module here_be_dragons
 !               CSUMUDMOM(IEEE,3)=CSUMUDMOM(IEEE,3)+AKT1*PF(3)
 !               CSUMUDMOM(IEEE,4)=CSUMUDMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 32).and.(iddd < 41)) then
             CSUMTT1(IEEE)=CSUMTT1(IEEE)+AKT1
             CSUMTTMOM1(IEEE,1)=CSUMTTMOM1(IEEE,1)+AKT1*PF(1)
@@ -5230,7 +4775,7 @@ module here_be_dragons
 !               CSUMTTMOM1(IEEE,3)=CSUMTTMOM1(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM1(IEEE,4)=CSUMTTMOM1(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 40).and.(iddd < 49)) then
             CSUMTT2(IEEE)=CSUMTT2(IEEE)+AKT1
             CSUMTTMOM2(IEEE,1)=CSUMTTMOM2(IEEE,1)+AKT1*PF(1)
@@ -5238,7 +4783,7 @@ module here_be_dragons
 !               CSUMTTMOM2(IEEE,3)=CSUMTTMOM2(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM2(IEEE,4)=CSUMTTMOM2(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 48).and.(iddd < 57)) then
             CSUMTT3(IEEE)=CSUMTT3(IEEE)+AKT1
             CSUMTTMOM3(IEEE,1)=CSUMTTMOM3(IEEE,1)+AKT1*PF(1)
@@ -5246,7 +4791,7 @@ module here_be_dragons
 !               CSUMTTMOM3(IEEE,3)=CSUMTTMOM3(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM3(IEEE,4)=CSUMTTMOM3(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 56).and.(iddd < 65)) then
             CSUMTT4(IEEE)=CSUMTT4(IEEE)+AKT1
             CSUMTTMOM4(IEEE,1)=CSUMTTMOM4(IEEE,1)+AKT1*PF(1)
@@ -5254,7 +4799,7 @@ module here_be_dragons
 !               CSUMTTMOM4(IEEE,3)=CSUMTTMOM4(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM4(IEEE,4)=CSUMTTMOM4(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 64).and.(iddd < 69)) then
             CSUMTT5(IEEE)=CSUMTT5(IEEE)+AKT1
             CSUMTTMOM5(IEEE,1)=CSUMTTMOM5(IEEE,1)+AKT1*PF(1)
@@ -5262,7 +4807,7 @@ module here_be_dragons
 !               CSUMTTMOM5(IEEE,3)=CSUMTTMOM5(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM5(IEEE,4)=CSUMTTMOM5(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 68).and.(iddd < 73)) then
             CSUMTT6(IEEE)=CSUMTT6(IEEE)+AKT1
             CSUMTTMOM6(IEEE,1)=CSUMTTMOM6(IEEE,1)+AKT1*PF(1)
@@ -5270,7 +4815,7 @@ module here_be_dragons
 !               CSUMTTMOM6(IEEE,3)=CSUMTTMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM6(IEEE,4)=CSUMTTMOM6(IEEE,4)+AKT1*PF(4)
             endif 
-!            
+
             if ((iddd > 72).and.(iddd < 81)) then
             CSUMTT7(IEEE)=CSUMTT7(IEEE)+AKT1
             CSUMTTMOM7(IEEE,1)=CSUMTTMOM7(IEEE,1)+AKT1*PF(1)
@@ -5278,7 +4823,7 @@ module here_be_dragons
 !               CSUMTTMOM7(IEEE,3)=CSUMTTMOM7(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM7(IEEE,4)=CSUMTTMOM7(IEEE,4)+AKT1*PF(4)
             endif 
-!            
+
             if ((iddd > 80).and.(iddd < 89)) then
             CSUMTT8(IEEE)=CSUMTT8(IEEE)+AKT1
             CSUMTTMOM8(IEEE,1)=CSUMTTMOM8(IEEE,1)+AKT1*PF(1)
@@ -5286,7 +4831,7 @@ module here_be_dragons
 !               CSUMTTMOM8(IEEE,3)=CSUMTTMOM8(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM8(IEEE,4)=CSUMTTMOM8(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 88).and.(iddd < 97)) then
             CSUMTT9(IEEE)=CSUMTT9(IEEE)+AKT1
             CSUMTTMOM9(IEEE,1)=CSUMTTMOM9(IEEE,1)+AKT1*PF(1)
@@ -5294,7 +4839,7 @@ module here_be_dragons
 !               CSUMTTMOM9(IEEE,3)=CSUMTTMOM9(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM9(IEEE,4)=CSUMTTMOM9(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 96).and.(iddd < 105)) then
             CSUMTT10(IEEE)=CSUMTT10(IEEE)+AKT1
             CSUMTTMOM10(IEEE,1)=CSUMTTMOM10(IEEE,1)+AKT1*PF(1)
@@ -5302,7 +4847,7 @@ module here_be_dragons
 !               CSUMTTMOM10(IEEE,3)=CSUMTTMOM10(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM10(IEEE,4)=CSUMTTMOM10(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 104).and.(iddd < 113)) then
             CSUMTT11(IEEE)=CSUMTT11(IEEE)+AKT1
             CSUMTTMOM11(IEEE,1)=CSUMTTMOM11(IEEE,1)+AKT1*PF(1)
@@ -5310,7 +4855,7 @@ module here_be_dragons
 !               CSUMTTMOM11(IEEE,3)=CSUMTTMOM11(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM11(IEEE,4)=CSUMTTMOM11(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 112).and.(iddd < 129)) then
             CSUMTT12(IEEE)=CSUMTT12(IEEE)+AKT1
             CSUMTTMOM12(IEEE,1)=CSUMTTMOM12(IEEE,1)+AKT1*PF(1)
@@ -5318,7 +4863,7 @@ module here_be_dragons
 !               CSUMTTMOM12(IEEE,3)=CSUMTTMOM12(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM12(IEEE,4)=CSUMTTMOM12(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 128).and.(iddd < 137)) then
             CSUMTT13(IEEE)=CSUMTT13(IEEE)+AKT1
             CSUMTTMOM13(IEEE,1)=CSUMTTMOM13(IEEE,1)+AKT1*PF(1)
@@ -5326,7 +4871,7 @@ module here_be_dragons
 !               CSUMTTMOM13(IEEE,3)=CSUMTTMOM13(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM13(IEEE,4)=CSUMTTMOM13(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 136).and.(iddd < 145)) then
             CSUMTT14(IEEE)=CSUMTT14(IEEE)+AKT1
             CSUMTTMOM14(IEEE,1)=CSUMTTMOM14(IEEE,1)+AKT1*PF(1)
@@ -5334,11 +4879,11 @@ module here_be_dragons
 !               CSUMTTMOM14(IEEE,3)=CSUMTTMOM14(IEEE,3)+AKT1*PF(3)
 !               CSUMTTMOM14(IEEE,4)=CSUMTTMOM14(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if (iddd == 145) then
             CSUMN=CSUMN+AKT1
             endif 
-!
+
             if ((iddd > 145).and.(iddd < 154)) then
             CSUMPLQ(IEEE)=CSUMPLQ(IEEE)+AKT1
             CSUMPLQMOM(IEEE,1)=CSUMPLQMOM(IEEE,1)+AKT1*PF(1)
@@ -5346,7 +4891,7 @@ module here_be_dragons
 !               CSUMPLQMOM(IEEE,3)=CSUMPLQMOM(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM(IEEE,4)=CSUMPLQMOM(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 153).and.(iddd < 162)) then
             CSUMPLQ2(IEEE)=CSUMPLQ2(IEEE)+AKT1
             CSUMPLQMOM2(IEEE,1)=CSUMPLQMOM2(IEEE,1)+AKT1*PF(1)
@@ -5354,7 +4899,7 @@ module here_be_dragons
 !               CSUMPLQMOM2(IEEE,3)=CSUMPLQMOM2(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM2(IEEE,4)=CSUMPLQMOM2(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 161).and.(iddd < 170)) then
             CSUMPLQ3(IEEE)=CSUMPLQ3(IEEE)+AKT1
             CSUMPLQMOM3(IEEE,1)=CSUMPLQMOM3(IEEE,1)+AKT1*PF(1)
@@ -5362,7 +4907,7 @@ module here_be_dragons
 !               CSUMPLQMOM3(IEEE,3)=CSUMPLQMOM3(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM3(IEEE,4)=CSUMPLQMOM3(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 169).and.(iddd < 178)) then
             CSUMPLQ4(IEEE)=CSUMPLQ4(IEEE)+AKT1
             CSUMPLQMOM4(IEEE,1)=CSUMPLQMOM4(IEEE,1)+AKT1*PF(1)
@@ -5370,7 +4915,7 @@ module here_be_dragons
 !               CSUMPLQMOM4(IEEE,3)=CSUMPLQMOM4(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM4(IEEE,4)=CSUMPLQMOM4(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 177).and.(iddd < 186)) then
             CSUMPLQ5(IEEE)=CSUMPLQ5(IEEE)+AKT1
             CSUMPLQMOM5(IEEE,1)=CSUMPLQMOM5(IEEE,1)+AKT1*PF(1)
@@ -5378,7 +4923,7 @@ module here_be_dragons
 !               CSUMPLQMOM5(IEEE,3)=CSUMPLQMOM5(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM5(IEEE,4)=CSUMPLQMOM5(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 185).and.(iddd < 194)) then
             CSUMPLQ6(IEEE)=CSUMPLQ6(IEEE)+AKT1
             CSUMPLQMOM6(IEEE,1)=CSUMPLQMOM6(IEEE,1)+AKT1*PF(1)
@@ -5386,7 +4931,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 193).and.(iddd < 210)) then
             CSUMPLQ7(IEEE)=CSUMPLQ7(IEEE)+AKT1
             CSUMPLQMOM7(IEEE,1)=CSUMPLQMOM7(IEEE,1)+AKT1*PF(1)
@@ -5394,7 +4939,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 209).and.(iddd < 226)) then 
             CSUMPLQ8(IEEE)=CSUMPLQ8(IEEE)+AKT1
             CSUMPLQMOM8(IEEE,1)=CSUMPLQMOM8(IEEE,1)+AKT1*PF(1)
@@ -5402,7 +4947,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 225).and.(iddd < 242)) then 
             CSUMPLQ9(IEEE)=CSUMPLQ9(IEEE)+AKT1
             CSUMPLQMOM9(IEEE,1)=CSUMPLQMOM9(IEEE,1)+AKT1*PF(1)
@@ -5410,7 +4955,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 241).and.(iddd < 258)) then 
             CSUMPLQ10(IEEE)=CSUMPLQ10(IEEE)+AKT1
             CSUMPLQMOM10(IEEE,1)=CSUMPLQMOM10(IEEE,1)+AKT1*PF(1)
@@ -5418,7 +4963,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif    
-!
+
             if ((iddd > 257).and.(iddd < 274)) then 
             CSUMPLQ11(IEEE)=CSUMPLQ11(IEEE)+AKT1
             CSUMPLQMOM11(IEEE,1)=CSUMPLQMOM11(IEEE,1)+AKT1*PF(1)
@@ -5426,7 +4971,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif 
-!
+
             if ((iddd > 273).and.(iddd < 290)) then 
             CSUMPLQ12(IEEE)=CSUMPLQ12(IEEE)+AKT1
             CSUMPLQMOM12(IEEE,1)=CSUMPLQMOM12(IEEE,1)+AKT1*PF(1)
@@ -5434,7 +4979,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif   
-!
+
             if ((iddd > 289).and.(iddd < 306)) then 
             CSUMPLQ13(IEEE)=CSUMPLQ13(IEEE)+AKT1
             CSUMPLQMOM13(IEEE,1)=CSUMPLQMOM13(IEEE,1)+AKT1*PF(1)
@@ -5442,7 +4987,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif   
-!
+
             if ((iddd > 305).and.(iddd < 322)) then 
             CSUMPLQ14(IEEE)=CSUMPLQ14(IEEE)+AKT1
             CSUMPLQMOM14(IEEE,1)=CSUMPLQMOM14(IEEE,1)+AKT1*PF(1)
@@ -5450,7 +4995,7 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif   
-!
+
             if ((iddd > 321).and.(iddd < 338)) then 
             CSUMPLQ15(IEEE)=CSUMPLQ15(IEEE)+AKT1
             CSUMPLQMOM15(IEEE,1)=CSUMPLQMOM15(IEEE,1)+AKT1*PF(1)
@@ -5458,9 +5003,9 @@ module here_be_dragons
 !               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
 !               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
             endif   
-    !     
+    
     9       continue ! OPERATOR CONSTRUCTION LOOP end
-    !
+    
         enddo
         enddo
         enddo
@@ -6423,7 +5968,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     TT-9 OPERATORS 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -6441,7 +5986,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     TT-9 OPERATORS CP=-,Pz=-,J=0
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************
     !     J=0, Pp=-, Pr=-, q=0
     !**********************************************************************
@@ -6513,7 +6058,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     TT-10 OPERATORS
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************                  
@@ -7040,7 +6585,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATOR 1
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -7123,7 +6668,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATOR 2
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !      
+    
     !**********************************************************************
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************                  
@@ -7380,7 +6925,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     ! PLAQUETTE OPERATOR 5  
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************                        
@@ -7468,7 +7013,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 6
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -7558,7 +7103,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 7
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -7724,7 +7269,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 8
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -7890,7 +7435,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 9
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -8056,7 +7601,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 10
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -8224,7 +7769,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 11
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -8392,7 +7937,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 12
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -8560,7 +8105,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 13
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -8728,7 +8273,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 14
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
@@ -8896,7 +8441,7 @@ module here_be_dragons
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     PLAQUETTE OPERATORS 15
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !
+    
     !**********************************************************************      
     !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
