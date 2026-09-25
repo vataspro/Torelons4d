@@ -383,7 +383,7 @@ C***********************************************************************
       IMPLICIT REAL*8 (A-H,O-Z)
       PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
       PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
-      PARAMETER(NITER=218,NUMBIN=2)
+      PARAMETER(NITER=2,NUMBIN=2)
       PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 C
       COMMON/ARRAYS/U11(NCOL2,LSIZE,4)
@@ -439,7 +439,7 @@ C***************************SUBROUTINE TODISK*************************
 C*********************************************************************
       SUBROUTINE TODISK1
       IMPLICIT REAL*8 (A-H,O-Z)
-      PARAMETER(IBLOK=5,NUMBIN=2,NITER=218)
+      PARAMETER(IBLOK=5,NUMBIN=2,NITER=2)
       PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
       PARAMETER(LMAX=LX4/2+1)
       PARAMETER(LMAXIR=3)
@@ -703,7 +703,7 @@ C***************************SUBROUTINE TODISK*************************
 C*********************************************************************
       SUBROUTINE TODISK2
       IMPLICIT REAL*8 (A-H,O-Z)
-      PARAMETER(IBLOK=5,NUMBIN=2,NITER=218)
+      PARAMETER(IBLOK=5,NUMBIN=2,NITER=2)
       PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
       PARAMETER(LMAX=LX4/2+1)
       PARAMETER(LMAXIR=3)
@@ -17799,7 +17799,7 @@ C*********************************************************************
       SUBROUTINE ACTION(IPR,ITER,TOTACT)
       IMPLICIT REAL*8 (A-H,O-Z)
       PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
-      PARAMETER(NITER=218,NUMBIN=2)
+      PARAMETER(NITER=2,NUMBIN=2)
       PARAMETER(LSIZE=LX1*LX2*LX3*LX4)
       PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 C
@@ -17924,7 +17924,7 @@ C***********************************************************************
       SUBROUTINE POLY(IPR,ITER)
       IMPLICIT REAL*8 (A-H,O-Z)
       PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
-      PARAMETER(NITER=218,NUMBIN=2)
+      PARAMETER(NITER=2,NUMBIN=2)
       PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
       PARAMETER(NCOL=2,NCOL2=NCOL*NCOL)
 C
