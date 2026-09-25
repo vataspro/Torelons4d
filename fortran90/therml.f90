@@ -14,7 +14,7 @@ module loop_builder
     integer, PARAMETER :: LSIZE=LSIZEB*LX4
     contains
 
-FUNCTION get_square(GaugeField, site_idx, direction, IUP, other_idx, SQUY1) result(A11)
+FUNCTION get_square(GaugeField, site_idx, direction, IUP, other_idx, A11) result(SQUY1)
     implicit none
     integer(int32), intent(in) :: site_idx, direction
     integer(int32), intent(in) :: IUP(LSIZEB,3)
@@ -22,10 +22,13 @@ FUNCTION get_square(GaugeField, site_idx, direction, IUP, other_idx, SQUY1) resu
 
     integer(int32) :: IC
     integer(int32) :: KU = 1
-    complex(real32) :: A11(NCOL2), B11(NCOL2), C11(NCOL2), D11(NCOL2), DUM11(NCOL2)
+    complex(real32) :: B11(NCOL2), C11(NCOL2), D11(NCOL2), DUM11(NCOL2)
 
+    complex(real32) :: SQUY1(NCOL2)
     integer(int32), intent(out) :: other_idx
-    complex(real32), intent(out) :: SQUY1(NCOL2)
+
+    complex(real32), intent(inout) :: A11(NCOL2)
+
     ! LOCAL: B11, C11, D11, M3
     ! LOCAL CTRS: IC
     ! IN: NCOL2, M2, M3, JU, KU
