@@ -2,15 +2,17 @@ FC = gfortran
 ARCH := $(shell uname -m)
 
 ifeq ($(ARCH),x86_64)
-FFLAGS ?= -O3 -mcmodel=medium
+FFLAGS ?= -O2 -mcmodel=medium -ffree-line-length-none
 else
-FFLAGS ?= -O3
+FFLAGS ?= -O2 -ffree-line-length-none
 endif
 
 BUILD_DIR := build
 TARGET := torelons_4D_adjoint
 
 SOURCES := \
+	parameters.f90 \
+	lattice.f90 \
 	luesher.f90 \
 	correlator_construction.f90 \
 	therml.f90 \

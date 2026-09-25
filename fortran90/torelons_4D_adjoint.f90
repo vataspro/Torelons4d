@@ -2494,6 +2494,13 @@ SUBROUTINE BLOCK
 use iso_fortran_env, only : real32, real64, int32
 use correlator_construction_mod, only : pot
 use loop_builder, only : THERML1
+use lattice, only : setup_lattice, get_smeared_gauge_field
+use parameters, only : p_NCOL => NCOL, p_LX1 => LX1, p_LX2 => LX2, &
+  & p_LX3 => LX3, p_LX4 => LX4, p_MAX_BLOCKING_LEVEL => MAX_BLOCKING_LEVEL, &
+  & p_STAPLE_WEIGHT => STAPLE_WEIGHT, &
+  & p_DIAGONAL_STAPLE_WEIGHT => DIAGONAL_STAPLE_WEIGHT, p_TOL_SVD => TOL_SVD, &
+  & p_SLICE_VOLUME => SLICE_VOLUME, p_LATTICE_VOLUME => LATTICE_VOLUME, &
+  & p_NCOL2 => NCOL2, p_MAX_DELTA_T => MAX_DELTA_T
 implicit real(real64) (A-H,O-Z)
 PARAMETER(LX1=26,LX2=26,LX3=26,LX4=52)
 PARAMETER(LSIZEB=LX1*LX2*LX3,LSIZE=LSIZEB*LX4)
@@ -2505,10 +2512,33 @@ COMMON/ARRAYB/UB11(NCOL2,LSIZEB,3,IBLOK)
 COMMON/ASMEAR1/UC11(NCOL2,LSIZEB,3)
 COMMON/ASMEAR2/IUP(LSIZEB,3),IDN(LSIZEB,3)
 COMMON/NEXTB/IUPB(LSIZEB,3,IBLOK+1),IDNB(LSIZEB,3,IBLOK+1)
+
 DIMENSION A11(NCOL2),B11(NCOL2),C11(NCOL2)
+
 complex(real32) :: U11,UB11,A11,B11,C11,UC11
+complex(real64) :: gauge_field_slice(NCOL,NCOL,LSIZEB,3)
+complex(real64) :: smeared_gauge_field(NCOL,NCOL,LSIZEB,3)
+logical, save :: lattice_ready = .false.
 !
 CALL cpu_time(t1)
+IF(.NOT.lattice_ready)THEN
+p_NCOL=NCOL
+p_LX1=LX1
+p_LX2=LX2
+p_LX3=LX3
+p_LX4=LX4
+p_MAX_BLOCKING_LEVEL=IBLOK
+p_STAPLE_WEIGHT=0.30_real64
+p_DIAGONAL_STAPLE_WEIGHT=0.12_real64
+p_TOL_SVD=1.0e-8_real64
+p_SLICE_VOLUME=LSIZEB
+p_LATTICE_VOLUME=LSIZE
+p_NCOL2=NCOL2
+p_MAX_DELTA_T=LX4/2
+CALL setup_lattice
+lattice_ready=.true.
+END IF
+
 do I4=1,LX4
 !
 do IBL=1,IBLOK
@@ -2534,7 +2564,17 @@ UC11(IJ,NN,KK)=UB11(IJ,NN,KK,IBLM)
 end do
 end do
 end do
-CALL SMEAR1
+DO KK=1,3
+DO NN=1,LSIZEB
+gauge_field_slice(:,:,NN,KK)=reshape(cmplx(UC11(:,NN,KK), kind=real64), [NCOL,NCOL])
+end do
+end do
+smeared_gauge_field=get_smeared_gauge_field(gauge_field_slice,IBLM)
+DO KK=1,3
+DO NN=1,LSIZEB
+UC11(:,NN,KK)=reshape(cmplx(smeared_gauge_field(:,:,NN,KK), kind=real32), [NCOL2])
+end do
+end do
 !
 DO MU=1,3
 DO NN=1,LSIZEB
