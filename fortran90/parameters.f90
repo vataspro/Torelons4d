@@ -2,6 +2,9 @@ module parameters
     use iso_fortran_env, only : int8, int32, int64, real32, real64
     implicit none
 
+    !! Define pi
+    real(real64), parameter :: PI = 4.0d0 * atan(1.0d0)
+
     !! Declare input parameters
     ! Configuration file path and file name (without configuration number)
     character(len=256) :: FILEPATH, FILENAME
