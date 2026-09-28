@@ -4362,10 +4362,9 @@ module here_be_dragons
 
                                 !******************************************************************c
                                 end select
-                            endif
                             !******************************************************************C
                             ! If the operator does not fit in this blocking level (more than once)
-                            if (lcnt(ids) < ico) then
+                            elseif (lcnt(ids) < ico) then
                                 A11 = LIN0
                                 M2=ML
                             else

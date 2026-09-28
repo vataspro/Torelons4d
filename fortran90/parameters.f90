@@ -25,6 +25,9 @@ module parameters
     real(real64) :: DIAGONAL_STAPLE_WEIGHT ! Weighting of diagonal staples in smearing procedure, renamed from PARBDS
     real(real64) :: TOL_SVD ! Tolerance on SVD-unitarisation algorithm. Set to between 1e-6 - 1e-10.
 
+    ! Measurement parameters
+    integer :: NUM_BINS
+
     !! Declare dependant parameters
     ! Lattice parameters
     integer :: SLICE_VOLUME ! Number of sites in one slice, renamed from LSIZEB
@@ -46,7 +49,7 @@ module parameters
 
         ! Define variables to read in from parameter file
         namelist /params/ FILEPATH, FILENAME, NCOL, LX1, LX2, LX3, LX4, NCONFIG, CONFIG_STEP, CONFIG_START, &
-        MAX_BLOCKING_LEVEL, STAPLE_WEIGHT, DIAGONAL_STAPLE_WEIGHT, TOL_SVD
+        MAX_BLOCKING_LEVEL, STAPLE_WEIGHT, DIAGONAL_STAPLE_WEIGHT, TOL_SVD, NUM_BINS
 
         ! Read parameters from parameter file
         open(10, file=trim(parameter_filename))
