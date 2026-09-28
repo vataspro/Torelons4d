@@ -47,8 +47,8 @@ program mock_main
     do site_idx=1,SLICE_VOLUME
     !    do blevel=1,MAX_BLOCKING_LEVEL
                 A11 = get_I(2)
-                call loop_1(site_idx, site_out, A11, 1)
-                write(outfilename,  '(A,I0,A,I0,A)') 'LOOP1_SITE',site_idx,'_BL',1,'.DAT'
+                call loop_1(site_idx, site_out, A11, 2)
+                write(outfilename,  '(A,I0,A,I0,A)') 'LOOP1_SITE',site_idx,'_BL',2,'.DAT'
                 open(11, file=trim(outfilename),FORM='UNFORMATTED',status='REPLACE',ACCESS='STREAM')
                 WRITE(11) A11
                 close(11)
