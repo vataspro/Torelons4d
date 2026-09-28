@@ -1464,4 +1464,33 @@ module thermal_lines
         out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_40
 
+
+    !##############################################
+    !          PLAQUETTES    
+    !
+    !             |\       
+    !            x|_\___
+    !             \ |
+    !              \|
+    !
+    !##############################################
+    ! Loop 143: plaquette x 1 polyakov link
+    subroutine loop_143(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(plaquette(in_site, 1, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+
+
+        out_site = in_site
+        
+    end subroutine loop_143
+
 end module
