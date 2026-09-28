@@ -373,7 +373,7 @@ module thermal_lines
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
 
-        A11 = matmul(A11, square_pulse(in_site, 2, blocking_level))
+        A11 = square_pulse(in_site, 2, blocking_level)
         out_site = move(in_site, 1, blocking_level)
     end subroutine
 
@@ -384,7 +384,7 @@ module thermal_lines
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
 
-        A11 = matmul(A11, square_pulse(in_site, 3, blocking_level))
+        A11 = square_pulse(in_site, 3, blocking_level)
         out_site = move(in_site, 1, blocking_level)
     end subroutine
 
@@ -395,7 +395,7 @@ module thermal_lines
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
 
-        A11 = matmul(A11, square_pulse(in_site, -2, blocking_level))
+        A11 = square_pulse(in_site, -2, blocking_level)
         out_site = move(in_site, 1, blocking_level)
     end subroutine
 
@@ -406,7 +406,7 @@ module thermal_lines
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
 
-        A11 = matmul(A11, square_pulse(in_site, -3, blocking_level))
+        A11 = square_pulse(in_site, -3, blocking_level)
         out_site = move(in_site, 1, blocking_level)
     end subroutine
 
@@ -422,16 +422,16 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: middle_site
+        integer :: mid_site
 
-        middle_site = move(in_site, 1, blocking_level)
+        mid_site = move(in_site, 1, blocking_level)
 
-        A11 = matmul(A11, matmul( &
+        A11 = matmul( &
             square_pulse(in_site, 2, blocking_level), &
-            square_pulse(middle_site, 2, blocking_level) &
-        ))
+            square_pulse(mid_site, 2, blocking_level) &
+        )
 
-        out_site = move(middle_site, 1, blocking_level)
+        out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_5
 
     ! Loop 6: up-up square pulse Z
@@ -440,16 +440,16 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: middle_site
+        integer :: mid_site
 
-        middle_site = move(in_site, 1, blocking_level)
+        mid_site = move(in_site, 1, blocking_level)
 
-        A11 = matmul(A11, matmul( &
+        A11 = matmul( &
             square_pulse(in_site, 3, blocking_level), &
-            square_pulse(middle_site, 3, blocking_level) &
-        ))
+            square_pulse(mid_site, 3, blocking_level) &
+        )
 
-        out_site = move(middle_site, 1, blocking_level)
+        out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_6
 
     !##############################################
@@ -464,16 +464,16 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: middle_site
+        integer :: mid_site
 
-        middle_site = move(in_site, 1, blocking_level)
+        mid_site = move(in_site, 1, blocking_level)
 
-        A11 = matmul(A11, matmul( &
+        A11 = matmul( &
             square_pulse(in_site, -2, blocking_level), &
-            square_pulse(middle_site, -2, blocking_level) &
-        ))
+            square_pulse(mid_site, -2, blocking_level) &
+        )
 
-        out_site = move(middle_site, 1, blocking_level)
+        out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_7
 
     ! Loop 8: down-down square pulse Z
@@ -482,16 +482,16 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: middle_site
+        integer :: mid_site
 
-        middle_site = move(in_site, 1, blocking_level)
+        mid_site = move(in_site, 1, blocking_level)
 
-        A11 = matmul(A11, matmul( &
+        A11 = matmul( &
             square_pulse(in_site, -3, blocking_level), &
-            square_pulse(middle_site, -3, blocking_level) &
-        ))
+            square_pulse(mid_site, -3, blocking_level) &
+        )
 
-        out_site = move(middle_site, 1, blocking_level)
+        out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_8
 
     !##############################################
@@ -507,16 +507,39 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: i
+        integer :: mid_site
 
-        A11 = matmul(square_pulse(in_site, 2, blocking_level), &
-        square_pulse(move(in_site, 1, blocking_level), -2, blocking_level))
+        mid_site = move(in_site, 1, blocking_level)
 
-        out_site = in_site
-        do  i = 1, 2
-            out_site = move(out_site, 1, blocking_level)
-        enddo
-    end subroutine
+        A11 = matmul( &
+            square_pulse(in_site, 2, blocking_level), &
+            square_pulse(mid_site, -2, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_9
+
+    ! Loop 13: same as loop 9, but at previous blocking level
+    subroutine loop_13(in_site, out_site, A11, blocking_level)
+	    implicit none
+	    integer, intent(in) :: in_site, blocking_level
+	    integer, intent(out) :: out_site
+	    complex(real64), intent(inout) :: A11(NCOL, NCOL)
+	    integer :: mid_site
+	    integer :: previous_blocking_level
+
+	    previous_blocking_level = blocking_level - 1
+	    if (previous_blocking_level == 0) previous_blocking_level = 1
+
+	    mid_site = move(in_site, 1, previous_blocking_level)
+
+	    A11 = matmul( &
+	        square_pulse(in_site, 2, previous_blocking_level), &
+	        square_pulse(mid_site, -2, previous_blocking_level) &
+	    )
+
+	    out_site = move(mid_site, 1, previous_blocking_level)
+    end subroutine loop_13    
 
     ! Loop 10: up-down square pulse Z
     subroutine loop_10(in_site, out_site, A11, blocking_level)
@@ -524,17 +547,39 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: middle_site
+        integer :: mid_site
 
-        middle_site = move(in_site, 1, blocking_level)
+        mid_site = move(in_site, 1, blocking_level)
 
-        A11 = matmul(A11, matmul( &
+        A11 = matmul( &
             square_pulse(in_site, 3, blocking_level), &
-            square_pulse(middle_site, -3, blocking_level) &
-        ))
+            square_pulse(mid_site, -3, blocking_level) &
+        )
 
-        out_site = move(middle_site, 1, blocking_level)
+        out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_10
+
+    ! Loop 14: same as loop 10, but at previous blocking level
+    subroutine loop_14(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site = move(in_site, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, 3, previous_blocking_level), &
+            square_pulse(mid_site, -3, previous_blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, previous_blocking_level)
+    end subroutine loop_14
 
     !##############################################
     !          DOWN-UP SQUARE PULSES
@@ -549,17 +594,39 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: middle_site
+        integer :: mid_site
 
-        middle_site = move(in_site, 1, blocking_level)
+        mid_site = move(in_site, 1, blocking_level)
 
-        A11 = matmul(A11, matmul( &
+        A11 = matmul( &
             square_pulse(in_site, -2, blocking_level), &
-            square_pulse(middle_site, 2, blocking_level) &
-        ))
+            square_pulse(mid_site, 2, blocking_level) &
+        )
 
-        out_site = move(middle_site, 1, blocking_level)
+        out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_11
+
+    ! Loop 15: same as loop 11, but at previous blocking level
+    subroutine loop_15(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site = move(in_site, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, -2, previous_blocking_level), &
+            square_pulse(mid_site, 2, previous_blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, previous_blocking_level)
+    end subroutine loop_15
 
     ! Loop 12: down-up square pulse Z
     subroutine loop_12(in_site, out_site, A11, blocking_level)
@@ -567,18 +634,834 @@ module thermal_lines
         integer, intent(in) :: in_site, blocking_level
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: middle_site
+        integer :: mid_site
 
-        middle_site = move(in_site, 1, blocking_level)
+        mid_site = move(in_site, 1, blocking_level)
 
-        A11 = matmul(A11, matmul( &
+        A11 = matmul( &
             square_pulse(in_site, -3, blocking_level), &
-            square_pulse(middle_site, 3, blocking_level) &
-        ))
+            square_pulse(mid_site, 3, blocking_level) &
+        )
 
-        out_site = move(middle_site, 1, blocking_level)
+        out_site = move(mid_site, 1, blocking_level)
     end subroutine loop_12
 
+    ! Loop 16: same as loop 12, but at previous blocking level
+    subroutine loop_16(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+        integer :: previous_blocking_level
 
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site = move(in_site, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, -3, previous_blocking_level), &
+            square_pulse(mid_site, 3, previous_blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, previous_blocking_level)
+    end subroutine loop_16
+
+    !##############################################
+    !          UP-DOWN UP-DOWN SQUARE PULSES (WAVE)
+    !    __    __     
+    ! __|  |  |  |   __
+    !      |__|  |__|
+    !
+    !##############################################
+    ! Loop 17: up-down up-down wave-like pulse Y, at previous blocking level
+    subroutine loop_17(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, 2, previous_blocking_level), &
+                square_pulse(mid_site_1, -2, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, 2, previous_blocking_level), &
+                square_pulse(mid_site_3, -2, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_17
+
+    ! Loop 18: up-down up-down wave-like pulse Z, at previous blocking level
+    subroutine loop_18(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, 3, previous_blocking_level), &
+                square_pulse(mid_site_1, -3, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, 3, previous_blocking_level), &
+                square_pulse(mid_site_3, -3, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_18
+
+    !##############################################
+    !          DOWN-UP DOWN-UP SQUARE PULSES (WAVE)
+    !       __    __ 
+    ! __   |  |  |  |__
+    !   |__|  |__|
+    !
+    !##############################################
+    ! Loop 19: down-up down-up wave-like pulse Y, at previous blocking level
+    subroutine loop_19(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, -2, previous_blocking_level), &
+                square_pulse(mid_site_1, 2, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, -2, previous_blocking_level), &
+                square_pulse(mid_site_3, 2, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_19
+
+    ! Loop 20: down-up down-up wave-like pulse Z, at previous blocking level
+    subroutine loop_20(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, -3, previous_blocking_level), &
+                square_pulse(mid_site_1, 3, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, -3, previous_blocking_level), &
+                square_pulse(mid_site_3, 3, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_20
+
+    !##############################################
+    !          UP-DOWN DOWN-UP SQUARE PULSES
+    !    __        __              __       __
+    ! __|  |      |  |__   ->   __|  |     |  |__
+    !      |__||__|                  |__ __|
+    !
+    !##############################################
+    ! Loop 21: up-down down-up wave-like pulse Y, at previous blocking level
+    subroutine loop_21(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, 2, previous_blocking_level), &
+                square_pulse(mid_site_1, -2, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, -2, previous_blocking_level), &
+                square_pulse(mid_site_3, 2, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_21
+
+    ! Loop 22: up-down down-up wave-like pulse Z, at previous blocking level
+    subroutine loop_22(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, 3, previous_blocking_level), &
+                square_pulse(mid_site_1, -3, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, -3, previous_blocking_level), &
+                square_pulse(mid_site_3, 3, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_22
+
+    !##############################################
+    !          DOWN-UP UP-DOWN SQUARE PULSES
+    !       __  __                    __ __
+    ! __   |  ||  |   __   ->   __   |     |   __
+    !   |__|      |__|            |__|     |__|
+    !
+    !##############################################
+    ! Loop 23: down-up up-down wave-like pulse Y, at previous blocking level
+    subroutine loop_23(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, -2, previous_blocking_level), &
+                square_pulse(mid_site_1, 2, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, 2, previous_blocking_level), &
+                square_pulse(mid_site_3, -2, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_23
+
+    ! Loop 24: down-up up-down wave-like pulse Z, at previous blocking level
+    subroutine loop_24(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        A11 = matmul( &
+            matmul( &
+                square_pulse(in_site, -3, previous_blocking_level), &
+                square_pulse(mid_site_1, 3, previous_blocking_level) &
+            ), &
+            matmul( &
+                square_pulse(mid_site_2, 3, previous_blocking_level), &
+                square_pulse(mid_site_3, -3, previous_blocking_level) &
+            ) &
+        )
+
+        out_site = move(mid_site_3, 1, previous_blocking_level)
+    end subroutine loop_24
+
+    !##############################################
+    !          UP-BRIDGE-UP PULSES
+    !    __       __ 
+    ! __|  |__ __|  |__
+    !
+    !##############################################
+    ! Loop 25: up Y pulse + straight K bridge + up Y pulse
+    subroutine loop_25(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, 2, previous_blocking_level), &
+            bridge                                                &
+        ), &
+            square_pulse(mid_site_3, 2, previous_blocking_level)  &
+        )
+
+        out_site = in_site
+    end subroutine loop_25
+
+    ! Loop 26: up Z pulse + straight K bridge + up Z pulse
+    subroutine loop_26(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, 3, previous_blocking_level), &
+            bridge &
+        ), &
+            square_pulse(mid_site_3, 3, previous_blocking_level)  &
+        )
+
+        out_site = in_site
+    end subroutine loop_26
+
+    !##############################################
+    !          DOWN-BRIDGE-DOWN PULSES
+    !   __    __ __    __ 
+    !     |__|     |__|
+    !
+    !##############################################
+    ! Loop 27: down Y pulse + straight K bridge + down Y pulse
+    subroutine loop_27(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, -2, previous_blocking_level), &
+            bridge &
+        ), &
+            square_pulse(mid_site_3, -2, previous_blocking_level) &
+        )
+
+        out_site = in_site
+    end subroutine loop_27
+
+    ! Loop 28: down Z pulse + straight K bridge + down Z pulse
+    subroutine loop_28(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, -3, previous_blocking_level), &
+            bridge &
+        ), &
+            square_pulse(mid_site_3, -3, previous_blocking_level) &
+        )
+
+        out_site = in_site
+    end subroutine loop_28
+
+    !##############################################
+    !          UP-BRIDGE-DOWN PULSES
+    !     __         
+    !  __|  |__ __    __
+    !             |__|
+    !
+    !##############################################
+    ! Loop 29: up Y pulse + straight K bridge + down Y pulse
+    subroutine loop_29(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, 2, previous_blocking_level), &
+            bridge &
+        ), &
+            square_pulse(mid_site_3, -2, previous_blocking_level) &
+        )
+
+        out_site = in_site
+    end subroutine loop_29
+
+    ! Loop 30: up Z pulse + straight K bridge + down Z pulse
+    subroutine loop_30(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, 3, previous_blocking_level), &
+            bridge &
+        ), &
+            square_pulse(mid_site_3, -3, previous_blocking_level) &
+        )
+
+        out_site = in_site
+    end subroutine loop_30
+
+    !##############################################
+    !          DOWN-BRIDGE-UP PULSES
+    !              __        
+    !  __    __ __|  |__
+    !    |__|
+    !
+    !##############################################
+    ! Loop 31: down Y pulse + straight K bridge + up Y pulse
+    subroutine loop_31(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, -2, previous_blocking_level), &
+            bridge &
+        ), &
+            square_pulse(mid_site_3, 2, previous_blocking_level) &
+        )
+
+        out_site = in_site
+    end subroutine loop_31
+
+    ! Loop 32: down Z pulse + straight K bridge + up Z pulse
+    subroutine loop_32(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: bridge(NCOL, NCOL)
+        integer :: mid_site_1, mid_site_2, mid_site_3
+        integer :: previous_blocking_level
+
+
+        previous_blocking_level = blocking_level - 1
+        if (previous_blocking_level == 0) previous_blocking_level = 1
+
+        mid_site_1 = move(in_site, 1, previous_blocking_level)
+        mid_site_2 = move(mid_site_1, 1, previous_blocking_level)
+        mid_site_3 = move(mid_site_2, 1, previous_blocking_level)
+
+        if (blocking_level == 1) then
+            bridge = matmul( &
+                gauge_field_blocked(:, :, mid_site_1, 1, 1), &
+                gauge_field_blocked(:, :, mid_site_2, 1, 1) &
+            )
+        else
+            bridge = gauge_field_blocked(:, :, mid_site_1, 1, blocking_level)
+        endif
+
+        A11 = matmul(matmul( &
+            square_pulse(in_site, -3, previous_blocking_level), &
+            bridge &
+        ), &
+            square_pulse(mid_site_3, 3, previous_blocking_level) &
+        )
+
+        out_site = in_site
+    end subroutine loop_32
+
+    !##############################################
+    !          UP Y PULSE + UP Z PULSE
+    !        ___      
+    !      _|_  |
+    !   __/ |/  |__
+    !
+    !##############################################
+    ! Loop 33: up Y pulse + up Z pulse
+    subroutine loop_33(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, 2, blocking_level), &
+            square_pulse(mid_site, 3, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_33
+
+    !##############################################
+    !          UP Z PULSE + DOWN Z PULSE
+    !     __      
+    !  __|  |__   __
+    !         /__/
+    !
+    !##############################################
+    ! Loop 34: up Z pulse + down Y pulse
+    subroutine loop_34(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, 3, blocking_level), &
+            square_pulse(mid_site, -2, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_34
+
+    !##############################################
+    !          UP Z PULSE + DOWN Z PULSE   
+    !  __       __
+    !   /__/|__|
+    !
+    !##############################################
+    ! Loop 35: down Y pulse + down Z pulse
+    subroutine loop_35(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, -2, blocking_level), &
+            square_pulse(mid_site, -3, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_35
+
+    !##############################################
+    !          DOWN Z PULSE + UP Y PULSE   
+    !           ___
+    !  __    __/  /__
+    !    |__|
+    !
+    !##############################################
+    ! Loop 36: down Z pulse + up Y pulse
+    subroutine loop_36(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, -3, blocking_level), &
+            square_pulse(mid_site, 2, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_36
+
+    !##############################################
+    !          UP Y PULSE + DOWN Z PULSE
+    !      __
+    !   __|  |__    __
+    !           /__/
+    !
+    !##############################################
+    ! Loop 37: up Y pulse + down Z pulse
+    subroutine loop_37(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, 2, blocking_level), &
+            square_pulse(mid_site, -3, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_37
+
+    !##############################################
+    !          UP Z PULSE + UP Y PULSE
+    !    __  __
+    !  _|  |/ /__
+    !        
+    !##############################################
+    ! Loop 38: up Z pulse + up Y pulse
+    subroutine loop_38(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, 3, blocking_level), &
+            square_pulse(mid_site, 2, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_38
+
+    !##############################################
+    !          DOWN Y PULSE + UP Z PULSE
+    !          __
+    !  __   __|  |__
+    !   /__/ 
+    !
+    !##############################################
+    ! Loop 39: down Y pulse + up Z pulse
+    subroutine loop_39(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, -2, blocking_level), &
+            square_pulse(mid_site, 3, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_39
+
+    !##############################################
+    !          DOWN Z PULSE + DOWN Y PULSE    
+    !   __   ___   __
+    !    |__/__|  / 
+    !      /_____/    
+    !
+    !##############################################
+    ! Loop 40: down Z pulse + down Y pulse
+    subroutine loop_40(in_site, out_site, A11, blocking_level)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer :: mid_site
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul( &
+            square_pulse(in_site, -3, blocking_level), &
+            square_pulse(mid_site, -2, blocking_level) &
+        )
+
+        out_site = move(mid_site, 1, blocking_level)
+    end subroutine loop_40
 
 end module
