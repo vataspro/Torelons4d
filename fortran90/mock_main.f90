@@ -15,6 +15,7 @@ program mock_main
     complex(real64), allocatable :: gauge_field(:,:,:,:), blok_timeslice(:,:,:,:,:), A11(:,:)
     integer(int32) :: mu, site_idx, blevel, site_in, site_out
 
+    character(len=256) :: outfilename
 
     ! Read parameters from input file
     call initialise_parameters("parameter_file.txt")
@@ -39,8 +40,21 @@ program mock_main
     call get_square_pulses(blok_timeslice, 1)
     call get_plaquettes(blok_timeslice, 1)
 
-    call loop_1(1, site_out, A11, 2)
-    call print_matrix(A11)
+    !call loop_1(1, site_out, A11, 2)
+
+    ! call print_matrix(A11)
+    site_idx = 1526
+    do site_idx=1,SLICE_VOLUME
+    !    do blevel=1,MAX_BLOCKING_LEVEL
+                A11 = get_I(2)
+                call loop_1(site_idx, site_out, A11, 1)
+                write(outfilename,  '(A,I0,A,I0,A)') 'LOOP1_SITE',site_idx,'_BL',1,'.DAT'
+                open(11, file=trim(outfilename),FORM='UNFORMATTED',status='REPLACE',ACCESS='STREAM')
+                WRITE(11) A11
+                close(11)
+                ! call print_matrix(A11)
+    !    enddo
+    enddo
     
     ! do blevel=1,MAX_BLOCKING_LEVEL
     !     do mu=1,2

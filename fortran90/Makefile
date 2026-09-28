@@ -22,6 +22,9 @@ SOURCES := \
 
 all: $(TARGET)
 
+exec: parameters.f90 lattice.f90 read_field_config.f90 thermal_lines.f90 mock_main.f90 | build
+	gfortran -O2 -ffree-line-length-none -Jbuild -Ibuild parameters.f90 lattice.f90 read_field_config.f90 thermal_lines.f90 mock_main.f90 -o exec
+
 $(TARGET): $(SOURCES) | $(BUILD_DIR)
 	$(FC) $(FFLAGS) -J$(BUILD_DIR) -I$(BUILD_DIR) $(SOURCES) -o $(TARGET)
 
