@@ -585,8 +585,8 @@ module lattice
             do mu = 1, 3
                 do site = 1, SLICE_VOLUME
                     blok(:, :, site, mu, next_blocking_level) &
-                    = matmul(blok(:, :, site, mu, current_blocking_level), &
-                    blok(:, :, move(site,mu,current_blocking_level), mu, current_blocking_level))
+                    = matmul(smeared_gauge_field(:, :, site, mu), &
+                    smeared_gauge_field(:, :, move(site,mu,current_blocking_level), mu))
                 enddo
             enddo
         enddo
