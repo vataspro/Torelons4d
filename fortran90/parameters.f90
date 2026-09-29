@@ -34,6 +34,7 @@ module parameters
     integer :: LATTICE_VOLUME ! Total number of sites, renamed from LSIZE
     integer :: NCOL2 ! Square number of colours
     integer :: MAX_DELTA_T ! Maximum time extent of correlation functions, renamed from MAXDTLS
+    integer :: CONFIG_PER_BIN ! Number of measurements contributing to one bin, renamed from IBING
 
     ! File access parameters
     integer :: CONFIG_STOP ! Index of last configuration to be read, renamed from ICMAX
@@ -62,5 +63,9 @@ module parameters
         NCOL2 = NCOL * NCOL
         MAX_DELTA_T = LX4 / 2
         CONFIG_STOP = CONFIG_START + (NCONFIG - 1) * CONFIG_STEP
+        CONFIG_PER_BIN = NCONFIG / NUM_BINS
+
+        ! Reset NCONFIG to be a clean multiple of NUM_BINS, so that every bin contains the same number of measurements
+        NCONFIG = CONFIG_PER_BIN * NUM_BINS
     end subroutine initialise_parameters
 end module parameters
