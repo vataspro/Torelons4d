@@ -331,7 +331,7 @@ module here_be_dragons
 
                                 B11 = gauge_field_blocked(:, :, m2, mu, idsm1)
                                 m3 = move(m2, mu, idsm1)
-                                    C11 = gauge_field_blocked(:, :, m3, ku, idg)
+                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
                                 D11 = matmul(B11, C11)
                                 m1 = move(m2, ku, idg)
                                 B11 = herm(gauge_field_blocked(:, :, m1, mu, idsm1))
@@ -339,14 +339,14 @@ module here_be_dragons
                                 UINT11 = UINT11 + C11
                                 m3 = move(m2, -mu, idsm1)
                                 B11 = herm(gauge_field_blocked(:, :, m3, mu, idsm1))
-                                    C11 = gauge_field_blocked(:, :, m3, ku, idg)
+                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
                                 D11 = matmul(B11, C11)
                                 m1 = move(m3, ku, idg)
                                 B11 = gauge_field_blocked(:, :, m1, mu, idsm1)
                                 C11 = matmul(D11, B11)
                                 UINT11 = UINT11 + C11
                             enddo
-                                    B11 = gauge_field_blocked(:, :, m2, ku, idg)
+                            B11 = gauge_field_blocked(:, :, m2, ku, idg)
                             UINT11 = UINT11 + B11
                             B11 = normalise_link(UINT11)
                             C11 = matmul(REM11, B11)

@@ -310,6 +310,24 @@ module states_class
         torelon%corr_matrix = 0.0d0
     end subroutine
 
+    ! Output number of operators used in torelon state
+    function get_num_operators_torelon(torelon) result(num_operators)
+        implicit none
+        class(torelon_state), intent(inout) :: torelon
+        integer :: num_operators
+
+        num_operators = torelon%NUM_OPERATORS
+    end function
+
+    ! Output number of operators used in torelon state with momentum
+    function get_num_operators_torelon_momentum(torelon) result(num_operators)
+        implicit none
+        class(torelon_momentum_state), intent(inout) :: torelon
+        integer :: num_operators
+
+        num_operators = torelon%NUM_OPERATORS
+    end function
+
     ! Update vevs of torelon operators that contribute to the state from lines calculated in THERML1
     subroutine update_torelon_vevs(torelon, lines, bin_index)
         implicit none
@@ -329,24 +347,6 @@ module states_class
             + sum(lines(:, blocking_level, line_index))
         enddo
     end subroutine
-
-    ! Output number of operators used in torelon state
-    function get_num_operators_torelon(torelon) result(num_operators)
-        implicit none
-        class(torelon_state), intent(inout) :: torelon
-        integer :: num_operators
-
-        num_operators = torelon%NUM_OPERATORS
-    end function
-
-    ! Output number of operators used in torelon state with momentum
-    function get_num_operators_torelon_momentum(torelon) result(num_operators)
-        implicit none
-        class(torelon_momentum_state), intent(inout) :: torelon
-        integer :: num_operators
-
-        num_operators = torelon%NUM_OPERATORS
-    end function
 
     ! Update vevs of torelon operators with momentum that contribute to the state from lines calculated in THERML1
     subroutine update_torelon_momentum_vevs(torelon, momentum_lines, bin_index)
@@ -458,6 +458,15 @@ module states_class
         write(11) torelon%vevs
         close(11)
 
+        ! Output file name vevs have been saved to
+        if (torelon%SPIN == 1) then
+            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=1, P=", &
+            torelon%PR, ", q=0 saved to file ", file_name
+        else
+            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=", &
+            torelon%SPIN, ", PP = ", torelon%PP, ", PR=", torelon%PR, ", q=0 saved to file ", file_name
+        endif
+
         ! Construct correlation matrix file name
         if (torelon%SPIN == 1) then
             file_name = 'corr_matrix_J' // trim(file_J) // trim(file_PR) // 'q0.dat'
@@ -473,6 +482,17 @@ module states_class
         write(11) size(torelon%corr_matrix, dim=4, kind=int32)
         write(11) torelon%corr_matrix
         close(11)
+
+        ! Output file name correlation matrix have been saved to
+        if (torelon%SPIN == 1) then
+            write(*, '(a, i0, a, a)') &
+            "[Info][Measurements]                 Correlation matrix for state J=1, P=", &
+            torelon%PR, ", q=0 saved to file ", file_name
+        else
+            write(*, '(a, i0, a, a)') &
+            "[Info][Measurements]                 Correlation matrix for state J=", &
+            torelon%SPIN, ", PP = ", torelon%PP, ", PR=", torelon%PR, ", q=0 saved to file ", file_name
+        endif
     end subroutine
 
     ! Write vevs and correlation matrix of torelon state with momentum to disk
@@ -509,6 +529,15 @@ module states_class
         write(11) torelon%vevs
         close(11)
 
+        ! Output file name vevs have been saved to
+        if (torelon%SPIN == 1) then
+            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=1, q=", &
+            torelon%MOMENTUM, " saved to file ", file_name
+        else
+            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=", &
+            torelon%SPIN, ", P = ", torelon%PARITY, ", q=", torelon%MOMENTUM, " saved to file ", file_name
+        endif
+
         ! Construct correlation matrix file name
         if (torelon%SPIN == 1) then
             file_name = 'corr_matrix_J' // trim(file_J) // 'q' // trim(file_q) // '.dat'
@@ -524,5 +553,16 @@ module states_class
         write(11) size(torelon%corr_matrix, dim=4, kind=int32)
         write(11) torelon%corr_matrix
         close(11)
+
+        ! Output file name vevs have been saved to
+        if (torelon%SPIN == 1) then
+            write(*, '(a, i0, a, a)') &
+            "[Info][Measurements]                 Correlation matrix for state J=1, q=", &
+            torelon%MOMENTUM, " saved to file ", file_name
+        else
+            write(*, '(a, i0, a, a)') &
+            "[Info][Measurements]                 Correlation matrix for state J=", &
+            torelon%SPIN, ", P = ", torelon%PARITY, ", q=", torelon%MOMENTUM, " saved to file ", file_name
+        endif
     end subroutine
 end module

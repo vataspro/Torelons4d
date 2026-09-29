@@ -62,10 +62,10 @@ module parameters
         LATTICE_VOLUME = SLICE_VOLUME * LX4
         NCOL2 = NCOL * NCOL
         MAX_DELTA_T = LX4 / 2
-        CONFIG_STOP = CONFIG_START + (NCONFIG - 1) * CONFIG_STEP
         CONFIG_PER_BIN = NCONFIG / NUM_BINS
 
         ! Reset NCONFIG to be a clean multiple of NUM_BINS, so that every bin contains the same number of measurements
         NCONFIG = CONFIG_PER_BIN * NUM_BINS
+        CONFIG_STOP = CONFIG_START + (NCONFIG - 1) * CONFIG_STEP
     end subroutine initialise_parameters
 end module parameters
