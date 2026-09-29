@@ -19,12 +19,11 @@ module here_be_dragons
         ! Dummy variables
         complex(real64) :: gauge_field(NCOL, NCOL, SLICE_VOLUME, 3) ! UC11
         integer(int32) :: lcnt(MAX_BLOCKING_LEVEL), lb(MAX_BLOCKING_LEVEL), ix(3), ls(3)
-        complex(real64) :: act(3), ast(3)
         complex(real64) :: A11(NCOL, NCOL), B11(NCOL, NCOL), C11(NCOL, NCOL), &
-        D11(NCOL, NCOL), E11(NCOL, NCOL), F11(NCOL, NCOL), UINT11(NCOL, NCOL), REM11(NCOL, NCOL)
+        D11(NCOL, NCOL), E11(NCOL, NCOL), UINT11(NCOL, NCOL), REM11(NCOL, NCOL)
 
         ! Loop variables
-        integer :: idd, ib, idg, ijn, iloop, i, ic, nc, ig, mu
+        integer :: idd, ib, idg, iloop, i, ic, nc, ig, mu, ik
 
         ! Site indices
         integer :: site, site_ku, site_ju, site_iu, mn, ml, m1, m2, m3, m4, m5
@@ -39,7 +38,7 @@ module here_be_dragons
         integer :: iddd, ieee
 
         ! Momentum variables
-        real(real64) :: phase
+        real(real64) :: phase, adiv1, adiv2, adiv3, adivn
 
         ! Square pulses
         complex(real64) :: squy1(NCOL, NCOL), sqdy1(NCOL, NCOL), squz1(NCOL, NCOL), sqdz1(NCOL, NCOL), &
@@ -59,9 +58,6 @@ module here_be_dragons
         ! Plaquette operator components
         complex(real64) :: pq1(NCOL, NCOL), pq2(NCOL, NCOL), pq3(NCOL, NCOL), pq4(NCOL, NCOL), &
                             pq5(NCOL, NCOL), pq6(NCOL, NCOL), pq7(NCOL, NCOL), pq8(NCOL, NCOL)
-
-        ! G11
-        complex(real64) :: g11(NCOL, NCOL)
 
         ! WV components
         complex(real64) :: wvuy1(NCOL, NCOL), wvuy2(NCOL, NCOL), wvdy1(NCOL, NCOL), wvdy2(NCOL, NCOL), &
@@ -96,34 +92,34 @@ module here_be_dragons
         ! C-sums
         complex(real64) :: csumn, csums(4), csum2s(4), csum2ws(4), &
                             csumw(4), csum2w(4), csum3w(4), csumup(4), &
-                            csumud(4), csumrc(4), csumrcw(4)
+                            csumud(4)
         complex(real64) :: csumtt1(8), csumtt2(8), csumtt3(8), csumtt4(8), &
                             csumtt5(8), csumtt6(8), csumtt7(8), csumtt8(8), &
                             csumtt9(8), csumtt10(8), csumtt11(8), csumtt12(16), &
                             csumtt13(8), csumtt14(8)
-    
+
         complex(real64) :: csumplq8(8, 6), csumplq16(16, 7:15) ! csumplq#
 
         complex(real64) :: akt1
 
         complex(real64) :: csumsmom(4,2), csum2smom(4,2), csum2wsmom(4,2), csumwmom(4,2), &
                             csum2wmom(4,2), csum3wmom(4,2), csumupmom(4,2), csumudmom(4,2)
-        
+
         complex(real64) :: csumplqmom8(8, 2, 6), csumplqmom16(16, 2, 7:15) ! csumplqmom#
-     
+
         complex(real64) :: csumttmom1(8,2), csumttmom2(8,2), csumttmom3(8,2), csumttmom4(8,2), &
                             csumttmom5(8,2), csumttmom6(8,2), csumttmom7(8,2), csumttmom8(8,2), &
                             csumttmom9(8,2), csumttmom10(8,2), csumttmom11(8,2), csumttmom12(16,2), &
                             csumttmom13(8,2), csumttmom14(8,2)
-    
-        complex(real64) :: giot, pf(2), uren11(NCOL, NCOL), aa(NCOL, NCOL), det, cnorm, cdet, dncol
+
+        complex(real64) :: giot, pf(2)
 
         !!! Setup THERML1 function
         giot = cmplx(0.0, 1.0, kind=real64)
         ls(1)=LX1
         ls(2)=LX2
         ls(3)=LX3
-        lb(1)=1  
+        lb(1)=1
 
         ! LB is an array containing the blocking length at each level
         do idd = 2, MAX_BLOCKING_LEVEL
@@ -133,12 +129,12 @@ module here_be_dragons
         ku = 1 ! Set directions -- X
         ju = 2 ! Y
         iu = 3 ! Z
-        
+
         id = blocking_level ! Current blocking level (BL)
 
 
         ! We try and fit the blocking level lengths into LX1
-        ! Fill lcnt array 
+        ! Fill lcnt array
         ! Example: LX1 = 20, IBL=4
         ! lcnt = 0, 0, 1, 2
 
@@ -167,7 +163,7 @@ module here_be_dragons
         idsm1 = ids - 1
         if (ids == 1) idsm1 = ids
 
-        !**********************************************************************    
+        !**********************************************************************
         ! Define our configuration at the current blocking level
         ! to be the configuration at BL corresponding to ids
         gauge_field = gauge_field_blocked(:,:,:,:,ids)
@@ -241,7 +237,7 @@ module here_be_dragons
         ! extra statistics
         csumttmom12 = cmplx(0.0, 0.0, kind=real64)
         csumplqmom16 = cmplx(0.0, 0.0, kind=real64)
-    
+
         !**********************************************************************
         ! Sum loops over lattice
         !**********************************************************************
@@ -255,8360 +251,7976 @@ module here_be_dragons
             PF(2)=cmplx(cos(phase), sin(phase), kind=real64)
 
             do site_ju = 1, ls(ju) ! LY direction
-                do site_iu = 1, ls(iu) ! LZ direction 
-                ! Lexicographical lattice site definition
-                site = site + 1
-                ix(iu) = site_iu
-                ix(ju) = site_ju
-                ix(ku) = site_ku
-                ! MN defines the current lattice site
-                mn = ix(1) + ls(1)*(ix(2)-1) + ls(1)*ls(2)*(ix(3)-1)
+                do site_iu = 1, ls(iu) ! LZ direction
+                    ! Lexicographical lattice site definition
+                    site = site + 1
+                    ix(iu) = site_iu
+                    ix(ju) = site_ju
+                    ix(ku) = site_ku
+                    ! MN defines the current lattice site
+                    mn = ix(1) + ls(1)*(ix(2)-1) + ls(1)*ls(2)*(ix(3)-1)
 
 
-                ! TOdo: ANDREAS COMMENTS FROM HERE
-                !**********************************************************************
-                if (ids == id) then
-                    irem = 3
-                    if (ids == 1) irem = 4
+                    ! TOdo: ANDREAS COMMENTS FROM HERE
+                    !**********************************************************************
+                    if (ids == id) then
+                        irem = 3
+                        if (ids == 1) irem = 4
 
-                    do iloop = 1, irem
-                        if (iloop == 1) li = lcnt(ids)
-                        if (iloop > 1) li = lcnt(ids ) - 2**(iloop-2)
-                        if (li < 0) cycle
-    
-                        m2 = mn
-                        if (iloop > 1) then
-                            do i = 1, 2**(iloop-2)
+                        do iloop = 1, irem
+                            if (iloop == 1) li = lcnt(ids)
+                            if (iloop > 1) li = lcnt(ids ) - 2**(iloop-2)
+                            if (li < 0) cycle
+
+                            m2 = mn
+                            if (iloop > 1) then
+                                do i = 1, 2**(iloop-2)
+                                    m3 = move(m2, ku, ids)
+                                    m2 = m3
+                                end do
+                            endif
+
+                            E11 = cmplx(0.0, 0.0, kind=real64)
+                            do ic = 1, NCOL
+                                E11(ic, ic) = cmplx(1.0, 0.0, kind=real64)
+                            enddo
+
+                            do nc = 1, li
+                                B11 = gauge_field(:, :, m2, ku)
+                                C11 = matmul(E11, B11)
                                 m3 = move(m2, ku, ids)
                                 m2 = m3
-                            end do
+                                E11 = C11
+                            enddo
+
+                            ml = m2
+                            select case(iloop)
+                            case(1)
+                                lin0 = E11
+                            case(2)
+                                lin1 = E11
+                            case(3)
+                                lin2 = E11
+                            case(4)
+                                lin4 = E11
+                            case default
+                                error stop "iloop not a number 1,...,4"
+                            end select
+                        enddo
+                    else
+                        m2=mn
+                    endif
+
+                    !**********************************************************************
+                    !*********************** REMAINING PIECE ******************************
+                    !**********************************************************************
+
+                    REM11 = cmplx(0.0, 0.0, kind=real64)
+                    do ic = 1, NCOL
+                        REM11(ic, ic) = cmplx(1.0, 0.0, kind=real64)
+                    enddo
+
+                    do ig=1,ids
+                        idg = ids - ig + 1
+                        if (idg == id) cycle
+                        do nc = 1, lcnt(idg)
+                            UINT11 = cmplx(0.0, 0.0, kind=real64)
+
+                            do mu = 1, 3
+                                if(mu == ku) cycle
+
+                                B11 = gauge_field_blocked(:, :, m2, mu, idsm1)
+                                m3 = move(m2, mu, idsm1)
+                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
+                                D11 = matmul(B11, C11)
+                                m1 = move(m2, ku, idg)
+                                B11 = herm(gauge_field_blocked(:, :, m1, mu, idsm1))
+                                C11 = matmul(D11, B11)
+                                UINT11 = UINT11 + C11
+                                m3 = move(m2, -mu, idsm1)
+                                B11 = herm(gauge_field_blocked(:, :, m3, mu, idsm1))
+                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
+                                D11 = matmul(B11, C11)
+                                m1 = move(m3, ku, idg)
+                                B11 = gauge_field_blocked(:, :, m1, mu, idsm1)
+                                C11 = matmul(D11, B11)
+                                UINT11 = UINT11 + C11
+                            enddo
+                            B11 = gauge_field_blocked(:, :, m2, ku, idg)
+                            UINT11 = UINT11 + B11
+                            B11 = normalise_link(UINT11)
+                            C11 = matmul(REM11, B11)
+                            m1 = m2
+                            REM11 = C11
+                            m2 = move(m1, ku, idg)
+                        enddo
+                    enddo
+
+                    !! OPERATOR CONSTRUCTION
+                    do iddd = 1, 337 !new!
+                        m2 = mn
+                        A11 = cmplx(0.0, 0.0, kind=real64)
+                        do ic = 1,NCOL
+                            A11(ic, ic) = cmplx(1.0, 0.0, kind=real64)
+                        enddo
+
+                        if (ids == id) then
+                            ico=2
+                            if (iddd < 5) then
+                                ico=1
+                            elseif (((iddd > 12).and.(iddd < 17)).and.(ids /= 1)) then
+                                ico=1
+                            elseif (((iddd > 16).and.(iddd < 21)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 20).and.(iddd < 25)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 24).and.(iddd < 29)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 28).and.(iddd < 33)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 40).and.(iddd < 49)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 48).and.(iddd < 57)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 56).and.(iddd < 65)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 64).and.(iddd < 69)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 68).and.(iddd < 73)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 72).and.(iddd < 81)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 80).and.(iddd < 89)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 88).and.(iddd < 97)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 96).and.(iddd < 105)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 104).and.(iddd < 113)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 112).and.(iddd < 129)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 128).and.(iddd < 137)).and.(ids == 1)) then
+                                ico=4
+                            elseif (((iddd > 136).and.(iddd < 145)).and.(ids /= 1)) then
+                                ico=1
+                            elseif (iddd == 145) then
+                                ico=1
+                            elseif ((iddd > 145).and.(iddd < 194)) then
+                                ico=1
+                            elseif ((iddd > 209).and.(iddd < 338)) then
+                                ico=1 ! THIS NEEDS TO BE FIXED  !
+                            else
+                                continue
+                            endif
+
+                            if (lcnt(ids) >= ico) then
+                                ! Select operator to calculate
+                                select case(iddd)
+                                !**********************************************************************C
+                                !                     UP SQUARE PULSE                                  C
+                                !**********************************************************************C
+                                !                     UP Y
+                                !**********************************************************************
+                                case(1)
+                                    B11 = gauge_field(:, :, M2, JU)
+                                    M3 = move(M2, JU, ids)
+                                    C11 = gauge_field(:, :, M3, KU)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, KU, ids)
+                                    M2 = M3
+                                    C11 = gauge_field(:, :, M2, JU)
+                                    C11 = herm(C11)
+                                    SQUY1 = matmul(D11, C11)
+                                    C11 = matmul(A11, SQUY1)
+                                    A11 = C11
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !     UP Z                                                             C
+                                !**********************************************************************C
+                                case(2)
+                                    B11 = gauge_field(:, :, M2, IU)
+                                    M3 = move(M2, IU, ids)
+                                    C11 = gauge_field(:, :, M3, KU)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, KU, ids)
+                                    M2 = M3
+                                    C11 = gauge_field(:, :, M2, IU)
+                                    C11 = herm(C11)
+                                    SQUZ1 = matmul(D11, C11)
+                                    C11 = matmul(A11, SQUZ1)
+                                    A11 = C11
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !                       DOWN Y                                         C
+                                !**********************************************************************C
+                                case(3)
+                                    M3 = move(M2, -JU, ids)
+                                    D11 = gauge_field(:, :, M3, JU)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field(:, :, M3, KU)
+                                    B11 = matmul(D11, C11)
+                                    M4 = move(M3, KU, ids)
+                                    D11 = gauge_field(:, :, M4, JU)
+                                    SQDY1 = matmul(B11, D11)
+                                    C11 = matmul(A11, SQDY1)
+                                    A11 = C11
+
+                                    ieee = 3
+
+                                !**********************************************************************C
+                                !                       DOWN Z                                 C
+                                !**********************************************************************C
+                                case(4)
+                                    M3 = move(M2, -IU, ids)
+                                    D11 = gauge_field(:, :, M3, IU)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field(:, :, M3, KU)
+                                    B11 = matmul(D11, C11)
+                                    M4 = move(M3, KU, ids)
+                                    D11 = gauge_field(:, :, M4, IU)
+                                    SQDZ1 = matmul(B11, D11)
+                                    C11 = matmul(A11, SQDZ1)
+                                    A11 = C11
+
+                                    ieee = 4
+
+                                !**********************************************************************C
+                                !                       UP - UP SQUARE PULSES                         *C
+                                !**********************************************************************C
+                                !                       UP Y
+                                !**********************************************************************C
+                                case(5)
+                                    M3 = move(M2, KU, ids)
+                                    D11 = gauge_field(:, :, M3, JU)
+                                    M4 = move(M3, JU, ids)
+                                    C11 = gauge_field(:, :, M4, KU)
+                                    B11 = matmul(D11, C11)
+                                    M2 = move(M3, KU, ids)
+                                    C11 = gauge_field(:, :, M2, JU)
+                                    C11 = herm(C11)
+                                    SQUY2 = matmul(B11, C11)
+                                    A11 = matmul(SQUY1, SQUY2)
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !              UP Z
+                                !**********************************************************************C
+                                case(6)
+                                    M3 = move(M2, KU, ids)
+                                    D11 = gauge_field(:, :, M3, IU)
+                                    M4 = move(M3, IU, ids)
+                                    C11 = gauge_field(:, :, M4, KU)
+                                    B11 = matmul(D11, C11)
+                                    M2 = move(M3, KU, ids)
+                                    C11 = gauge_field(:, :, M2, IU)
+                                    C11 = herm(C11)
+                                    SQUZ2 = matmul(B11, C11)
+                                    A11 = matmul(SQUZ1, SQUZ2)
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !              DOWN Y                                              C
+                                !**********************************************************************C
+                                case(7)
+                                    M3 = move(M2, KU, ids)
+                                    M4 = move(M3, -JU, ids)
+                                    D11 = gauge_field(:, :, M4, JU)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field(:, :, M4, KU)
+                                    B11 = matmul(D11, C11)
+                                    M1 = move(M4, KU, ids)
+                                    C11 = gauge_field(:, :, M1, JU)
+                                    SQDY2 = matmul(B11, C11)
+                                    A11 = matmul(SQDY1, SQDY2)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 3
+
+                                !**********************************************************************C
+                                !              DOWN Z                                              C
+                                !**********************************************************************C
+                                case(8)
+                                    M3 = move(M2, KU, ids)
+                                    M4 = move(M3, -IU, ids)
+                                    D11 = gauge_field(:, :, M4, IU)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field(:, :, M4, KU)
+                                    B11 = matmul(D11, C11)
+                                    M1 = move(M4, KU, ids)
+                                    C11 = gauge_field(:, :, M1, IU)
+                                    SQDZ2 = matmul(B11, C11)
+                                    A11 = matmul(SQDZ1, SQDZ2)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 4
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !              UP - DOWN SQUARE PULSES                                 C
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                 UP Y
+                                !**********************************************************************C
+                                case(9)
+                                    SQUDY1 = matmul(SQUY1, SQDY2)
+                                    A11 = squdy1
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !                 UP Z
+                                !**********************************************************************C
+                                case(10)
+                                    SQUDZ1 = matmul(SQUZ1, SQDZ2)
+                                    A11 = squdz1
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !                 DOWN Y
+                                !**********************************************************************C
+                                case(11)
+                                    SQDUY1 = matmul(SQDY1, SQUY2)
+                                    A11 = sqduy1
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 3
+
+                                !**********************************************************************C
+                                !                 DOWN Z
+                                !**********************************************************************C
+                                case(12)
+                                    SQDUZ1 = matmul(SQDZ1, SQUZ2)
+                                    A11 = sqduz1
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 4
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                 UP WAVE - LIKE PULSE                                *C
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                 UP Y
+                                !**********************************************************************C
+                                case(13)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    D11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    M3 = move(M2, JU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUY1 = matmul(B11, C11)
+
+                                    M3 = move(M2, -JU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                    B11 = herm(B11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                    WSQDY2 = matmul(D11, B11)
+                                    WVUY1 = matmul(WSQUY1, WSQDY2)
+                                    A11 = WVUY1
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !                 UP Z
+                                !**********************************************************************C
+                                case(14)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    D11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    M3 = move(M2, IU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUZ1 = matmul(B11, C11)
+
+                                    M3 = move(M2, -IU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                    B11 = herm(B11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                    WSQDZ2 = matmul(D11, B11)
+                                    WVUZ1 = matmul(WSQUZ1, WSQDZ2)
+                                    A11 = WVUZ1
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !                 DOWN Y                                              *C
+                                !**********************************************************************C
+                                case(15)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                    idsW=1
+                                    endif
+
+                                    M3 = move(M2, -JU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                    WSQDY1 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    B11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    M3 = move(M2, JU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUY2 = matmul(D11, C11)
+                                    WVDY1 = matmul(WSQDY1, WSQUY2)
+                                    A11 = WVDY1
+
+                                    ieee = 3
+
+                                !**********************************************************************C
+                                !                 DOWN Z                                              *C
+                                !**********************************************************************C
+                                case(16)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                    idsW=1
+                                    endif
+
+                                    M3 = move(M2, -IU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                    WSQDZ1 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    B11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    M3 = move(M2, IU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUZ2 = matmul(D11, C11)
+                                    WVDZ1 = matmul(WSQDZ1, WSQUZ2)
+                                    A11 = WVDZ1
+
+                                    ieee = 4
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !              UP - UP WAVE-LIKE PULSE                                 C
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !              UP Y
+                                !**********************************************************************C
+                                case(17)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    D11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    M3 = move(M2, JU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUY3 = matmul(B11, C11)
+
+                                    M3 = move(M2, -JU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                    B11 = herm(B11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                    WSQDY4 = matmul(D11, B11)
+                                    WVUY2 = matmul(WSQUY3, WSQDY4)
+                                    A11 = matmul(WVUY1, WVUY2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !                 UP Z
+                                !**********************************************************************C
+                                case(18)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    D11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    M3 = move(M2, IU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUZ3 = matmul(B11, C11)
+
+                                    M3 = move(M2, -IU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                    B11 = herm(B11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    B11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                    WSQDZ4 = matmul(D11, B11)
+                                    WVUZ2 = matmul(WSQUZ3, WSQDZ4)
+                                    A11 = matmul(WVUZ1, WVUZ2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !                 DOWN Y                                               C
+                                !**********************************************************************C
+                                case(19)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    M3 = move(M2, -JU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, JU, idsW)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, JU, idsW)
+                                    WSQDY3 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    B11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    M3 = move(M2, JU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, JU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUY4 = matmul(D11, C11)
+                                    WVDY2 = matmul(WSQDY3, WSQUY4)
+                                    A11 = matmul(WVDY1, WVDY2)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************C
+                                !                 DOWN Y                                               C
+                                !**********************************************************************C
+                                case(20)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                    M3 = move(M2, -IU, idsW)
+                                    D11 = gauge_field_blocked(:, :, M3, IU, idsW)
+                                    D11 = herm(D11)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    B11 = matmul(D11, C11)
+                                    M4 = move(M3, KU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M4, IU, idsW)
+                                    WSQDZ3 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    B11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    M3 = move(M2, IU, idsW)
+                                    C11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    C11 = gauge_field_blocked(:, :, M2, IU, idsW)
+                                    C11 = herm(C11)
+                                    WSQUZ4 = matmul(D11, C11)
+                                    WVDZ2 = matmul(WSQDZ3, WSQUZ4)
+                                    A11 = matmul(WVDZ1, WVDZ2)
+
+                                    ieee = 4
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                 UP - DOWN WAVE-LIKE PULSE                           *C
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                 UP Y                                                 C
+                                !**********************************************************************C
+                                case(21)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVUY1, WVDY2)
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !                 UP Z                                                 C
+                                !**********************************************************************C
+                                case(22)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVUZ1, WVDZ2)
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !                 DOWN Y                                              *C
+                                !**********************************************************************C
+                                case(23)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVDY1, WVUY2)
+
+                                    ieee = 3
+
+                                !**********************************************************************C
+                                !                 DOWN Z                                              *C
+                                !**********************************************************************C
+                                case(24)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVDZ1, WVUZ2)
+
+                                    ieee = 4
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                   /\_____/\  UP PULSE                                C
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                  UP Y
+                                !**********************************************************************C
+                                case(25)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQUY1, D11)
+                                    A11 = matmul(C11, WSQUY4)
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !                  UP Z
+                                !**********************************************************************C
+                                case(26)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQUZ1, D11)
+                                    A11 = matmul(C11, WSQUZ4)
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !                   DOWN Y                                             C
+                                !**********************************************************************C
+                                case(27)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDY1, D11)
+                                    A11 = matmul(C11, WSQDY4)
+
+                                    ieee = 3
+
+                                !**********************************************************************C
+                                !                   DOWN Z                                             C
+                                !**********************************************************************C
+                                case(28)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDZ1, D11)
+                                    A11 = matmul(C11, WSQDZ4)
+
+                                    ieee = 4
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                   /\-----\/  PULSE                                   C
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                  UP Y
+                                !**********************************************************************C
+                                case(29)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQUY1, D11)
+                                    A11 = matmul(C11, WSQDY4)
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !                  UP Z
+                                !**********************************************************************C
+                                case(30)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQUZ1, D11)
+                                    A11 = matmul(C11, WSQDZ4)
+
+                                    ieee = 2
+
+                                !**********************************************************************C
+                                !                 DOWN Y                                               C
+                                !**********************************************************************C
+                                case(31)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDY1, D11)
+                                    A11 = matmul(C11, WSQUY4)
+
+                                    ieee = 3
+
+                                !**********************************************************************C
+                                !                 DOWN Z                                               C
+                                !**********************************************************************C
+                                case(32)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDZ1, D11)
+                                    A11 = matmul(C11, WSQUZ4)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************
+                                !     TT-1 OPERATORS
+                                !**********************************************************************
+                                case(33)
+                                    A11 = matmul(SQUY1, SQUZ2)
+                                    wangl1 = A11
+
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************
+                                case(34)
+                                    A11 = matmul(SQUZ1, SQDY2)
+                                    wangl2 = A11
+
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 2
+
+                                !**********************************************************************
+                                case(35)
+                                    A11 = matmul(SQDY1, SQDZ2)
+                                    wangl3 = A11
+
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 3
+
+                                !**********************************************************************
+                                case(36)
+                                    A11 = matmul(SQDZ1, SQUY2)
+                                    wangl4 = A11
+
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 4
+
+                                !**********************************************************************
+                                case(37)
+                                    A11 = matmul(SQUY1, SQDZ2)
+                                    wangl5 = A11
+
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 5
+
+                                !**********************************************************************
+                                case(38)
+
+                                    A11 = matmul(SQUZ1, SQUY2)
+                                    wangl6 = A11
+
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 6
+
+                                !**********************************************************************
+                                case(39)
+                                    A11 = matmul(SQDY1, SQUZ2)
+                                    wangl7 = A11
+
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    ieee = 7
+
+                                !**********************************************************************
+                                case(40)
+                                    M3 = move(M2, KU, ids)
+                                    M2 = move(M3, KU, ids)
+
+                                    A11 = matmul(SQDZ1, SQDY2)
+                                    wangl8 = A11
+
+                                    ieee = 8
+
+
+                                !**********************************************************************
+                                !     TT-2 OPERATORS
+                                !**********************************************************************
+                                case(41)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVUY1, WVUZ2)
+
+                                    ieee = 1
+
+                                !**********************************************************************
+                                case(42)
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVUZ1, WVDY2)
+
+                                    ieee = 2
+
+                                !**********************************************************************
+                                case(43)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVDY1, WVDZ2)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************
+                                case(44)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVDZ1, WVUY2)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************
+                                case(45)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVUZ1, WVUY2)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************
+                                case(46)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVDY1, WVUZ2)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************
+                                case(47)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVDZ1, WVDY2)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************
+                                case(48)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+
+                                    M3 = move(M2, KU, idsW)
+                                    M4 = move(M3, KU, idsW)
+                                    M1 = move(M4, KU, idsW)
+                                    M2 = move(M1, KU, idsW)
+
+                                    A11 = matmul(WVUY1, WVDZ2)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                   /\----/_/  UP PULSE-TT3                            C
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                  1
+                                !**********************************************************************C
+                                case(49)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+                                    !   WARNING WE CAN SPEED UP THE COMPUTATION  !
+                                    ! Thanks dude, warning heeded
+                                    C11 = matmul(WSQUY1, D11)
+                                    A11 = matmul(C11, WSQUZ4)
+
+
+                                    ieee = 1
+
+                                !**********************************************************************C
+                                !                  2
+                                !**********************************************************************C
+                                case(50)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQUZ1, D11)
+                                    A11 = matmul(C11, WSQDY4)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************C
+                                !                   3                                             C
+                                !**********************************************************************C
+                                case(51)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDY1, D11)
+                                    A11 = matmul(C11, WSQDZ4)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************C
+                                !                 4                                                    C
+                                !**********************************************************************C
+                                case(52)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDZ1, D11)
+                                    A11 = matmul(C11, WSQUY4)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                !                 5                                                    C
+                                !**********************************************************************C
+                                case(53)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQUY1, D11)
+                                    A11 = matmul(C11, WSQDZ4)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************C
+                                !                 6                                                    C
+                                !**********************************************************************C
+                                case(54)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQUZ1, D11)
+                                    A11 = matmul(C11, WSQUY4)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************C
+                                !                 7                                                    C
+                                !**********************************************************************C
+                                case(55)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDY1, D11)
+                                    A11 = matmul(C11, WSQUZ4)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************C
+                                !                 8                                                    C
+                                !**********************************************************************C
+                                case(56)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                        M3 = move(M2, KU, idsW)
+                                        B11 = gauge_field_blocked(:, :, M3, KU, idsW)
+                                        M4 = move(M3, KU, idsW)
+                                        C11 = gauge_field_blocked(:, :, M4, KU, idsW)
+                                        D11 = matmul(B11, C11)
+                                    else
+                                        M3 = move(M2, KU, idsW)
+                                        D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
+                                    endif
+
+                                    C11 = matmul(WSQDZ1, D11)
+                                    A11 = matmul(C11, WSQDY4)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************
+                                !                 T-T4 OPERATORS
+                                !**********************************************************************
+                                case(57)
+
+                                    ZIG1W1 = matmul(WSQUY1, WSQUZ2)
+                                    ZIG2W1 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(ZIG1W1, ZIG2W1)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************
+                                case(58)
+
+                                    ZIG1W2 = matmul(WSQUZ1, WSQDY2)
+                                    ZIG2W2 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(ZIG1W2, ZIG2W2)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************
+                                case(59)
+
+                                    ZIG1W3 = matmul(WSQDY1, WSQDZ2)
+                                    ZIG2W3 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(ZIG1W3, ZIG2W3)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************
+                                case(60)
+
+                                    ZIG1W4 = matmul(WSQDZ1, WSQUY2)
+                                    ZIG2W4 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(ZIG1W4, ZIG2W4)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************
+                                case(61)
+
+                                    TIG1W4 = matmul(WSQDZ1, WSQDY2)
+                                    TIG2W4 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(TIG1W4, TIG2W4)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************
+                                case(62)
+
+                                    TIG1W1 = matmul(WSQUY1, WSQDZ2)
+                                    TIG2W1 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(TIG1W1, TIG2W1)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************
+                                case(63)
+
+                                    TIG1W2 = matmul(WSQUZ1, WSQUY2)
+                                    TIG2W2 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(TIG1W2, TIG2W2)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************
+                                case(64)
+
+                                    TIG1W3 = matmul(WSQDY1, WSQUZ2)
+                                    TIG2W3 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(TIG1W3, TIG2W3)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************
+                                !                 T-T5 OPERATORS
+                                !**********************************************************************
+                                case(65)
+
+                                    DUY1 = matmul(WSQUY1, WSQUY2)
+                                    DUY2 = matmul(WSQUY3, WSQUY4)
+                                    A11 = matmul(DUY1, DUY2)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************C
+                                case(66)
+
+                                    DUZ1 = matmul(WSQUZ1, WSQUZ2)
+                                    DUZ2 = matmul(WSQUZ3, WSQUZ4)
+                                    A11 = matmul(DUZ1, DUZ2)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************C
+                                case(67)
+
+                                    DDY1 = matmul(WSQDY1, WSQDY2)
+                                    DDY2 = matmul(WSQDY3, WSQDY4)
+                                    A11 = matmul(DDY1, DDY2)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************C
+                                case(68)
+
+                                    DDZ1 = matmul(WSQDZ1, WSQDZ2)
+                                    DDZ2 = matmul(WSQDZ3, WSQDZ4)
+                                    A11 = matmul(DDZ1, DDZ2)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                !                 TT-6 OPERATORS
+                                !**********************************************************************C
+                                case(69)
+
+                                    A11 = matmul(DUY1, DDY2)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************C
+                                case(70)
+
+                                    A11 = matmul(DUZ1, DDZ2)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************C
+                                case(71)
+
+                                    A11 = matmul(DDY1, DUY2)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************C
+                                case(72)
+
+                                    A11 = matmul(DDZ1, DUZ2)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                !                 T-T 7 OPERATORS
+                                !**********************************************************************C
+                                case(73)
+
+                                    A11 = matmul(DUY1, DUZ2)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************C
+                                case(74)
+
+                                    A11 = matmul(DUZ1, DDY2)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************C
+                                case(75)
+
+                                    A11 = matmul(DDY1, DDZ2)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************C
+                                case(76)
+
+                                    A11 = matmul(DDZ1, DUY2)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                case(77)
+
+                                    A11 = matmul(DDZ1, DDY2)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************C
+                                case(78)
+
+                                    A11 = matmul(DUY1, DDZ2)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************C
+                                case(79)
+
+                                    A11 = matmul(DUZ1, DUY2)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************C
+                                case(80)
+
+                                    A11 = matmul(DDY1, DUZ2)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !                 T-T 8 OPERATORS
+                                !**********************************************************************C
+                                case(81)
+
+                                    B11 = matmul(WSQUY1, WSQUZ2)
+                                    C11 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************c
+                                case(82)
+
+                                    B11 = matmul(WSQUZ1, WSQDY2)
+                                    C11 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************c
+                                case(83)
+
+                                    B11 = matmul(WSQDY1, WSQDZ2)
+                                    C11 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************c
+                                case(84)
+
+                                    B11 = matmul(WSQDZ1, WSQUY2)
+                                    C11 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                case(85)
+
+                                    B11 = matmul(WSQDY1, WSQUZ2)
+                                    C11 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************c
+                                case(86)
+
+                                    B11 = matmul(WSQUZ1, WSQUY2)
+                                    C11 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************c
+                                case(87)
+
+                                    B11 = matmul(WSQUY1, WSQDZ2)
+                                    C11 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************c
+                                case(88)
+
+                                    B11 = matmul(WSQDZ1, WSQDY2)
+                                    C11 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !                 T-T 9 OPERATORS
+                                !**********************************************************************C
+                                case(89)
+
+                                    B11 = matmul(WSQUY1, WSQUZ2)
+                                    C11 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************c
+                                case(90)
+
+                                    B11 = matmul(WSQUZ1, WSQDY2)
+                                    C11 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************c
+                                case(91)
+
+                                    B11 = matmul(WSQDY1, WSQDZ2)
+                                    C11 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************c
+                                case(92)
+
+                                    B11 = matmul(WSQDZ1, WSQUY2)
+                                    C11 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                case(93)
+
+                                    B11 = matmul(WSQUY1, WSQDZ2)
+                                    C11 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************c
+                                case(94)
+
+                                    B11 = matmul(WSQUZ1, WSQUY2)
+                                    C11 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************c
+                                case(95)
+
+                                    B11 = matmul(WSQDY1, WSQUZ2)
+                                    C11 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************c
+                                case(96)
+
+                                    B11 = matmul(WSQDZ1, WSQDY2)
+                                    C11 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !                 T-T 10 OPERATORS
+                                !**********************************************************************C
+                                case(97)
+
+                                    B11 = matmul(WSQUY1, WSQUZ2)
+                                    C11 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************c
+                                case(98)
+
+                                    B11 = matmul(WSQUZ1, WSQDY2)
+                                    C11 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************c
+                                case(99)
+
+                                    B11 = matmul(WSQDY1, WSQDZ2)
+                                    C11 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************c
+                                case(100)
+
+                                    B11 = matmul(WSQDZ1, WSQUY2)
+                                    C11 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                case(101)
+
+                                    B11 = matmul(WSQDY1, WSQUZ2)
+                                    C11 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************c
+                                case(102)
+
+                                    B11 = matmul(WSQUZ1, WSQUY2)
+                                    C11 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************c
+                                case(103)
+
+                                    B11 = matmul(WSQUY1, WSQDZ2)
+                                    C11 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************c
+                                case(104)
+
+                                    B11 = matmul(WSQDZ1, WSQDY2)
+                                    C11 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !                 T-T 11 OPERATORS
+                                !**********************************************************************C
+                                case(105)
+
+                                    B11 = matmul(WSQUY1, WSQUZ2)
+                                    C11 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************c
+                                case(106)
+
+                                    B11 = matmul(WSQUZ1, WSQDY2)
+                                    C11 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************c
+                                case(107)
+
+                                    B11 = matmul(WSQDY1, WSQDZ2)
+                                    C11 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************c
+                                case(108)
+
+                                    B11 = matmul(WSQDZ1, WSQUY2)
+                                    C11 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                case(109)
+
+                                    B11 = matmul(WSQDY1, WSQUZ2)
+                                    C11 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************c
+                                case(110)
+
+                                    B11 = matmul(WSQUZ1, WSQUY2)
+                                    C11 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************c
+                                case(111)
+
+                                    B11 = matmul(WSQUY1, WSQDZ2)
+                                    C11 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************c
+                                case(112)
+
+                                    B11 = matmul(WSQDZ1, WSQDY2)
+                                    C11 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !                 T-T 12 OPERATORS
+                                !**********************************************************************C
+                                case(113)
+
+                                    B11 = matmul(WSQUY1, WSQUZ2)
+                                    C11 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************c
+                                case(114)
+
+                                    B11 = matmul(WSQUZ1, WSQDY2)
+                                    C11 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************c
+                                case(115)
+
+                                    B11 = matmul(WSQDY1, WSQDZ2)
+                                    C11 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************c
+                                case(116)
+
+                                    B11 = matmul(WSQDZ1, WSQUY2)
+                                    C11 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                case(117)
+
+                                    B11 = matmul(WSQUZ1, WSQDY2)
+                                    C11 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************c
+                                case(118)
+
+                                    B11 = matmul(WSQDY1, WSQDZ2)
+                                    C11 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************c
+                                case(119)
+
+                                    B11 = matmul(WSQDZ1, WSQUY2)
+                                    C11 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************c
+                                case(120)
+
+                                    B11 = matmul(WSQUY1, WSQUZ2)
+                                    C11 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                case(121)
+
+                                    B11 = matmul(WSQDY1, WSQUZ2)
+                                    C11 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 9
+
+
+                                !**********************************************************************c
+                                case(122)
+
+                                    B11 = matmul(WSQUZ1, WSQUY2)
+                                    C11 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 10
+
+
+                                !**********************************************************************c
+                                case(123)
+
+                                    B11 = matmul(WSQUY1, WSQDZ2)
+                                    C11 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 11
+
+
+                                !**********************************************************************c
+                                case(124)
+
+                                    B11 = matmul(WSQDZ1, WSQDY2)
+                                    C11 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 12
+
+
+                                !**********************************************************************C
+                                case(125)
+
+                                    B11 = matmul(WSQUZ1, WSQUY2)
+                                    C11 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 13
+
+
+                                !**********************************************************************c
+                                case(126)
+
+                                    B11 = matmul(WSQUY1, WSQDZ2)
+                                    C11 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 14
+
+
+                                !**********************************************************************c
+                                case(127)
+
+                                    B11 = matmul(WSQDZ1, WSQDY2)
+                                    C11 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 15
+
+
+                                !**********************************************************************c
+                                case(128)
+
+                                    B11 = matmul(WSQDY1, WSQUZ2)
+                                    C11 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 16
+
+
+                                !**********************************************************************C
+                                !                 T-T 13 OPERATORS
+                                !**********************************************************************C
+                                case(129)
+
+                                    B11 = matmul(WSQUY1, WSQUZ2)
+                                    C11 = matmul(WSQDY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************c
+                                case(130)
+
+                                    B11 = matmul(WSQUZ1, WSQDY2)
+                                    C11 = matmul(WSQDZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************c
+                                case(131)
+
+                                    B11 = matmul(WSQDY1, WSQDZ2)
+                                    C11 = matmul(WSQUY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 3
+
+
+                                !**********************************************************************c
+                                case(132)
+
+                                    B11 = matmul(WSQDZ1, WSQUY2)
+                                    C11 = matmul(WSQUZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 4
+
+
+                                !**********************************************************************C
+                                case(133)
+
+                                    B11 = matmul(WSQUZ1, WSQUY2)
+                                    C11 = matmul(WSQDZ3, WSQDY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 5
+
+
+                                !**********************************************************************c
+                                case(134)
+
+                                    B11 = matmul(WSQDY1, WSQUZ2)
+                                    C11 = matmul(WSQUY3, WSQDZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 6
+
+
+                                !**********************************************************************c
+                                case(135)
+
+                                    B11 = matmul(WSQDZ1, WSQDY2)
+                                    C11 = matmul(WSQUZ3, WSQUY4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 7
+
+
+                                !**********************************************************************c
+                                case(136)
+
+                                    B11 = matmul(WSQUY1, WSQDZ2)
+                                    C11 = matmul(WSQDY3, WSQUZ4)
+                                    A11 = matmul(B11, C11)
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !**********************************************************************C
+                                !                 T-T 14 OPERATORS
+                                !**********************************************************************C
+                                case(137)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQUY1, WSQUZ2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 1
+
+
+                                !**********************************************************************C
+                                case(138)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQUZ1, WSQDY2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 2
+
+
+                                !**********************************************************************C
+                                case(139)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQDY1, WSQDZ2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 3
+
+
+                                !**********************************************************************C
+                                case(140)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQDZ1, WSQUY2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 4
+
+
+                                !**********************************************************************C
+                                case(141)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQUY1, WSQDZ2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 5
+
+
+                                !**********************************************************************C
+                                case(142)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQUZ1, WSQUY2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 6
+
+
+                                !**********************************************************************C
+                                case(143)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQDY1, WSQUZ2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 7
+
+
+                                !**********************************************************************C
+                                case(144)
+
+                                    idsW=ids-1
+
+                                    if (idsW == 0) then
+                                        idsW=1
+                                    endif
+                                    A11 = matmul(WSQDZ1, WSQDY2)
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+                                    M3 = move(M2, KU, idsW)
+                                    M2 = M3
+
+                                        ieee = 8
+
+
+                                !**********************************************************************C
+                                !                         NORMAL POLYAKOV LOOP                         C
+                                !**********************************************************************C
+                                case(145)
+                                    A11 = gauge_field(:, :, m2, ku)
+                                    PL = gauge_field(:, :, m2, ku)
+
+                                !**********************************************************************C
+                                !***                      PLAQUETTE OPERATOR                        ***C
+                                !**********************************************************************C
+                                !***                      UP Y OPERATOR
+                                !**********************************************************************C
+                                case(146)
+                                    B11 = gauge_field(:, :, M2, JU)
+                                    M3 = move(M2, JU, ids)
+                                    C11 = gauge_field(:, :, M3, IU)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, IU, ids)
+                                    B11 = gauge_field(:, :, M3, JU)
+                                    B11 = herm(B11)
+                                    C11 = matmul(D11, B11)
+                                    D11 = gauge_field(:, :, M2, IU)
+                                    D11 = herm(D11)
+                                    PLQ1 = matmul(C11, D11)
+
+                                    PQ1 = matmul(PLQ1, PL)
+
+                                    A11 = PQ1
+
+                                    ieee = 1
+
+
+                                !**********************************************************************C
+                                !***                      UP Z OPERATOR
+                                !**********************************************************************C
+                                case(147)
+                                    B11 = gauge_field(:, :, M2, IU)
+                                    M3 = move(M2, IU, ids)
+                                    M1 = move(M3, -JU, ids)
+                                    C11 = gauge_field(:, :, M1, JU)
+                                    C11 = herm(C11)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M2, -JU, ids)
+                                    C11 = gauge_field(:, :, M3, IU)
+                                    C11 = herm(C11)
+                                    B11 = matmul(D11, C11)
+                                    D11 = gauge_field(:, :, M3, JU)
+                                    PLQ2 = matmul(B11, D11)
+
+                                    PQ2 = matmul(PLQ2, PL)
+
+                                    A11 = PQ2
+
+                                    ieee = 2
+
+
+                                !**********************************************************************C
+                                !***                      DOWN Y OPERATOR
+                                !**********************************************************************C
+                                case(148)
+                                    M3 = move(M2, -JU, ids)
+                                    C11 = gauge_field(:, :, M3, JU)
+                                    C11 = herm(C11)
+                                    M1 = move(M3, -IU, ids)
+                                    B11 = gauge_field(:, :, M1, IU)
+                                    B11 = herm(B11)
+                                    D11 = matmul(C11, B11)
+                                    C11 = gauge_field(:, :, M1, JU)
+                                    B11 = matmul(D11, C11)
+                                    M3 = move(M2, -IU, ids)
+                                    D11 = gauge_field(:, :, M3, IU)
+                                    PLQ3 = matmul(B11, D11)
+
+                                    PQ3 = matmul(PLQ3, PL)
+
+                                    A11 = PQ3
+
+                                    ieee = 3
+
+
+                                !**********************************************************************C
+                                !***                      DOWN Z OPERATOR
+                                !**********************************************************************C
+                                case(149)
+                                    M3 = move(M2, -IU, ids)
+                                    B11 = gauge_field(:, :, M3, IU)
+                                    B11 = herm(B11)
+                                    C11 = gauge_field(:, :, M3, JU)
+                                    D11 = matmul(B11, C11)
+                                    M1 = move(M3, JU, ids)
+                                    B11 = gauge_field(:, :, M1, IU)
+                                    C11 = matmul(D11, B11)
+                                    B11 = gauge_field(:, :, M2, JU)
+                                    B11 = herm(B11)
+                                    PLQ4 = matmul(C11, B11)
+
+                                    PQ4 = matmul(PLQ4, PL)
+
+                                    A11 = PQ4
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                !***                       UP Y OPERATOR +
+                                !******************************************************************C
+                                case(150)
+                                    plq5 = plq2
+                                    plq5 = herm(plq5)
+                                    PQ5 = matmul(PLQ5, PL)
+
+                                    A11 = PQ5
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                !***                       UP Z OPERATOR +
+                                !******************************************************************C
+                                case(151)
+                                    plq6 = plq1
+                                    plq6 = herm(plq6)
+                                    PQ6 = matmul(PLQ6, PL)
+
+                                    A11 = PQ6
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                !***                       DOWN Y OPERATOR +
+                                !******************************************************************C
+                                case(152)
+                                    plq7 = plq4
+                                    plq7 = herm(plq4)
+                                    PQ7 = matmul(PLQ7, PL)
+
+                                    A11 = PQ7
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                !***                       DOWN Z OPERATOR +
+                                !******************************************************************C
+                                case(153)
+                                    plq8 = plq3
+                                    plq8 = herm(plq8)
+                                    PQ8 = matmul(PLQ8, PL)
+
+                                    A11 = PQ8
+
+                                    ieee = 8
+
+
+                                !**********************************************************************C
+                                !***                      PLAQUETTE OPERATOR 2                      ***C
+                                !**********************************************************************C
+                                !***                      UP Y OPERATOR
+                                !**********************************************************************C
+                                case(154)
+                                    M5 = move(M2, KU, ids)
+                                    B11 = gauge_field(:, :, M5, JU)
+                                    M3 = move(M5, JU, ids)
+                                    C11 = gauge_field(:, :, M3, IU)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M5, IU, ids)
+                                    B11 = gauge_field(:, :, M3, JU)
+                                    B11 = herm(B11)
+                                    C11 = matmul(D11, B11)
+                                    D11 = gauge_field(:, :, M5, IU)
+                                    D11 = herm(D11)
+                                    DPLQ1 = matmul(C11, D11)
+
+                                    A11 = matmul(PQ1, DPLQ1)
+
+                                    ieee = 1
+
+
+                                !**********************************************************************C
+                                !***                      UP Z OPERATOR
+                                !**********************************************************************C
+                                case(155)
+                                    M5 = move(M2, KU, ids)
+                                    B11 = gauge_field(:, :, M5, IU)
+                                    M3 = move(M5, IU, ids)
+                                    M1 = move(M3, -JU, ids)
+                                    C11 = gauge_field(:, :, M1, JU)
+                                    C11 = herm(C11)
+                                    D11 = matmul(B11, C11)
+                                    M3 = move(M5, -JU, ids)
+                                    C11 = gauge_field(:, :, M3, IU)
+                                    C11 = herm(C11)
+                                    B11 = matmul(D11, C11)
+                                    D11 = gauge_field(:, :, M3, JU)
+                                    DPLQ2 = matmul(B11, D11)
+
+                                    A11 = matmul(PQ2, DPLQ2)
+
+                                    ieee = 2
+
+
+                                !**********************************************************************C
+                                !***                      DOWN Y OPERATOR
+                                !**********************************************************************C
+                                case(156)
+                                M5 = move(M2, KU, ids)
+                                M3 = move(M5, -JU, ids)
+                                C11 = gauge_field(:, :, M3, JU)
+                                C11 = herm(C11)
+                                M1 = move(M3, -IU, ids)
+                                B11 = gauge_field(:, :, M1, IU)
+                                B11 = herm(B11)
+                                D11 = matmul(C11, B11)
+                                C11 = gauge_field(:, :, M1, JU)
+                                B11 = matmul(D11, C11)
+                                M3 = move(M5, -IU, ids)
+                                D11 = gauge_field(:, :, M3, IU)
+                                DPLQ3 = matmul(B11, D11)
+
+                                A11 = matmul(PQ3, DPLQ3)
+
+                                ieee = 3
+
+
+                                !**********************************************************************C
+                                !***                      DOWN Z OPERATOR
+                                !**********************************************************************C
+                                case(157)
+                                M5 = move(M2, KU, ids)
+                                M3 = move(M5, -IU, ids)
+                                B11 = gauge_field(:, :, M3, IU)
+                                B11 = herm(B11)
+                                C11 = gauge_field(:, :, M3, JU)
+                                D11 = matmul(B11, C11)
+                                M1 = move(M3, JU, ids)
+                                B11 = gauge_field(:, :, M1, IU)
+                                C11 = matmul(D11, B11)
+                                B11 = gauge_field(:, :, M5, JU)
+                                B11 = herm(B11)
+                                DPLQ4 = matmul(C11, B11)
+
+                                A11 = matmul(PQ4, DPLQ4)
+
+                                ieee = 4
+
+
+                                !******************************************************************C
+                                !***                       UP Y OPERATOR +
+                                !******************************************************************C
+                                case(158)
+                                    dplq5 = dplq2
+                                    dplq5 = herm(dplq5)
+                                    A11 = matmul(PQ5, DPLQ5)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                !***                       UP Z OPERATOR +
+                                !******************************************************************C
+                                case(159)
+                                    dplq6 = dplq1
+                                    dplq6 = herm(dplq6)
+                                    A11 = matmul(PQ6, DPLQ6)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                !***  DOWN Y OPERATOR +
+                                !******************************************************************C
+                                case(160)
+                                    dplq7 = dplq4
+                                    dplq7 = herm(dplq7)
+                                    A11 = matmul(PQ7, DPLQ7)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                !***                       DOWN Z OPERATOR +
+                                !******************************************************************C
+                                case(161)
+                                    dplq8 = dplq3
+                                    dplq8 = herm(dplq8)
+                                    A11 = matmul(PQ8, DPLQ8)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                !***             PLAQUETTE OPERATPORS 3
+                                !******************************************************************C
+                                case(162)
+                                    A11 = matmul(PQ1, DPLQ6) ! New altered !
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(163)
+                                    A11 = matmul(PQ2, DPLQ5) ! New altered !
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(164)
+                                    A11 = matmul(PQ3, DPLQ8) ! New altered !
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(165)
+                                    A11 = matmul(PQ4, DPLQ7) ! New altered !
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(166)
+                                    A11 = matmul(PQ5, DPLQ2)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(167)
+                                    A11 = matmul(PQ6, DPLQ1)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(168)
+                                    A11 = matmul(PQ7, DPLQ4)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(169)
+                                    A11 = matmul(PQ8, DPLQ3)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 4
+                                !******************************************************************C
+                                case(170)
+                                    B11 = matmul(PLQ1, SQUZ1)
+                                    A11 = matmul(B11, DPLQ6)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(171)
+                                    B11 = matmul(PLQ2, SQDY1)
+                                    A11 = matmul(B11, DPLQ5)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(172)
+                                    B11 = matmul(PLQ3, SQDZ1)
+                                    A11 = matmul(B11, DPLQ8)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(173)
+                                    B11 = matmul(PLQ4, SQUY1)
+                                    A11 = matmul(B11, DPLQ7)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(174)
+                                    B11 = matmul(PLQ5, SQUZ1)
+                                    A11 = matmul(B11, DPLQ2)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(175)
+                                    B11 = matmul(PLQ6, SQUY1)
+                                    A11 = matmul(B11, DPLQ1)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(176)
+                                    B11 = matmul(PLQ7, SQDZ1)
+                                    A11 = matmul(B11, DPLQ4)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(177)
+                                    B11 = matmul(PLQ8, SQDY1)
+                                    A11 = matmul(B11, DPLQ3)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 5
+                                !******************************************************************C
+                                case(178)
+                                    A11 = matmul(PQ1, DPLQ8)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(179)
+                                    A11 = matmul(PQ2, DPLQ7)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(180)
+                                    A11 = matmul(PQ3, DPLQ6)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(181)
+                                    A11 = matmul(PQ4, DPLQ5)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(182)
+                                    A11 = matmul(PQ5, DPLQ4)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(183)
+                                    A11 = matmul(PQ6, DPLQ3)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(184)
+                                    A11 = matmul(PQ7, DPLQ2)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(185)
+                                    A11 = matmul(PQ8, DPLQ1)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 6
+                                !******************************************************************C
+                                case(186)
+                                    A11 = matmul(PQ1, DPLQ3)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(187)
+                                    A11 = matmul(PQ2, DPLQ4)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(188)
+                                    A11 = matmul(PQ3, DPLQ1)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(189)
+                                    A11 = matmul(PQ4, DPLQ2)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(190)
+                                    A11 = matmul(PQ5, DPLQ7)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(191)
+                                    A11 = matmul(PQ6, DPLQ8)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(192)
+                                    A11 = matmul(PQ7, DPLQ5)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(193)
+                                    A11 = matmul(PQ8, DPLQ6)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 7
+                                !******************************************************************C
+                                case(194)
+                                    B11 = matmul(SQUY1, DPLQ1)
+                                    A11 = matmul(B11, SQDZ2)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(195)
+                                    B11 = matmul(SQUZ1, DPLQ2)
+                                    A11 = matmul(B11, SQUY2)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(196)
+                                    B11 = matmul(SQDY1, DPLQ3)
+                                    A11 = matmul(B11, SQUZ2)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(197)
+                                    B11 = matmul(SQDZ1, DPLQ4)
+                                    A11 = matmul(B11, SQDY2)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(198)
+                                    B11 = matmul(SQDZ1, DPLQ6)
+                                    A11 = matmul(B11, SQUY2)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(199)
+                                    B11 = matmul(SQUY1, DPLQ5)
+                                    A11 = matmul(B11, SQUZ2)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(200)
+                                    B11 = matmul(SQUZ1, DPLQ8)
+                                    A11 = matmul(B11, SQDY2)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(201)
+                                    B11 = matmul(SQDY1, DPLQ7)
+                                    A11 = matmul(B11, SQDZ2)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(202)
+                                    B11 = matmul(SQDY1, DPLQ5)
+                                    A11 = matmul(B11, SQDZ2)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(203)
+                                    B11 = matmul(SQUZ1, DPLQ6)
+                                    A11 = matmul(B11, SQDY2)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(204)
+                                    B11 = matmul(SQUY1, DPLQ7)
+                                    A11 = matmul(B11, SQUZ2)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(205)
+                                    B11 = matmul(SQDZ1, DPLQ8)
+                                    A11 = matmul(B11, SQUY2)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(206)
+                                    B11 = matmul(SQDZ1, DPLQ2)
+                                    A11 = matmul(B11, SQDY2)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(207)
+                                    B11 = matmul(SQDY1, DPLQ1)
+                                    A11 = matmul(B11, SQUZ2)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(208)
+                                    B11 = matmul(SQUZ1, DPLQ4)
+                                    A11 = matmul(B11, SQUY2)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(209)
+                                    B11 = matmul(SQUY1, DPLQ3)
+                                    A11 = matmul(B11, SQDZ2)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 8
+                                !******************************************************************C
+                                case(210)
+                                    B11 = matmul(SQUY1, DPLQ1)
+                                    A11 = matmul(B11, DPLQ2)
+
+                                    ieee = 1
+
+
+                                !******************************************************************c
+                                case(211)
+                                    B11 = matmul(SQUZ1, DPLQ2)
+                                    A11 = matmul(B11, DPLQ3)
+
+                                    ieee = 2
+
+
+                                !******************************************************************c
+                                case(212)
+                                    B11 = matmul(SQDY1, DPLQ3)
+                                    A11 = matmul(B11, DPLQ4)
+
+                                    ieee = 3
+
+
+                                !******************************************************************c
+                                case(213)
+                                    B11 = matmul(SQDZ1, DPLQ4)
+                                    A11 = matmul(B11, DPLQ1)
+
+                                    ieee = 4
+
+
+                                !******************************************************************c
+                                case(214)
+                                    B11 = matmul(PLQ5, PLQ6)
+                                    A11 = matmul(B11, SQUY1)
+
+                                    ieee = 5
+
+
+                                !******************************************************************c
+                                case(215)
+                                    B11 = matmul(PLQ8, PLQ5)
+                                    A11 = matmul(B11, SQUZ1)
+
+                                    ieee = 6
+
+
+                                !******************************************************************c
+                                case(216)
+                                    B11 = matmul(PLQ7, PLQ8)
+                                    A11 = matmul(B11, SQDY1)
+
+                                    ieee = 7
+
+
+                                !******************************************************************c
+                                case(217)
+                                    B11 = matmul(PLQ6, PLQ7)
+                                    A11 = matmul(B11, SQDZ1)
+
+                                    ieee = 8
+
+
+                                !******************************************************************c
+                                case(218)
+                                    B11 = matmul(SQDY1, DPLQ5)
+                                    A11 = matmul(B11, DPLQ6)
+
+                                    ieee = 9
+
+
+                                !******************************************************************c
+                                case(219)
+                                    B11 = matmul(SQUZ1, DPLQ6)
+                                    A11 = matmul(B11, DPLQ7)
+
+                                    ieee = 10
+
+
+                                !******************************************************************c
+                                case(220)
+                                    B11 = matmul(SQUY1, DPLQ7)
+                                    A11 = matmul(B11, DPLQ8)
+
+                                    ieee = 11
+
+
+                                !******************************************************************c
+                                case(221)
+                                    B11 = matmul(SQDZ1, DPLQ8)
+                                    A11 = matmul(B11, DPLQ5)
+
+                                    ieee = 12
+
+
+                                !******************************************************************c
+                                case(222)
+                                    B11 = matmul(PLQ1, PLQ2)
+                                    A11 = matmul(B11, SQDY1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************c
+                                case(223)
+                                    B11 = matmul(PLQ4, PLQ1)
+                                    A11 = matmul(B11, SQUZ1)
+
+                                    ieee = 14
+
+
+                                !******************************************************************c
+                                case(224)
+                                    B11 = matmul(PLQ3, PLQ4)
+                                    A11 = matmul(B11, SQUY1)
+
+                                    ieee = 15
+
+
+                                !******************************************************************c
+                                case(225)
+                                    B11 = matmul(PLQ2, PLQ3)
+                                    A11 = matmul(B11, SQDZ1)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 9
+                                !******************************************************************C
+                                case(226)
+                                    B11 = matmul(SQUY1, DPLQ1)
+                                    C11 = matmul(B11, DPLQ2)
+                                    A11 = matmul(C11, DPLQ3)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(227)
+                                    B11 = matmul(SQUZ1, DPLQ2)
+                                    C11 = matmul(B11, DPLQ3)
+                                    A11 = matmul(C11, DPLQ4)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(228)
+                                    B11 = matmul(SQDY1, DPLQ3)
+                                    C11 = matmul(B11, DPLQ4)
+                                    A11 = matmul(C11, DPLQ1)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(229)
+                                    B11 = matmul(SQDZ1, DPLQ4)
+                                    C11 = matmul(B11, DPLQ1)
+                                    A11 = matmul(C11, DPLQ2)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(230)
+                                    B11 = matmul(PLQ8, PLQ5)
+                                    C11 = matmul(B11, PLQ6)
+                                    A11 = matmul(C11, SQUY1)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(231)
+                                    B11 = matmul(PLQ7, PLQ8)
+                                    C11 = matmul(B11, PLQ5)
+                                    A11 = matmul(C11, SQUZ1)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(232)
+                                    B11 = matmul(PLQ6, PLQ7)
+                                    C11 = matmul(B11, PLQ8)
+                                    A11 = matmul(C11, SQDY1)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(233)
+                                    B11 = matmul(PLQ5, PLQ6)
+                                    C11 = matmul(B11, PLQ7)
+                                    A11 = matmul(C11, SQDZ1)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(234)
+                                    B11 = matmul(SQDY1, DPLQ5)
+                                    C11 = matmul(B11, DPLQ6)
+                                    A11 = matmul(C11, DPLQ7)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(235)
+                                    B11 = matmul(SQUZ1, DPLQ6)
+                                    C11 = matmul(B11, DPLQ7)
+                                    A11 = matmul(C11, DPLQ8)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(236)
+                                    B11 = matmul(SQUY1, DPLQ7)
+                                    C11 = matmul(B11, DPLQ8)
+                                    A11 = matmul(C11, DPLQ5)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(237)
+                                    B11 = matmul(SQDZ1, DPLQ8)
+                                    C11 = matmul(B11, DPLQ5)
+                                    A11 = matmul(C11, DPLQ6)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(238)
+                                    B11 = matmul(PLQ4, PLQ1)
+                                    C11 = matmul(B11, PLQ2)
+                                    A11 = matmul(C11, SQDY1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(239)
+                                    B11 = matmul(PLQ3, PLQ4)
+                                    C11 = matmul(B11, PLQ1)
+                                    A11 = matmul(C11, SQUZ1)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(240)
+                                    B11 = matmul(PLQ2, PLQ3)
+                                    C11 = matmul(B11, PLQ4)
+                                    A11 = matmul(C11, SQUY1)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(241)
+                                    B11 = matmul(PLQ1, PLQ2)
+                                    C11 = matmul(B11, PLQ3)
+                                    A11 = matmul(C11, SQDZ1)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 10
+                                !******************************************************************C
+                                case(242)
+                                    B11 = matmul(PLQ2, PLQ7)
+                                    A11 = matmul(B11, SQDZ1)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(243)
+                                    B11 = matmul(PLQ3, PLQ6)
+                                    A11 = matmul(B11, SQUY1)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(244)
+                                    B11 = matmul(PLQ4, PLQ5)
+                                    A11 = matmul(B11, SQUZ1)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(245)
+                                    B11 = matmul(PLQ1, PLQ8)
+                                    A11 = matmul(B11, SQDY1)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(246)
+                                    B11 = matmul(SQDZ1, DPLQ4)
+                                    A11 = matmul(B11, DPLQ5)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(247)
+                                    B11 = matmul(SQUY1, DPLQ1)
+                                    A11 = matmul(B11, DPLQ8)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(248)
+                                    B11 = matmul(SQUZ1, DPLQ2)
+                                    A11 = matmul(B11, DPLQ7)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(249)
+                                    B11 = matmul(SQDY1, DPLQ3)
+                                    A11 = matmul(B11, DPLQ6)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(250)
+                                    B11 = matmul(PLQ6, PLQ3)
+                                    A11 = matmul(B11, SQDZ1)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(251)
+                                    B11 = matmul(PLQ7, PLQ2)
+                                    A11 = matmul(B11, SQDY1)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(252)
+                                    B11 = matmul(PLQ8, PLQ1)
+                                    A11 = matmul(B11, SQUZ1)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(253)
+                                    B11 = matmul(PLQ5, PLQ4)
+                                    A11 = matmul(B11, SQUY1)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(254)
+                                    B11 = matmul(SQDZ1, DPLQ8)
+                                    A11 = matmul(B11, DPLQ1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(255)
+                                    B11 = matmul(SQDY1, DPLQ5)
+                                    A11 = matmul(B11, DPLQ4)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(256)
+                                    B11 = matmul(SQUZ1, DPLQ6)
+                                    A11 = matmul(B11, DPLQ3)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(257)
+                                    B11 = matmul(SQUY1, DPLQ7)
+                                    A11 = matmul(B11, DPLQ2)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 11
+                                !******************************************************************C
+                                case(258)
+                                    B11 = matmul(PLQ2, PLQ4)
+                                    A11 = matmul(B11, SQUY1)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(259)
+                                    B11 = matmul(PLQ3, PLQ1)
+                                    A11 = matmul(B11, SQUZ1)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(260)
+                                    B11 = matmul(PLQ4, PLQ2)
+                                    A11 = matmul(B11, SQDY1)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(261)
+                                    B11 = matmul(PLQ1, PLQ3)
+                                    A11 = matmul(B11, SQDZ1)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(262)
+                                    B11 = matmul(SQUY1, DPLQ7)
+                                    A11 = matmul(B11, DPLQ5)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(263)
+                                    B11 = matmul(SQUZ1, DPLQ6)
+                                    A11 = matmul(B11, DPLQ8)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(264)
+                                    B11 = matmul(SQDY1, DPLQ5)
+                                    A11 = matmul(B11, DPLQ7)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(265)
+                                    B11 = matmul(SQDZ1, DPLQ8)
+                                    A11 = matmul(B11, DPLQ6)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(266)
+                                    B11 = matmul(PLQ6, PLQ8)
+                                    A11 = matmul(B11, SQDY1)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(267)
+                                    B11 = matmul(PLQ7, PLQ5)
+                                    A11 = matmul(B11, SQUZ1)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(268)
+                                    B11 = matmul(PLQ8, PLQ6)
+                                    A11 = matmul(B11, SQUY1)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(269)
+                                    B11 = matmul(PLQ5, PLQ7)
+                                    A11 = matmul(B11, SQDZ1)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(270)
+                                    B11 = matmul(SQDY1, DPLQ3)
+                                    A11 = matmul(B11, DPLQ1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(271)
+                                    B11 = matmul(SQUZ1, DPLQ2)
+                                    A11 = matmul(B11, DPLQ4)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(272)
+                                    B11 = matmul(SQUY1, DPLQ1)
+                                    A11 = matmul(B11, DPLQ3)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(273)
+                                    B11 = matmul(SQDZ1, DPLQ4)
+                                    A11 = matmul(B11, DPLQ2)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 12
+                                !******************************************************************C
+                                case(274)
+                                    B11 = matmul(PLQ2, PLQ3)
+                                    C11 = matmul(B11, SQUY1)
+                                    A11 = matmul(C11, DPLQ7)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(275)
+                                    B11 = matmul(PLQ3, PLQ4)
+                                    C11 = matmul(B11, SQUZ1)
+                                    A11 = matmul(C11, DPLQ6)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(276)
+                                    B11 = matmul(PLQ4, PLQ1)
+                                    C11 = matmul(B11, SQDY1)
+                                    A11 = matmul(C11, DPLQ5)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(277)
+                                    B11 = matmul(PLQ1, PLQ2)
+                                    C11 = matmul(B11, SQDZ1)
+                                    A11 = matmul(C11, DPLQ8)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(278)
+                                    B11 = matmul(PLQ4, SQUY1)
+                                    C11 = matmul(B11, DPLQ8)
+                                    A11 = matmul(C11, DPLQ5)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(279)
+                                    B11 = matmul(PLQ1, SQUZ1)
+                                    C11 = matmul(B11, DPLQ7)
+                                    A11 = matmul(C11, DPLQ8)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(280)
+                                    B11 = matmul(PLQ2, SQDY1)
+                                    C11 = matmul(B11, DPLQ6)
+                                    A11 = matmul(C11, DPLQ7)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(281)
+                                    B11 = matmul(PLQ3, SQDZ1)
+                                    C11 = matmul(B11, DPLQ5)
+                                    A11 = matmul(C11, DPLQ6)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(282)
+                                    B11 = matmul(PLQ6, PLQ7)
+                                    C11 = matmul(B11, SQDY1)
+                                    A11 = matmul(C11, DPLQ3)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(283)
+                                    B11 = matmul(PLQ7, PLQ8)
+                                    C11 = matmul(B11, SQUZ1)
+                                    A11 = matmul(C11, DPLQ2)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(284)
+                                    B11 = matmul(PLQ8, PLQ5)
+                                    C11 = matmul(B11, SQUY1)
+                                    A11 = matmul(C11, DPLQ1)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(285)
+                                    B11 = matmul(PLQ5, PLQ6)
+                                    C11 = matmul(B11, SQDZ1)
+                                    A11 = matmul(C11, DPLQ4)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(286)
+                                    B11 = matmul(PLQ8, SQDY1)
+                                    C11 = matmul(B11, DPLQ4)
+                                    A11 = matmul(C11, DPLQ1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(287)
+                                    B11 = matmul(PLQ5, SQUZ1)
+                                    C11 = matmul(B11, DPLQ3)
+                                    A11 = matmul(C11, DPLQ4)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(288)
+                                    B11 = matmul(PLQ6, SQUY1)
+                                    C11 = matmul(B11, DPLQ2)
+                                    A11 = matmul(C11, DPLQ3)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(289)
+                                    B11 = matmul(PLQ7, SQDZ1)
+                                    C11 = matmul(B11, DPLQ1)
+                                    A11 = matmul(C11, DPLQ2)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 13
+                                !******************************************************************C
+                                case(290)
+                                    B11 = matmul(PLQ2, PLQ3)
+                                    C11 = matmul(B11, PLQ4)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ1)
+                                    A11 = matmul(C11, DPLQ2)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(291)
+                                    B11 = matmul(PLQ3, PLQ4)
+                                    C11 = matmul(B11, PLQ1)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ2)
+                                    A11 = matmul(C11, DPLQ3)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(292)
+                                    B11 = matmul(PLQ4, PLQ1)
+                                    C11 = matmul(B11, PLQ2)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ3)
+                                    A11 = matmul(C11, DPLQ4)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(293)
+                                    B11 = matmul(PLQ1, PLQ2)
+                                    C11 = matmul(B11, PLQ3)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ4)
+                                    A11 = matmul(C11, DPLQ1)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(294)
+                                    B11 = matmul(PLQ5, PLQ6)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ7)
+                                    C11 = matmul(B11, DPLQ8)
+                                    A11 = matmul(C11, DPLQ5)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(295)
+                                    B11 = matmul(PLQ8, PLQ5)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ6)
+                                    C11 = matmul(B11, DPLQ7)
+                                    A11 = matmul(C11, DPLQ8)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(296)
+                                    B11 = matmul(PLQ7, PLQ8)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ5)
+                                    C11 = matmul(B11, DPLQ6)
+                                    A11 = matmul(C11, DPLQ7)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(297)
+                                    B11 = matmul(PLQ6, PLQ7)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ8)
+                                    C11 = matmul(B11, DPLQ5)
+                                    A11 = matmul(C11, DPLQ6)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(298)
+                                    B11 = matmul(PLQ6, PLQ7)
+                                    C11 = matmul(B11, PLQ8)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ5)
+                                    A11 = matmul(C11, DPLQ6)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(299)
+                                    B11 = matmul(PLQ7, PLQ8)
+                                    C11 = matmul(B11, PLQ5)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ6)
+                                    A11 = matmul(C11, DPLQ7)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(300)
+                                    B11 = matmul(PLQ8, PLQ5)
+                                    C11 = matmul(B11, PLQ6)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ7)
+                                    A11 = matmul(C11, DPLQ8)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(301)
+                                    B11 = matmul(PLQ5, PLQ6)
+                                    C11 = matmul(B11, PLQ7)
+                                    B11 = matmul(C11, PL)
+                                    C11 = matmul(B11, DPLQ8)
+                                    A11 = matmul(C11, DPLQ5)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(302)
+                                    B11 = matmul(PLQ1, PLQ2)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ3)
+                                    C11 = matmul(B11, DPLQ4)
+                                    A11 = matmul(C11, DPLQ1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(303)
+                                    B11 = matmul(PLQ4, PLQ1)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ2)
+                                    C11 = matmul(B11, DPLQ3)
+                                    A11 = matmul(C11, DPLQ4)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(304)
+                                    B11 = matmul(PLQ3, PLQ4)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ1)
+                                    C11 = matmul(B11, DPLQ2)
+                                    A11 = matmul(C11, DPLQ3)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(305)
+                                    B11 = matmul(PLQ2, PLQ3)
+                                    C11 = matmul(B11, PL)
+                                    B11 = matmul(C11, DPLQ4)
+                                    C11 = matmul(B11, DPLQ1)
+                                    A11 = matmul(C11, DPLQ2)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 14
+                                !******************************************************************C
+                                case(306)
+                                    B11 = matmul(PLQ2, SQUY1)
+                                    A11 = matmul(B11, DPLQ7)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(307)
+                                    B11 = matmul(PLQ3, SQUZ1)
+                                    A11 = matmul(B11, DPLQ6)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(308)
+                                    B11 = matmul(PLQ4, SQDY1)
+                                    A11 = matmul(B11, DPLQ5)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(309)
+                                    B11 = matmul(PLQ1, SQDZ1)
+                                    A11 = matmul(B11, DPLQ8)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(310)
+                                    B11 = matmul(PLQ4, SQUY1)
+                                    A11 = matmul(B11, DPLQ5)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(311)
+                                    B11 = matmul(PLQ1, SQUZ1)
+                                    A11 = matmul(B11, DPLQ8)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(312)
+                                    B11 = matmul(PLQ2, SQDY1)
+                                    A11 = matmul(B11, DPLQ7)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(313)
+                                    B11 = matmul(PLQ3, SQDZ1)
+                                    A11 = matmul(B11, DPLQ6)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(314)
+                                    B11 = matmul(PLQ6, SQDY1)
+                                    A11 = matmul(B11, DPLQ3)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(315)
+                                    B11 = matmul(PLQ7, SQUZ1)
+                                    A11 = matmul(B11, DPLQ2)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(316)
+                                    B11 = matmul(PLQ8, SQUY1)
+                                    A11 = matmul(B11, DPLQ1)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(317)
+                                    B11 = matmul(PLQ5, SQDZ1)
+                                    A11 = matmul(B11, DPLQ4)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(318)
+                                    B11 = matmul(PLQ8, SQDY1)
+                                    A11 = matmul(B11, DPLQ1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(319)
+                                    B11 = matmul(PLQ5, SQUZ1)
+                                    A11 = matmul(B11, DPLQ4)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(320)
+                                    B11 = matmul(PLQ6, SQUY1)
+                                    A11 = matmul(B11, DPLQ3)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(321)
+                                    B11 = matmul(PLQ7, SQDZ1)
+                                    A11 = matmul(B11, DPLQ2)
+
+                                    ieee = 16
+
+
+                                !******************************************************************C
+                                !     PLAQUETTE OPERATORS 15
+                                !******************************************************************C
+                                case(322)
+                                    B11 = matmul(PLQ2, PLQ7)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ6)
+
+                                    ieee = 1
+
+
+                                !******************************************************************C
+                                case(323)
+                                    B11 = matmul(PLQ3, PLQ6)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ5)
+
+                                    ieee = 2
+
+
+                                !******************************************************************C
+                                case(324)
+                                    B11 = matmul(PLQ4, PLQ5)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ8)
+
+                                    ieee = 3
+
+
+                                !******************************************************************C
+                                case(325)
+                                    B11 = matmul(PLQ1, PLQ8)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ7)
+
+                                    ieee = 4
+
+
+                                !******************************************************************C
+                                case(326)
+                                    B11 = matmul(PLQ1, PL)
+                                    C11 = matmul(B11, DPLQ4)
+                                    A11 = matmul(C11, DPLQ5)
+
+                                    ieee = 5
+
+
+                                !******************************************************************C
+                                case(327)
+                                    B11 = matmul(PLQ2, PL)
+                                    C11 = matmul(B11, DPLQ1)
+                                    A11 = matmul(C11, DPLQ8)
+
+                                    ieee = 6
+
+
+                                !******************************************************************C
+                                case(328)
+                                    B11 = matmul(PLQ3, PL)
+                                    C11 = matmul(B11, DPLQ2)
+                                    A11 = matmul(C11, DPLQ7)
+
+                                    ieee = 7
+
+
+                                !******************************************************************C
+                                case(329)
+                                    B11 = matmul(PLQ4, PL)
+                                    C11 = matmul(B11, DPLQ3)
+                                    A11 = matmul(C11, DPLQ6)
+
+                                    ieee = 8
+
+
+                                !******************************************************************C
+                                case(330)
+                                    B11 = matmul(PLQ6, PLQ3)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ2)
+
+                                    ieee = 9
+
+
+                                !******************************************************************C
+                                case(331)
+                                    B11 = matmul(PLQ7, PLQ2)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ1)
+
+                                    ieee = 10
+
+
+                                !******************************************************************C
+                                case(332)
+                                    B11 = matmul(PLQ8, PLQ1)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ4)
+
+                                    ieee = 11
+
+
+                                !******************************************************************C
+                                case(333)
+                                    B11 = matmul(PLQ5, PLQ4)
+                                    C11 = matmul(B11, PL)
+                                    A11 = matmul(C11, DPLQ3)
+
+                                    ieee = 12
+
+
+                                !******************************************************************C
+                                case(334)
+                                    B11 = matmul(PLQ5, PL)
+                                    C11 = matmul(B11, DPLQ8)
+                                    A11 = matmul(C11, DPLQ1)
+
+                                    ieee = 13
+
+
+                                !******************************************************************C
+                                case(335)
+                                    B11 = matmul(PLQ6, PL)
+                                    C11 = matmul(B11, DPLQ5)
+                                    A11 = matmul(C11, DPLQ4)
+
+                                    ieee = 14
+
+
+                                !******************************************************************C
+                                case(336)
+                                    B11 = matmul(PLQ7, PL)
+                                    C11 = matmul(B11, DPLQ6)
+                                    A11 = matmul(C11, DPLQ3)
+
+                                    ieee = 15
+
+
+                                !******************************************************************C
+                                case(337)
+                                    B11 = matmul(PLQ8, PL)
+                                    C11 = matmul(B11, DPLQ7)
+                                    A11 = matmul(C11, DPLQ2)
+
+                                    ieee = 16
+
+                                !******************************************************************c
+                                end select
+                            !******************************************************************C
+                            ! If the operator does not fit in this blocking level (more than once)
+                            elseif (lcnt(ids) < ico) then
+                                A11 = LIN0
+                                M2=ML
+                            else
+                                if (ico == 1) then
+                                    C11 = matmul(A11, LIN1)
+                                    A11 = C11
+                                endif
+
+                                if (ico == 2) then
+                                    C11 = matmul(A11, LIN2)
+                                    A11 = C11
+                                endif
+
+                                if (ico == 4) then
+                                    C11 = matmul(A11, LIN4)
+                                    A11 = C11
+                                endif
+                                M2=ML
+                            endif
+                            !***********************************************************************
                         endif
 
-                        do ic = 1, NCOL                      
-                            E11(ic, ic) = cmplx(1.0, 0.0, kind=real64)
+                        B11 = matmul(A11, REM11)
+                        AKT1 = cmplx(0.0, 0.0, kind=real64)
+                        do ic = 1, NCOL
+                            akt1 = akt1 + B11(ic, ic)
                         enddo
-
-                        do nc = 1, li
-                            B11 = gauge_field(:, :, m2, ku)
-                            C11 = matmul(E11, B11)
-                            m3 = move(m2, ku, ids)
-                            m2 = m3
-                            E11 = C11
-                        enddo
-
-                        ml = m2
-                        select case(iloop)
-                        case(1)
-                            lin0 = E11
-                        case(2)
-                            lin1 = E11
-                        case(3)
-                            lin2 = E11
-                        case(4)
-                            lin4 = E11
-                        case default
-                            error stop "iloop not a number 1,...,4"
-                        end select
-                    enddo
-                else
-                    m2=mn
-                endif
-
-                !**********************************************************************
-                !*********************** REMAINING PIECE ******************************
-                !**********************************************************************  
-
-                do ic = 1, NCOL
-                    REM11(ic, ic) = cmplx(1.0, 0.0, kind=real64)
-                enddo
-
-                do ig=1,ids
-                    idg = ids - ig + 1
-                    if (idg == id) cycle
-                    do nc = 1, lcnt(idg)
-                        UINT11 = cmplx(0.0, 0.0, kind=real64)
-
-                        do mu = 1, 3
-                            if(mu == ku) cycle
-
-                            B11 = gauge_field_blocked(:, :, m2, mu, idsm1)
-                            m3 = move(m2, mu, idsm1)
-                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
-                            D11 = matmul(B11, C11)
-                            m1 = move(m2, ku, idg)
-                            B11 = herm(gauge_field_blocked(:, :, m1, mu, idsm1))
-                            C11 = matmul(D11, B11)
-                            UINT11 = UINT11 + C11
-                            m3 = move(m2, -mu, idsm1)
-                            B11 = herm(gauge_field_blocked(:, :, m3, mu, idsm1))
-                                C11 = gauge_field_blocked(:, :, m3, ku, idg)
-                            D11 = matmul(B11, C11)
-                            m1 = move(m3, ku, idg)
-                            B11 = gauge_field_blocked(:, :, m1, mu, idsm1)
-                            C11 = matmul(D11, B11)
-                            UINT11 = UINT11 + C11
-                        enddo
-                                B11 = gauge_field_blocked(:, :, m2, ku, idg)
-                        UINT11 = UINT11 + B11
-                        B11 = normalise_link(UINT11)
-                        C11 = matmul(REM11, B11)
-                        m1 = m2
-                        REM11 = C11
-                        m2 = move(m1, ku, idg)
-                    enddo
-                enddo
-
-                !! OPERATOR CONSTRUCTION
-                do 9 iddd = 1, 337 !new!
-                    m2 = mn
-                    do ic = 1,NCOL
-                        A11(ic, ic) = cmplx(1.0, 0.0, kind=real64)
-                    enddo
-
-                    if (ids == id) then
-                        ico=2
-                        if (iddd < 5) ico=1
-                        if (((iddd > 12).and.(iddd < 17)).and.(ids /= 1)) ico=1
-                        if (((iddd > 16).and.(iddd < 21)).and.(ids == 1)) ico=4
-                        if (((iddd > 20).and.(iddd < 25)).and.(ids == 1)) ico=4
-                        if (((iddd > 24).and.(iddd < 29)).and.(ids == 1)) ico=4
-                        if (((iddd > 28).and.(iddd < 33)).and.(ids == 1)) ico=4
-                        if (((iddd > 40).and.(iddd < 49)).and.(ids == 1)) ico=4
-                        if (((iddd > 48).and.(iddd < 57)).and.(ids == 1)) ico=4
-                        if (((iddd > 56).and.(iddd < 65)).and.(ids == 1)) ico=4
-                        if (((iddd > 64).and.(iddd < 69)).and.(ids == 1)) ico=4
-                        if (((iddd > 68).and.(iddd < 73)).and.(ids == 1)) ico=4
-                        if (((iddd > 72).and.(iddd < 81)).and.(ids == 1)) ico=4
-                        if (((iddd > 80).and.(iddd < 89)).and.(ids == 1)) ico=4
-                        if (((iddd > 88).and.(iddd < 97)).and.(ids == 1)) ico=4
-                        if (((iddd > 96).and.(iddd < 105)).and.(ids == 1)) ico=4
-                        if (((iddd > 104).and.(iddd < 113)).and.(ids == 1)) ico=4
-                        if (((iddd > 112).and.(iddd < 129)).and.(ids == 1)) ico=4
-                        if (((iddd > 128).and.(iddd < 137)).and.(ids == 1)) ico=4
-                        if (((iddd > 136).and.(iddd < 145)).and.(ids /= 1)) ico=1
-                        if (iddd == 145) ico=1
-                        if ((iddd > 145).and.(iddd < 194)) ico=1
-                        if ((iddd > 209).and.(iddd < 338)) ico=1 ! THIS NEEDS TO BE FIXED  !
-
-                        if (lcnt(ids) >= ico) then
-                            !**********************************************************************C
-                            !                     UP SQUARE PULSE                                  C 
-                            !**********************************************************************C
-                            !                     UP Y
-                            !**********************************************************************
-                            if (iddd == 1) then
-                                B11 = gauge_field(:, :, M2, JU)
-                                M3 = move(M2, JU, ids)
-                                C11 = gauge_field(:, :, M3, KU)
-                                D11 = matmul(B11, C11)
-                                M3 = move(M2, KU, ids)
-                                M2 = M3
-                                C11 = gauge_field(:, :, M2, JU)
-                                C11 = herm(C11)
-                                SQUY1 = matmul(D11, C11)
-                                C11 = matmul(A11, SQUY1)
-                                A11 = C11
-         
-                                ieee = 1
-                            endif 
-                            !**********************************************************************C
-                            !     UP Z                                                             C 
-                            !**********************************************************************C
-                            if (iddd == 2) then
-                                B11 = gauge_field(:, :, M2, IU)
-                                M3 = move(M2, IU, ids)
-                                C11 = gauge_field(:, :, M3, KU)
-                                D11 = matmul(B11, C11)
-                                M3 = move(M2, KU, ids)
-                                M2 = M3
-                                C11 = gauge_field(:, :, M2, IU)
-                                C11 = herm(C11)
-                                SQUZ1 = matmul(D11, C11)
-                                C11 = matmul(A11, SQUZ1)     
-                                A11 = C11
-            
-                                ieee = 2
-                            endif 
-                            !**********************************************************************C 
-                            !                       DOWN Y                                         C
-                            !**********************************************************************C
-                            if (iddd == 3) then
-                                M3 = move(M2, -JU, ids)
-                                D11 = gauge_field(:, :, M3, JU)
-                                D11 = herm(D11)
-                                C11 = gauge_field(:, :, M3, KU)
-                                B11 = matmul(D11, C11)
-                                M4 = move(M3, KU, ids)
-                                D11 = gauge_field(:, :, M4, JU)
-                                SQDY1 = matmul(B11, D11)
-                                C11 = matmul(A11, SQDY1)     
-                                A11 = C11
-            
-                                ieee = 3     
-                            endif 
-                            !**********************************************************************C 
-                            !                       DOWN Z                                 C
-                            !**********************************************************************C
-                            if (iddd == 4) then
-                                M3 = move(M2, -IU, ids)
-                                D11 = gauge_field(:, :, M3, IU)
-                                D11 = herm(D11)
-                                C11 = gauge_field(:, :, M3, KU)
-                                B11 = matmul(D11, C11)
-                                M4 = move(M3, KU, ids)
-                                D11 = gauge_field(:, :, M4, IU)
-                                SQDZ1 = matmul(B11, D11)
-                                C11 = matmul(A11, SQDZ1)     
-                                A11 = C11
-            
-                                ieee = 4     
-                            endif 
-                            !**********************************************************************C
-                            !                       UP - UP SQUARE PULSES                         *C 
-                            !**********************************************************************C
-                            !                       UP Y
-                            !**********************************************************************C
-                            if (iddd == 5) then
-                                M3 = move(M2, KU, ids)
-                                D11 = gauge_field(:, :, M3, JU)
-                                M4 = move(M3, JU, ids)
-                                C11 = gauge_field(:, :, M4, KU)
-                                B11 = matmul(D11, C11)
-                                M2 = move(M3, KU, ids)
-                                C11 = gauge_field(:, :, M2, JU)
-                                C11 = herm(C11)
-                                SQUY2 = matmul(B11, C11)
-                                A11 = matmul(SQUY1, SQUY2)     
-                                
-                                ieee = 1     
-                            endif 
-                            !**********************************************************************C
-                            !              UP Z
-                            !**********************************************************************C
-                            if (iddd == 6) then  
-                                M3 = move(M2, KU, ids)
-                                D11 = gauge_field(:, :, M3, IU)
-                                M4 = move(M3, IU, ids)
-                                C11 = gauge_field(:, :, M4, KU)
-                                B11 = matmul(D11, C11)
-                                M2 = move(M3, KU, ids)
-                                C11 = gauge_field(:, :, M2, IU)
-                                C11 = herm(C11)
-                                SQUZ2 = matmul(B11, C11)
-                                A11 = matmul(SQUZ1, SQUZ2)
-            
-                                ieee = 2     
-                            endif 
-                            !**********************************************************************C 
-                            !              DOWN Y                                              C
-                            !**********************************************************************C
-                            if (iddd == 7) then     
-                                M3 = move(M2, KU, ids)
-                                M4 = move(M3, -JU, ids)
-                                D11 = gauge_field(:, :, M4, JU)
-                                D11 = herm(D11)
-                                C11 = gauge_field(:, :, M4, KU)
-                                B11 = matmul(D11, C11)
-                                M1 = move(M4, KU, ids)
-                                C11 = gauge_field(:, :, M1, JU)
-                                SQDY2 = matmul(B11, C11)
-                                A11 = matmul(SQDY1, SQDY2)
-                                M2 = move(M3, KU, ids)   
-                                
-                                ieee = 3     
-                            endif 
-                            !**********************************************************************C 
-                            !              DOWN Z                                              C
-                            !**********************************************************************C
-                            if (iddd == 8) then     
-                                M3 = move(M2, KU, ids)
-                                M4 = move(M3, -IU, ids)
-                                D11 = gauge_field(:, :, M4, IU)
-                                D11 = herm(D11)
-                                C11 = gauge_field(:, :, M4, KU)
-                                B11 = matmul(D11, C11)
-                                M1 = move(M4, KU, ids)
-                                C11 = gauge_field(:, :, M1, IU)
-                                SQDZ2 = matmul(B11, C11)
-                                A11 = matmul(SQDZ1, SQDZ2)
-                                M2 = move(M3, KU, ids)
-
-                                ieee = 4     
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !              UP - DOWN SQUARE PULSES                                 C 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                 UP Y 
-                            !**********************************************************************C
-                            if (iddd == 9) then
-                                SQUDY1 = matmul(SQUY1, SQDY2)
-                                A11 = squdy1
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-
-                                ieee = 1     
-                            endif 
-                            !**********************************************************************C
-                            !                 UP Z
-                            !**********************************************************************C
-                            if (iddd == 10) then    
-                                SQUDZ1 = matmul(SQUZ1, SQDZ2)
-                                A11 = squdz1
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-        
-                                ieee = 2     
-                            endif 
-                            !**********************************************************************C 
-                            !                 DOWN Y
-                            !**********************************************************************C
-                            if (iddd == 11) then
-                                SQDUY1 = matmul(SQDY1, SQUY2)
-                                A11 = sqduy1
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-            
-                                ieee = 3     
-                            endif 
-                            !**********************************************************************C 
-                            !                 DOWN Z
-                            !**********************************************************************C
-                            if (iddd == 12) then
-                                SQDUZ1 = matmul(SQDZ1, SQUZ2)
-                                A11 = sqduz1
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-        
-                                ieee = 4     
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                 UP WAVE - LIKE PULSE                                *C
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                 UP Y
-                            !**********************************************************************C
-                            if (iddd == 13) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                 
-                                D11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                M3 = move(M2, JU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                C11 = herm(C11)
-                                WSQUY1 = matmul(B11, C11)
-                                 
-                                M3 = move(M2, -JU, idsW)
-                                B11 = gauge_field_blocked(:, :, M3, JU, idsW)
-                                B11 = herm(B11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M4 = move(M3, KU, idsW)
-                                B11 = gauge_field_blocked(:, :, M4, JU, idsW)
-                                WSQDY2 = matmul(D11, B11)
-                                WVUY1 = matmul(WSQUY1, WSQDY2)
-                                A11 = WVUY1
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                ieee = 1
-                            endif 
-                            !**********************************************************************C
-                            !                 UP Z
-                            !**********************************************************************C
-                            if (iddd == 14) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                 
-                                D11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                M3 = move(M2, IU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                C11 = herm(C11)
-                                WSQUZ1 = matmul(B11, C11)
-                                 
-                                M3 = move(M2, -IU, idsW)
-                                B11 = gauge_field_blocked(:, :, M3, IU, idsW)
-                                B11 = herm(B11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M4 = move(M3, KU, idsW)
-                                B11 = gauge_field_blocked(:, :, M4, IU, idsW)
-                                WSQDZ2 = matmul(D11, B11)
-                                WVUZ1 = matmul(WSQUZ1, WSQDZ2)
-                                A11 = WVUZ1
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                ieee = 2
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Y                                              *C 
-                            !**********************************************************************C
-                            if (iddd == 15) then     
-                                idsW=ids-1
-
-                                if (idsW == 0) then
-                                idsW=1
-                                endif 
-                
-                                M3 = move(M2, -JU, idsW)
-                                D11 = gauge_field_blocked(:, :, M3, JU, idsW)
-                                D11 = herm(D11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M4 = move(M3, KU, idsW)
-                                C11 = gauge_field_blocked(:, :, M4, JU, idsW)
-                                WSQDY1 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                
-                                B11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                M3 = move(M2, JU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                C11 = herm(C11)
-                                WSQUY2 = matmul(D11, C11)
-                                WVDY1 = matmul(WSQDY1, WSQUY2)    
-                                A11 = WVDY1
-        
-                                ieee = 3 
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Z                                              *C 
-                            !**********************************************************************C
-                            if (iddd == 16) then     
-                                idsW=ids-1
-        
-                                if (idsW == 0) then
-                                idsW=1
-                                endif 
-                
-                                M3 = move(M2, -IU, idsW)
-                                D11 = gauge_field_blocked(:, :, M3, IU, idsW)
-                                D11 = herm(D11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M4 = move(M3, KU, idsW)
-                                C11 = gauge_field_blocked(:, :, M4, IU, idsW)
-                                WSQDZ1 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                 
-                                B11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                M3 = move(M2, IU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                C11 = herm(C11)
-                                WSQUZ2 = matmul(D11, C11)
-                                WVDZ1 = matmul(WSQDZ1, WSQUZ2)
-                                A11 = WVDZ1
-        
-                                ieee = 4     
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !              UP - UP WAVE-LIKE PULSE                                 C
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !              UP Y
-                            !**********************************************************************C
-                            if (iddd == 17) then
-                                idsW=ids-1
-
-                                if (idsW == 0) then 
-                                    idsW=1
-                                endif 
-             
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3 
-                                D11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                M3 = move(M2, JU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                C11 = herm(C11)
-                                WSQUY3 = matmul(B11, C11)
-            
-                                M3 = move(M2, -JU, idsW)
-                                B11 = gauge_field_blocked(:, :, M3, JU, idsW)
-                                B11 = herm(B11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M4 = move(M3, KU, idsW)
-                                B11 = gauge_field_blocked(:, :, M4, JU, idsW)
-                                WSQDY4 = matmul(D11, B11)
-                                WVUY2 = matmul(WSQUY3, WSQDY4)
-                                A11 = matmul(WVUY1, WVUY2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                ieee = 1     
-                            endif 
-                            !**********************************************************************C
-                            !                 UP Z
-                            !**********************************************************************C
-                            if (iddd == 18) then
-                                idsW=ids-1
-
-                                if (idsW == 0) then 
-                                    idsW=1
-                                endif  
-
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-             
-                                D11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                M3 = move(M2, IU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                C11 = herm(C11)
-                                WSQUZ3 = matmul(B11, C11)
-            
-                                M3 = move(M2, -IU, idsW)
-                                B11 = gauge_field_blocked(:, :, M3, IU, idsW)
-                                B11 = herm(B11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M4 = move(M3, KU, idsW)
-                                B11 = gauge_field_blocked(:, :, M4, IU, idsW)
-                                WSQDZ4 = matmul(D11, B11)
-                                WVUZ2 = matmul(WSQUZ3, WSQDZ4)
-                                A11 = matmul(WVUZ1, WVUZ2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                
-                                ieee = 2     
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Y                                               C
-                            !**********************************************************************C
-                            if (iddd == 19) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                 
-                                M3 = move(M2, -JU, idsW)
-                                D11 = gauge_field_blocked(:, :, M3, JU, idsW)
-                                D11 = herm(D11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M4 = move(M3, KU, idsW)
-                                C11 = gauge_field_blocked(:, :, M4, JU, idsW)
-                                WSQDY3 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                B11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                M3 = move(M2, JU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, JU, idsW)
-                                C11 = herm(C11)
-                                WSQUY4 = matmul(D11, C11)
-                                WVDY2 = matmul(WSQDY3, WSQUY4)
-                                A11 = matmul(WVDY1, WVDY2)
-            
-                                ieee = 3
-                 
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Y                                               C
-                            !**********************************************************************C
-                            if (iddd == 20) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                 
-                                M3 = move(M2, -IU, idsW)
-                                D11 = gauge_field_blocked(:, :, M3, IU, idsW)
-                                D11 = herm(D11)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                B11 = matmul(D11, C11)
-                                M4 = move(M3, KU, idsW)
-                                C11 = gauge_field_blocked(:, :, M4, IU, idsW)
-                                WSQDZ3 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                B11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                M3 = move(M2, IU, idsW)
-                                C11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                D11 = matmul(B11, C11)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                C11 = gauge_field_blocked(:, :, M2, IU, idsW)
-                                C11 = herm(C11)
-                                WSQUZ4 = matmul(D11, C11)
-                                WVDZ2 = matmul(WSQDZ3, WSQUZ4)
-                                A11 = matmul(WVDZ1, WVDZ2)
-            
-                                ieee = 4     
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                 UP - DOWN WAVE-LIKE PULSE                           *C
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                 UP Y                                                 C
-                            !**********************************************************************C
-                            if (iddd == 21) then     
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                 
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVUY1, WVDY2)
-            
-                                ieee = 1
-                            endif 
-                            !**********************************************************************C
-                            !                 UP Z                                                 C
-                            !**********************************************************************C
-                            if (iddd == 22) then     
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                 
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVUZ1, WVDZ2)
-            
-                                ieee = 2
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Y                                              *C
-                            !**********************************************************************C
-                            if (iddd == 23) then     
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                 
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVDY1, WVUY2)
-            
-                                ieee = 3
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Z                                              *C
-                            !**********************************************************************C
-                            if (iddd == 24) then
-                 
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                 
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVDZ1, WVUZ2)
-            
-                                ieee = 4     
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                   /\_____/\  UP PULSE                                C
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                  UP Y
-                            !**********************************************************************C
-                            if (iddd == 25) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQUY1, D11)
-                                A11 = matmul(C11, WSQUY4)
-            
-                                ieee = 1
-                            endif 
-                            !**********************************************************************C
-                            !                  UP Z
-                            !**********************************************************************C
-                            if (iddd == 26) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQUZ1, D11)
-                                A11 = matmul(C11, WSQUZ4)
-            
-                                ieee = 2
-                            endif 
-                            !**********************************************************************C
-                            !                   DOWN Y                                             C
-                            !**********************************************************************C
-                            if (iddd == 27) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-                 
-                                C11 = matmul(WSQDY1, D11)
-                                A11 = matmul(C11, WSQDY4)
-            
-                                ieee = 3
-                            endif 
-                            !**********************************************************************C
-                            !                   DOWN Z                                             C
-                            !**********************************************************************C
-                            if (iddd == 28) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-
-                                C11 = matmul(WSQDZ1, D11)
-                                A11 = matmul(C11, WSQDZ4)
-            
-                                ieee = 4
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                   /\-----\/  PULSE                                   C
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                  UP Y
-                            !**********************************************************************C
-                            if (iddd == 29) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQUY1, D11)
-                                A11 = matmul(C11, WSQDY4)
-            
-                                ieee = 1
-                            endif 
-                            !**********************************************************************C
-                            !                  UP Z
-                            !**********************************************************************C
-                            if (iddd == 30) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQUZ1, D11)
-                                A11 = matmul(C11, WSQDZ4)
-            
-                                ieee = 2
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Y                                               C
-                            !**********************************************************************C
-                            if (iddd == 31) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-                 
-                                C11 = matmul(WSQDY1, D11)
-                                A11 = matmul(C11, WSQUY4)
-            
-                                ieee = 3     
-                            endif 
-                            !**********************************************************************C
-                            !                 DOWN Z                                               C
-                            !**********************************************************************C
-                            if (iddd == 32) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-                 
-                                C11 = matmul(WSQDZ1, D11)
-                                A11 = matmul(C11, WSQUZ4)
-            
-                                ieee = 4     
-                            endif 
-
-                            !**********************************************************************
-                            !     TT-1 OPERATORS
-                            !**********************************************************************
-                            if (iddd == 33)then
-                                A11 = matmul(SQUY1, SQUZ2)
-                                wangl1 = A11
-                                
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-            
-                                ieee = 1
-        
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 34) then     
-                                A11 = matmul(SQUZ1, SQDY2)
-                                wangl2 = A11
-                                                              
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-             
-                                ieee = 2    
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 35) then    
-                                A11 = matmul(SQDY1, SQDZ2)
-                                wangl3 = A11
-                               
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-             
-                                ieee = 3     
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 36) then     
-                                A11 = matmul(SQDZ1, SQUY2)
-                                wangl4 = A11                         
-        
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-             
-                                ieee = 4     
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 37) then
-                                A11 = matmul(SQUY1, SQDZ2)
-                                wangl5 = A11                                                      
-
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-            
-                                ieee = 5     
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 38) then
-             
-                                A11 = matmul(SQUZ1, SQUY2)
-                                wangl6 = A11                                                  
-        
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-             
-                                ieee = 6     
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 39) then     
-                                A11 = matmul(SQDY1, SQUZ2)
-                                wangl7 = A11                         
-                                   
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-             
-                                ieee = 7     
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 40) then
-                                M3 = move(M2, KU, ids)
-                                M2 = move(M3, KU, ids)
-
-                                A11 = matmul(SQDZ1, SQDY2)
-                                wangl8 = A11                                                    
-             
-                                ieee = 8     
-                            endif 
-
-                            !**********************************************************************
-                            !     TT-2 OPERATORS
-                            !**********************************************************************
-                            if (iddd == 41) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVUY1, WVUZ2)
-            
-                                ieee = 1
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 42) then
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVUZ1, WVDY2)
-            
-                                ieee = 2
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 43) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVDY1, WVDZ2)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 44) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVDZ1, WVUY2)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 45) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVUZ1, WVUY2)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 46) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVDY1, WVUZ2)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 47) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVDZ1, WVDY2)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 48) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-            
-                                M3 = move(M2, KU, idsW)
-                                M4 = move(M3, KU, idsW)
-                                M1 = move(M4, KU, idsW)
-                                M2 = move(M1, KU, idsW)
-            
-                                A11 = matmul(WVUY1, WVDZ2)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                   /\----/_/  UP PULSE-TT3                            C
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                  1
-                            !**********************************************************************C
-                            if (iddd == 49) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-                                !   WARNING WE CAN SPEED UP THE COMPUTATION  !
-                                ! Thanks dude, warning heeded
-                                C11 = matmul(WSQUY1, D11)
-                                A11 = matmul(C11, WSQUZ4)
-            
-            
-                                ieee = 1
-                            endif 
-                            !**********************************************************************C
-                            !                  2
-                            !**********************************************************************C
-                            if (iddd == 50) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQUZ1, D11)
-                                A11 = matmul(C11, WSQDY4)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************C
-                            !                   3                                             C
-                            !**********************************************************************C
-                            if (iddd == 51) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQDY1, D11)
-                                A11 = matmul(C11, WSQDZ4)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 4                                                    C
-                            !**********************************************************************C
-                            if (iddd == 52) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQDZ1, D11)
-                                A11 = matmul(C11, WSQUY4)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 5                                                    C
-                            !**********************************************************************C
-                            if (iddd == 53) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQUY1, D11)
-                                A11 = matmul(C11, WSQDZ4)     
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 6                                                    C
-                            !**********************************************************************C
-                            if (iddd == 54) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQUZ1, D11)
-                                A11 = matmul(C11, WSQUY4)     
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 7                                                    C
-                            !**********************************************************************C
-                            if (iddd == 55) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQDY1, D11)
-                                A11 = matmul(C11, WSQUZ4)     
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 8                                                    C
-                            !**********************************************************************C
-                            if (iddd == 56) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                    M3 = move(M2, KU, idsW)
-                                    B11 = gauge_field_blocked(:, :, M3, KU, idsW)
-                                    M4 = move(M3, KU, idsW)
-                                    C11 = gauge_field_blocked(:, :, M4, KU, idsW)
-                                    D11 = matmul(B11, C11)
-                                else
-                                    M3 = move(M2, KU, idsW)
-                                    D11 = gauge_field_blocked(:, :, M3, KU, idsW+1)
-                                endif 
-            
-                                C11 = matmul(WSQDZ1, D11)
-                                A11 = matmul(C11, WSQDY4)     
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************
-                            !                 T-T4 OPERATORS
-                            !**********************************************************************
-                            if (iddd == 57) then
-            
-                                ZIG1W1 = matmul(WSQUY1, WSQUZ2)
-                                ZIG2W1 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(ZIG1W1, ZIG2W1)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 58) then
-            
-                                ZIG1W2 = matmul(WSQUZ1, WSQDY2)
-                                ZIG2W2 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(ZIG1W2, ZIG2W2)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 59) then
-            
-                                ZIG1W3 = matmul(WSQDY1, WSQDZ2)
-                                ZIG2W3 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(ZIG1W3, ZIG2W3)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 60) then
-            
-                                ZIG1W4 = matmul(WSQDZ1, WSQUY2)
-                                ZIG2W4 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(ZIG1W4, ZIG2W4)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 61) then
-            
-                                TIG1W4 = matmul(WSQDZ1, WSQDY2)
-                                TIG2W4 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(TIG1W4, TIG2W4)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 62) then
-            
-                                TIG1W1 = matmul(WSQUY1, WSQDZ2)
-                                TIG2W1 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(TIG1W1, TIG2W1)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 63) then
-            
-                                TIG1W2 = matmul(WSQUZ1, WSQUY2)
-                                TIG2W2 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(TIG1W2, TIG2W2)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************
-                            if (iddd == 64) then
-            
-                                TIG1W3 = matmul(WSQDY1, WSQUZ2)
-                                TIG2W3 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(TIG1W3, TIG2W3)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************
-                            !                 T-T5 OPERATORS
-                            !**********************************************************************
-                            if (iddd == 65) then
-            
-                                DUY1 = matmul(WSQUY1, WSQUY2)
-                                DUY2 = matmul(WSQUY3, WSQUY4)
-                                A11 = matmul(DUY1, DUY2)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 66) then
-            
-                                DUZ1 = matmul(WSQUZ1, WSQUZ2)
-                                DUZ2 = matmul(WSQUZ3, WSQUZ4)
-                                A11 = matmul(DUZ1, DUZ2)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 67) then
-            
-                                DDY1 = matmul(WSQDY1, WSQDY2)
-                                DDY2 = matmul(WSQDY3, WSQDY4)
-                                A11 = matmul(DDY1, DDY2)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 68) then
-            
-                                DDZ1 = matmul(WSQDZ1, WSQDZ2)
-                                DDZ2 = matmul(WSQDZ3, WSQDZ4)
-                                A11 = matmul(DDZ1, DDZ2)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 TT-6 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 69) then
-            
-                                A11 = matmul(DUY1, DDY2)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 70) then
-            
-                                A11 = matmul(DUZ1, DDZ2)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 71) then
-            
-                                A11 = matmul(DDY1, DUY2)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 72) then
-            
-                                A11 = matmul(DDZ1, DUZ2)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 T-T 7 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 73) then
-            
-                                A11 = matmul(DUY1, DUZ2)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 74) then
-            
-                                A11 = matmul(DUZ1, DDY2)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 75) then
-            
-                                A11 = matmul(DDY1, DDZ2)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 76) then
-            
-                                A11 = matmul(DDZ1, DUY2)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 77) then
-            
-                                A11 = matmul(DDZ1, DDY2)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 78) then
-            
-                                A11 = matmul(DUY1, DDZ2)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 79) then
-            
-                                A11 = matmul(DUZ1, DUY2)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 80) then
-            
-                                A11 = matmul(DDY1, DUZ2)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 T-T 8 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 81) then
-            
-                                B11 = matmul(WSQUY1, WSQUZ2)
-                                C11 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 82) then
-            
-                                B11 = matmul(WSQUZ1, WSQDY2)
-                                C11 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 83) then
-            
-                                B11 = matmul(WSQDY1, WSQDZ2)
-                                C11 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 84) then
-            
-                                B11 = matmul(WSQDZ1, WSQUY2)
-                                C11 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 85) then
-            
-                                B11 = matmul(WSQDY1, WSQUZ2)
-                                C11 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 86) then
-            
-                                B11 = matmul(WSQUZ1, WSQUY2)
-                                C11 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 87) then
-            
-                                B11 = matmul(WSQUY1, WSQDZ2)
-                                C11 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 88) then
-            
-                                B11 = matmul(WSQDZ1, WSQDY2)
-                                C11 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 T-T 9 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 89) then
-            
-                                B11 = matmul(WSQUY1, WSQUZ2)
-                                C11 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 90) then
-            
-                                B11 = matmul(WSQUZ1, WSQDY2)
-                                C11 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 91) then
-            
-                                B11 = matmul(WSQDY1, WSQDZ2)
-                                C11 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 92) then
-            
-                                B11 = matmul(WSQDZ1, WSQUY2)
-                                C11 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 93) then
-            
-                                B11 = matmul(WSQUY1, WSQDZ2)
-                                C11 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 94) then
-            
-                                B11 = matmul(WSQUZ1, WSQUY2)
-                                C11 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 95) then
-            
-                                B11 = matmul(WSQDY1, WSQUZ2)
-                                C11 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 96) then
-            
-                                B11 = matmul(WSQDZ1, WSQDY2)
-                                C11 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 T-T 10 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 97) then
-            
-                                B11 = matmul(WSQUY1, WSQUZ2)
-                                C11 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 98) then
-            
-                                B11 = matmul(WSQUZ1, WSQDY2)
-                                C11 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 99) then
-            
-                                B11 = matmul(WSQDY1, WSQDZ2)
-                                C11 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 100) then
-            
-                                B11 = matmul(WSQDZ1, WSQUY2)
-                                C11 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 101) then
-            
-                                B11 = matmul(WSQDY1, WSQUZ2)
-                                C11 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 102) then
-            
-                                B11 = matmul(WSQUZ1, WSQUY2)
-                                C11 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 103) then
-            
-                                B11 = matmul(WSQUY1, WSQDZ2)
-                                C11 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 104) then
-            
-                                B11 = matmul(WSQDZ1, WSQDY2)
-                                C11 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 T-T 11 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 105) then
-            
-                                B11 = matmul(WSQUY1, WSQUZ2)
-                                C11 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 106) then
-            
-                                B11 = matmul(WSQUZ1, WSQDY2)
-                                C11 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 107) then
-            
-                                B11 = matmul(WSQDY1, WSQDZ2)
-                                C11 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 108) then
-            
-                                B11 = matmul(WSQDZ1, WSQUY2)
-                                C11 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 109) then
-            
-                                B11 = matmul(WSQDY1, WSQUZ2)
-                                C11 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 110) then
-            
-                                B11 = matmul(WSQUZ1, WSQUY2)
-                                C11 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 111) then
-            
-                                B11 = matmul(WSQUY1, WSQDZ2)
-                                C11 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 112) then
-            
-                                B11 = matmul(WSQDZ1, WSQDY2)
-                                C11 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 T-T 12 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 113) then
-            
-                                B11 = matmul(WSQUY1, WSQUZ2)
-                                C11 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 114) then
-            
-                                B11 = matmul(WSQUZ1, WSQDY2)
-                                C11 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 115) then
-            
-                                B11 = matmul(WSQDY1, WSQDZ2)
-                                C11 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 116) then
-            
-                                B11 = matmul(WSQDZ1, WSQUY2)
-                                C11 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 117) then
-            
-                                B11 = matmul(WSQUZ1, WSQDY2)
-                                C11 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 118) then
-            
-                                B11 = matmul(WSQDY1, WSQDZ2)
-                                C11 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 119) then
-            
-                                B11 = matmul(WSQDZ1, WSQUY2)
-                                C11 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 120) then
-            
-                                B11 = matmul(WSQUY1, WSQUZ2)
-                                C11 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 121) then
-            
-                                B11 = matmul(WSQDY1, WSQUZ2)
-                                C11 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 9
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 122) then
-            
-                                B11 = matmul(WSQUZ1, WSQUY2)
-                                C11 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 10
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 123) then
-            
-                                B11 = matmul(WSQUY1, WSQDZ2)
-                                C11 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 11
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 124) then
-            
-                                B11 = matmul(WSQDZ1, WSQDY2)
-                                C11 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 12
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 125) then
-            
-                                B11 = matmul(WSQUZ1, WSQUY2)
-                                C11 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 13
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 126) then
-            
-                                B11 = matmul(WSQUY1, WSQDZ2)
-                                C11 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 14
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 127) then
-            
-                                B11 = matmul(WSQDZ1, WSQDY2)
-                                C11 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 15
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 128) then
-            
-                                B11 = matmul(WSQDY1, WSQUZ2)
-                                C11 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 16
-            
-                            endif 
-                            !**********************************************************************C
-                            !                 T-T 13 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 129) then
-            
-                                B11 = matmul(WSQUY1, WSQUZ2)
-                                C11 = matmul(WSQDY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 1
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 130) then
-            
-                                B11 = matmul(WSQUZ1, WSQDY2)
-                                C11 = matmul(WSQDZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 2
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 131) then
-            
-                                B11 = matmul(WSQDY1, WSQDZ2)
-                                C11 = matmul(WSQUY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 3
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 132) then
-            
-                                B11 = matmul(WSQDZ1, WSQUY2)
-                                C11 = matmul(WSQUZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 133) then
-            
-                                B11 = matmul(WSQUZ1, WSQUY2)
-                                C11 = matmul(WSQDZ3, WSQDY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 5
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 134) then
-            
-                                B11 = matmul(WSQDY1, WSQUZ2)
-                                C11 = matmul(WSQUY3, WSQDZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 6
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 135) then
-            
-                                B11 = matmul(WSQDZ1, WSQDY2)
-                                C11 = matmul(WSQUZ3, WSQUY4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 7
-            
-                            endif 
-                            !**********************************************************************c
-                            if (iddd == 136) then
-            
-                                B11 = matmul(WSQUY1, WSQDZ2)
-                                C11 = matmul(WSQDY3, WSQUZ4)
-                                A11 = matmul(B11, C11)
-            
-                                ieee = 8
-            
-                            endif 
-                            !**********************************************************************C
-                            !**********************************************************************C
-                            !                 T-T 14 OPERATORS
-                            !**********************************************************************C
-                            if (iddd == 137) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQUY1, WSQUZ2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 1
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 138) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQUZ1, WSQDY2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 2
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 139) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQDY1, WSQDZ2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 3
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 140) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQDZ1, WSQUY2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 4
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 141) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQUY1, WSQDZ2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 5
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 142) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQUZ1, WSQUY2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 6
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 143) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQDY1, WSQUZ2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 7
-            
-                            endif 
-                            !**********************************************************************C
-                            if (iddd == 144) then
-            
-                                idsW=ids-1
-            
-                                if (idsW == 0) then
-                                    idsW=1
-                                endif 
-                                A11 = matmul(WSQDZ1, WSQDY2)
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-                                M3 = move(M2, KU, idsW)
-                                M2 = M3
-            
-                                    ieee = 8
-            
-                            endif 
-!**********************************************************************C
-!                         NORMAL POLYAKOV LOOP                         C
-!**********************************************************************C
-                        if  (iddd == 145) then
-                        do 167 IC=1, NCOL2
-                            A11(IC)=UC11(IC,M2,KU)
-                            PL(IC)=UC11(IC,M2,KU)
-167                       continue
-                        endif 
-!**********************************************************************C
-!***                      PLAQUETTE OPERATOR                        ***C
-!**********************************************************************C
-!***                      UP Y OPERATOR
-!**********************************************************************C
-                        if  (iddd == 146) then
-B11 = gauge_field(:, :, M2, JU)
-                        M3 = move(M2, JU, ids)
-C11 = gauge_field(:, :, M3, IU)
-                        D11 = matmul(B11, C11)
-                        M3 = move(M2, IU, ids)
-B11 = gauge_field(:, :, M3, JU)
-                        B11 = herm(B11)
-                        C11 = matmul(D11, B11)
-D11 = gauge_field(:, :, M2, IU)
-                        D11 = herm(D11)
-                        PLQ1 = matmul(C11, D11)
-
-                        PQ1 = matmul(PLQ1, PL)
-
-A11 = PQ1
-
-                        ieee = 1
-
-                        endif 
-!**********************************************************************C
-!***                      UP Z OPERATOR
-!**********************************************************************C
-                        if (iddd == 147) then
-
-B11 = gauge_field(:, :, M2, IU)
-                        M3 = move(M2, IU, ids)
-                        M1 = move(M3, -JU, ids)
-C11 = gauge_field(:, :, M1, JU)
-                        C11 = herm(C11)
-                        D11 = matmul(B11, C11)
-                        M3 = move(M2, -JU, ids)
-C11 = gauge_field(:, :, M3, IU)
-                        C11 = herm(C11)
-                        B11 = matmul(D11, C11)
-D11 = gauge_field(:, :, M3, JU)
-                        PLQ2 = matmul(B11, D11)
-
-                        PQ2 = matmul(PLQ2, PL)
-
-A11 = PQ2
-
-                        ieee = 2
-
-                        endif 
-!**********************************************************************C
-!***                      DOWN Y OPERATOR
-!**********************************************************************C
-                        if (iddd == 148) then
-
-                        M3 = move(M2, -JU, ids)
-C11 = gauge_field(:, :, M3, JU)
-                        C11 = herm(C11)
-                        M1 = move(M3, -IU, ids)
-B11 = gauge_field(:, :, M1, IU)
-                        B11 = herm(B11)
-                        D11 = matmul(C11, B11)
-C11 = gauge_field(:, :, M1, JU)
-                        B11 = matmul(D11, C11)
-                        M3 = move(M2, -IU, ids)
-D11 = gauge_field(:, :, M3, IU)
-                        PLQ3 = matmul(B11, D11)
-
-                        PQ3 = matmul(PLQ3, PL)
-
-A11 = PQ3
-
-                        ieee = 3
-
-                        endif 
-!**********************************************************************C
-!***                      DOWN Z OPERATOR
-!**********************************************************************C
-                        if (iddd == 149) then
-
-                        M3 = move(M2, -IU, ids)
-B11 = gauge_field(:, :, M3, IU)
-                        B11 = herm(B11)
-C11 = gauge_field(:, :, M3, JU)
-                        D11 = matmul(B11, C11)
-                        M1 = move(M3, JU, ids)
-B11 = gauge_field(:, :, M1, IU)
-                        C11 = matmul(D11, B11)
-B11 = gauge_field(:, :, M2, JU)
-                        B11 = herm(B11)
-                        PLQ4 = matmul(C11, B11)
-
-                        PQ4 = matmul(PLQ4, PL)
-
-A11 = PQ4
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-!***                       UP Y OPERATOR +
-!******************************************************************C
-                        if (iddd == 150)then
-
-                        do 801 IC=1, NCOL2
-                            PLQ5(IC)=PLQ2(IC)
-801                       continue
-
-                        CALL HERM(1,PLQ5,DUM11,1)
-                        PQ5 = matmul(PLQ5, PL)
-
-A11 = PQ5
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-!***                       UP Z OPERATOR +
-!******************************************************************C
-                        if (iddd == 151)then
-
-                        do 802 IC=1, NCOL2
-                            PLQ6(IC)=PLQ1(IC)
-802                       continue
-
-                        CALL HERM(1,PLQ6,DUM11,1)
-                        PQ6 = matmul(PLQ6, PL)
-
-A11 = PQ6
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-!***                       DOWN Y OPERATOR +
-!******************************************************************C
-                        if (iddd == 152)then
-
-                        do 803 IC=1, NCOL2
-                            PLQ7(IC)=PLQ4(IC)
-803                       continue
-
-                        CALL HERM(1,PLQ7,DUM11,1)
-                        PQ7 = matmul(PLQ7, PL)
-
-A11 = PQ7
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-!***                       DOWN Z OPERATOR +
-!******************************************************************C
-                        if (iddd == 153)then
-
-                        do 804 IC=1, NCOL2
-                            PLQ8(IC)=PLQ3(IC)
-804                       continue
-
-                        CALL HERM(1,PLQ8,DUM11,1)
-                        PQ8 = matmul(PLQ8, PL)
-
-A11 = PQ8
-
-                        ieee = 8
-
-                        endif 
-!**********************************************************************C
-!***                      PLAQUETTE OPERATOR 2                      ***C
-!**********************************************************************C
-!***                      UP Y OPERATOR
-!**********************************************************************C
-                        if  (iddd == 154) then
-                        M5 = move(M2, KU, ids)
-B11 = gauge_field(:, :, M5, JU)
-                        M3 = move(M5, JU, ids)
-C11 = gauge_field(:, :, M3, IU)
-                        D11 = matmul(B11, C11)
-                        M3 = move(M5, IU, ids)
-B11 = gauge_field(:, :, M3, JU)
-                        B11 = herm(B11)
-                        C11 = matmul(D11, B11)
-D11 = gauge_field(:, :, M5, IU)
-                        D11 = herm(D11)
-                        DPLQ1 = matmul(C11, D11)
-
-                        A11 = matmul(PQ1, DPLQ1)
-
-                        ieee = 1
-
-                        endif 
-!**********************************************************************C
-!***                      UP Z OPERATOR
-!**********************************************************************C
-                        if (iddd == 155) then
-
-                        M5 = move(M2, KU, ids)
-B11 = gauge_field(:, :, M5, IU)
-                        M3 = move(M5, IU, ids)
-                        M1 = move(M3, -JU, ids)
-C11 = gauge_field(:, :, M1, JU)
-                        C11 = herm(C11)
-                        D11 = matmul(B11, C11)
-                        M3 = move(M5, -JU, ids)
-C11 = gauge_field(:, :, M3, IU)
-                        C11 = herm(C11)
-                        B11 = matmul(D11, C11)
-D11 = gauge_field(:, :, M3, JU)
-                        DPLQ2 = matmul(B11, D11)
-
-                        A11 = matmul(PQ2, DPLQ2)
-
-                        ieee = 2
-
-                        endif 
-!**********************************************************************C
-!***                      DOWN Y OPERATOR
-!**********************************************************************C
-                        if (iddd == 156) then
-
-                        M5 = move(M2, KU, ids)
-                        M3 = move(M5, -JU, ids)
-C11 = gauge_field(:, :, M3, JU)
-                        C11 = herm(C11)
-                        M1 = move(M3, -IU, ids)
-B11 = gauge_field(:, :, M1, IU)
-                        B11 = herm(B11)
-                        D11 = matmul(C11, B11)
-C11 = gauge_field(:, :, M1, JU)
-                        B11 = matmul(D11, C11)
-                        M3 = move(M5, -IU, ids)
-D11 = gauge_field(:, :, M3, IU)
-                        DPLQ3 = matmul(B11, D11)
-
-                        A11 = matmul(PQ3, DPLQ3)
-
-                        ieee = 3
-
-                        endif 
-!**********************************************************************C
-!***                      DOWN Z OPERATOR
-!**********************************************************************C
-                        if (iddd == 157) then
-
-                        M5 = move(M2, KU, ids)
-                        M3 = move(M5, -IU, ids)
-B11 = gauge_field(:, :, M3, IU)
-                        B11 = herm(B11)
-C11 = gauge_field(:, :, M3, JU)
-                        D11 = matmul(B11, C11)
-                        M1 = move(M3, JU, ids)
-B11 = gauge_field(:, :, M1, IU)
-                        C11 = matmul(D11, B11)
-B11 = gauge_field(:, :, M5, JU)
-                        B11 = herm(B11)
-                        DPLQ4 = matmul(C11, B11)
-
-                        A11 = matmul(PQ4, DPLQ4)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-!***                       UP Y OPERATOR +
-!******************************************************************C
-                        if (iddd == 158)then
-
-                        do 701 IC=1, NCOL2
-                            DPLQ5(IC)=DPLQ2(IC)
-701                       continue
-
-                        CALL HERM(1,DPLQ5,DUM11,1)
-                        A11 = matmul(PQ5, DPLQ5)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-!***                       UP Z OPERATOR +
-!******************************************************************C
-                        if (iddd == 159)then
-
-                        do 702 IC=1, NCOL2
-                            DPLQ6(IC)=DPLQ1(IC)
-702                       continue
-
-                        CALL HERM(1,DPLQ6,DUM11,1)
-                        A11 = matmul(PQ6, DPLQ6)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-!***  DOWN Y OPERATOR +
-!******************************************************************C
-                        if (iddd == 160)then
-
-                        do 703 IC=1, NCOL2
-                            DPLQ7(IC)=DPLQ4(IC)
-703                       continue
-
-                        CALL HERM(1,DPLQ7,DUM11,1)
-                        A11 = matmul(PQ7, DPLQ7)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-!***                       DOWN Z OPERATOR +
-!******************************************************************C
-                        if (iddd == 161)then
-
-                        do 704 IC=1, NCOL2
-                            DPLQ8(IC)=DPLQ3(IC)
-704                       continue
-
-                        CALL HERM(1,DPLQ8,DUM11,1)
-                        A11 = matmul(PQ8, DPLQ8)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-!***             PLAQUETTE OPERATPORS 3
-!******************************************************************C
-                        if (iddd == 162)then
-
-!                           do 705 IC=1, NCOL2
-!                              B11(IC)=DPLQ1(IC)
-! 705                       continue
-
-!                           B11 = herm(B11)
-!                           A11 = matmul(PQ1, B11)
-                            A11 = matmul(PQ1, DPLQ6) ! New altered !                           
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 163)then
-
-!                           do 706 IC=1, NCOL2
-!                              B11(IC)=DPLQ2(IC)
-! 706                       continue
-!C
-!                          B11 = herm(B11)
-!                           A11 = matmul(PQ2, B11)                           
-                        A11 = matmul(PQ2, DPLQ5) ! New altered !                           
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 164)then
-
-!                           do 707 IC=1, NCOL2
-!                              B11(IC)=DPLQ3(IC)
-! 707                       continue
-!C
-!                           B11 = herm(B11)
-!                           A11 = matmul(PQ3, B11)
+                        !************ ***********************************************************
+                        if (iddd <= 4) then
+                            csums(ieee) = csums(ieee) + akt1
+                            csumsmom(ieee,1) = csumsmom(ieee,1) + akt1*pf(1)
+                            csumsmom(ieee,2) = csumsmom(ieee,2) + akt1*pf(2)
+
+                        elseif ((iddd > 4).and.(iddd < 9)) then
+                            csum2s(ieee)=csum2s(ieee)+akt1
+                            csum2smom(ieee,1)=csum2smom(ieee,1)+akt1*pf(1)
+                            csum2smom(ieee,2)=csum2smom(ieee,2)+akt1*pf(2)
+
+                        elseif ((iddd > 8).and.(iddd < 13)) then
+                            csum2ws(ieee)=csum2ws(ieee)+akt1
+                            csum2wsmom(ieee,1)=csum2wsmom(ieee,1)+akt1*pf(1)
+                            csum2wsmom(ieee,2)=csum2wsmom(ieee,2)+akt1*pf(2)
                         
-                            A11 = matmul(PQ3, DPLQ8) ! New altered !
 
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 165)then
-
-!                           do 708 IC=1, NCOL2
-!                              B11(IC)=DPLQ4(IC)
-! 708                       continue
-!C
-!                          B11 = herm(B11)
-!                           A11 = matmul(PQ4, B11)                           
-                        A11 = matmul(PQ4, DPLQ7) ! New altered ! 
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 166)then
-
-                        A11 = matmul(PQ5, DPLQ2)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 167)then
-
-                        A11 = matmul(PQ6, DPLQ1)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 168)then
-
-                        A11 = matmul(PQ7, DPLQ4)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 169)then
-
-                        A11 = matmul(PQ8, DPLQ3)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 4 
-!******************************************************************C
-                        if (iddd == 170)then
-
-!                           do 709 IC=1, NCOL2
-!                              C11(IC)=DPLQ1(IC)
-! 709                       continue
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ1, SQUZ1)
-                        A11 = matmul(B11, DPLQ6)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 171)then
-
-!                           do 710 IC=1, NCOL2
-!                              C11(IC)=DPLQ2(IC)
-! 710                       continue
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ2, SQDY1)
-                        A11 = matmul(B11, DPLQ5)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 172)then
-
-!                           do 711 IC=1, NCOL2
-!                              C11(IC)=DPLQ3(IC)
-! 711                       continue
-!C
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ3, SQDZ1)
-                        A11 = matmul(B11, DPLQ8)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 173)then
-
-!                           do 712 IC=1, NCOL2
-!                              C11(IC)=DPLQ4(IC)
-! 712                       continue
-
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ4, SQUY1)
-                        A11 = matmul(B11, DPLQ7)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 174)then
-
-!                           do 713 IC=1, NCOL2
-!                              C11(IC)=PLQ2(IC)
-! 713                       continue
-!C
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ5, SQUZ1)
-                        A11 = matmul(B11, DPLQ2)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 175)then
-
-!                           do 714 IC=1, NCOL2
-!                              C11(IC)=PLQ1(IC)
-! 714                       continue
-!C
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ6, SQUY1)
-                        A11 = matmul(B11, DPLQ1)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 176)then
-
-!                           do 715 IC=1, NCOL2
-!                              C11(IC)=PLQ4(IC)
-! 715                       continue
-!C
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ7, SQDZ1)
-                        A11 = matmul(B11, DPLQ4)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 177)then
-
-!                           do 716 IC=1, NCOL2
-!                              C11(IC)=PLQ3(IC)
-! 716                       continue
-!C
-!                           C11 = herm(C11)
-                        B11 = matmul(PLQ8, SQDY1)
-                        A11 = matmul(B11, DPLQ3)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 5
-!******************************************************************C
-                        if (iddd == 178)then
-
-!                           do 717 IC=1, NCOL2
-!                              C11(IC)=DPLQ3(IC)
-! 717                       continue
-!C
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ1, DPLQ8)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 179)then
-
-!                           do 718 IC=1, NCOL2
-!                              C11(IC)=DPLQ4(IC)
-! 718                       continue
-!C
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ2, DPLQ7)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 180)then
-
-!                           do 719 IC=1, NCOL2
-!                              C11(IC)=DPLQ1(IC)
-! 719                       continue
-!C
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ3, DPLQ6)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 181)then
-
-!                           do 720 IC=1, NCOL2
-!                              C11(IC)=DPLQ2(IC)
-! 720                       continue
-!C
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ4, DPLQ5)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 182)then
-
-                        A11 = matmul(PQ5, DPLQ4)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 183)then
-
-                        A11 = matmul(PQ6, DPLQ3)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 184)then
-
-                        A11 = matmul(PQ7, DPLQ2)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 185)then
-
-                        A11 = matmul(PQ8, DPLQ1)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 6
-!******************************************************************C
-                        if (iddd == 186)then
-
-                        A11 = matmul(PQ1, DPLQ3)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 187)then
-
-                        A11 = matmul(PQ2, DPLQ4)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 188)then
-
-                        A11 = matmul(PQ3, DPLQ1)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 189)then
-
-                        A11 = matmul(PQ4, DPLQ2)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 190)then
-
-!                           do 721 IC=1, NCOL2
-!                              C11(IC)=DPLQ4(IC)
-! 721                       continue
-!C
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ5, DPLQ7)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 191)then
-
-!                           do 722 IC=1, NCOL2
-!                              C11(IC)=DPLQ3(IC)
-! 722                       continue
-
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ6, DPLQ8)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 192)then
-
-!                           do 723 IC=1, NCOL2
-!                              C11(IC)=DPLQ2(IC)
-! 723                       continue
-!C
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ7, DPLQ5)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 193)then
-
-!                           do 724 IC=1, NCOL2
-!                              C11(IC)=DPLQ1(IC)
-! 724                       continue
-!C
-!                           C11 = herm(C11)
-                        A11 = matmul(PQ8, DPLQ6)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 7
-!******************************************************************C
-                        if (iddd == 194)then
-
-                        B11 = matmul(SQUY1, DPLQ1)
-                        A11 = matmul(B11, SQDZ2)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 195)then
-
-                        B11 = matmul(SQUZ1, DPLQ2)
-                        A11 = matmul(B11, SQUY2)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 196)then
-
-                        B11 = matmul(SQDY1, DPLQ3)
-                        A11 = matmul(B11, SQUZ2)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 197)then
-
-                        B11 = matmul(SQDZ1, DPLQ4)
-                        A11 = matmul(B11, SQDY2)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 198)then
-
-                        B11 = matmul(SQDZ1, DPLQ6)
-                        A11 = matmul(B11, SQUY2)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 199)then
-
-                        B11 = matmul(SQUY1, DPLQ5)
-                        A11 = matmul(B11, SQUZ2)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 200)then
-
-                        B11 = matmul(SQUZ1, DPLQ8)
-                        A11 = matmul(B11, SQDY2)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 201)then
-
-                        B11 = matmul(SQDY1, DPLQ7)
-                        A11 = matmul(B11, SQDZ2)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 202)then
-
-                        B11 = matmul(SQDY1, DPLQ5)
-                        A11 = matmul(B11, SQDZ2)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 203)then
-
-                        B11 = matmul(SQUZ1, DPLQ6)
-                        A11 = matmul(B11, SQDY2)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 204)then
-
-                        B11 = matmul(SQUY1, DPLQ7)
-                        A11 = matmul(B11, SQUZ2)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 205)then
-
-                        B11 = matmul(SQDZ1, DPLQ8)
-                        A11 = matmul(B11, SQUY2)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 206)then
-
-                        B11 = matmul(SQDZ1, DPLQ2)
-                        A11 = matmul(B11, SQDY2)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 207)then
-
-                        B11 = matmul(SQDY1, DPLQ1)
-                        A11 = matmul(B11, SQUZ2)
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 208)then
-
-                        B11 = matmul(SQUZ1, DPLQ4)
-                        A11 = matmul(B11, SQUY2)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C                        
-                        if (iddd == 209)then
-
-                        B11 = matmul(SQUY1, DPLQ3)
-                        A11 = matmul(B11, SQDZ2)
-
-                        ieee = 16
-
-                        endif                             
-!******************************************************************C
-!     PLAQUETTE OPERATORS 8
-!******************************************************************C
-                        if (iddd == 210)then
-
-                        B11 = matmul(SQUY1, DPLQ1)
-                        A11 = matmul(B11, DPLQ2)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 211)then
-
-                        B11 = matmul(SQUZ1, DPLQ2)
-                        A11 = matmul(B11, DPLQ3)
-
-                        ieee = 2
-
-                        endif  
-!******************************************************************c
-                        if (iddd == 212)then
-
-                        B11 = matmul(SQDY1, DPLQ3)
-                        A11 = matmul(B11, DPLQ4)
-
-                        ieee = 3
-
-                        endif  
-!******************************************************************c
-                        if (iddd == 213)then
-
-                        B11 = matmul(SQDZ1, DPLQ4)
-                        A11 = matmul(B11, DPLQ1)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 214)then
-
-                        B11 = matmul(PLQ5, PLQ6)
-                        A11 = matmul(B11, SQUY1)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 215)then
-
-                        B11 = matmul(PLQ8, PLQ5)
-                        A11 = matmul(B11, SQUZ1)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 216)then
-
-                        B11 = matmul(PLQ7, PLQ8)
-                        A11 = matmul(B11, SQDY1)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 217)then
-
-                        B11 = matmul(PLQ6, PLQ7)
-                        A11 = matmul(B11, SQDZ1)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 218)then
-
-                        B11 = matmul(SQDY1, DPLQ5)
-                        A11 = matmul(B11, DPLQ6)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 219)then
-
-                        B11 = matmul(SQUZ1, DPLQ6)
-                        A11 = matmul(B11, DPLQ7)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 220)then
-
-                        B11 = matmul(SQUY1, DPLQ7)
-                        A11 = matmul(B11, DPLQ8)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 221)then
-
-                        B11 = matmul(SQDZ1, DPLQ8)
-                        A11 = matmul(B11, DPLQ5)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 222)then
-
-                        B11 = matmul(PLQ1, PLQ2)
-                        A11 = matmul(B11, SQDY1)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 223)then
-
-                        B11 = matmul(PLQ4, PLQ1)
-                        A11 = matmul(B11, SQUZ1)
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 224)then
-
-                        B11 = matmul(PLQ3, PLQ4)
-                        A11 = matmul(B11, SQUY1)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************c
-                        if (iddd == 225)then
-
-                        B11 = matmul(PLQ2, PLQ3)
-                        A11 = matmul(B11, SQDZ1)
-
-                        ieee = 16
-
-                        endif                         
-!******************************************************************C
-!     PLAQUETTE OPERATORS 9
-!******************************************************************C
-                        if (iddd == 226)then
-
-                        B11 = matmul(SQUY1, DPLQ1)
-                        C11 = matmul(B11, DPLQ2)
-                        A11 = matmul(C11, DPLQ3)                           
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 227)then
-
-                        B11 = matmul(SQUZ1, DPLQ2)
-                        C11 = matmul(B11, DPLQ3)
-                        A11 = matmul(C11, DPLQ4)                           
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 228)then
-
-                        B11 = matmul(SQDY1, DPLQ3)
-                        C11 = matmul(B11, DPLQ4)
-                        A11 = matmul(C11, DPLQ1)                           
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 229)then
-
-                        B11 = matmul(SQDZ1, DPLQ4)
-                        C11 = matmul(B11, DPLQ1)
-                        A11 = matmul(C11, DPLQ2)                           
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 230)then
-
-                        B11 = matmul(PLQ8, PLQ5)
-                        C11 = matmul(B11, PLQ6)
-                        A11 = matmul(C11, SQUY1)                           
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 231)then
-
-                        B11 = matmul(PLQ7, PLQ8)
-                        C11 = matmul(B11, PLQ5)
-                        A11 = matmul(C11, SQUZ1)                           
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 232)then
-
-                        B11 = matmul(PLQ6, PLQ7)
-                        C11 = matmul(B11, PLQ8)
-                        A11 = matmul(C11, SQDY1)                           
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 233)then
-
-                        B11 = matmul(PLQ5, PLQ6)
-                        C11 = matmul(B11, PLQ7)
-                        A11 = matmul(C11, SQDZ1)                           
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 234)then
-
-                        B11 = matmul(SQDY1, DPLQ5)
-                        C11 = matmul(B11, DPLQ6)
-                        A11 = matmul(C11, DPLQ7)    
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 235)then
-
-                        B11 = matmul(SQUZ1, DPLQ6)
-                        C11 = matmul(B11, DPLQ7)
-                        A11 = matmul(C11, DPLQ8)    
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 236)then
-
-                        B11 = matmul(SQUY1, DPLQ7)
-                        C11 = matmul(B11, DPLQ8)
-                        A11 = matmul(C11, DPLQ5)    
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 237)then
-
-                        B11 = matmul(SQDZ1, DPLQ8)
-                        C11 = matmul(B11, DPLQ5)
-                        A11 = matmul(C11, DPLQ6)    
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 238)then
-
-                        B11 = matmul(PLQ4, PLQ1)
-                        C11 = matmul(B11, PLQ2)
-                        A11 = matmul(C11, SQDY1)    
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 239)then
-
-                        B11 = matmul(PLQ3, PLQ4)
-                        C11 = matmul(B11, PLQ1)
-                        A11 = matmul(C11, SQUZ1)    
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 240)then
-
-                        B11 = matmul(PLQ2, PLQ3)
-                        C11 = matmul(B11, PLQ4)
-                        A11 = matmul(C11, SQUY1)    
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 241)then
-
-                        B11 = matmul(PLQ1, PLQ2)
-                        C11 = matmul(B11, PLQ3)
-                        A11 = matmul(C11, SQDZ1)    
-
-                        ieee = 16
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 10
-!******************************************************************C
-                        if (iddd == 242)then
-
-                        B11 = matmul(PLQ2, PLQ7)
-                        A11 = matmul(B11, SQDZ1)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 243)then
-
-                        B11 = matmul(PLQ3, PLQ6)
-                        A11 = matmul(B11, SQUY1)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 244)then
-
-                        B11 = matmul(PLQ4, PLQ5)
-                        A11 = matmul(B11, SQUZ1)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 245)then
-
-                        B11 = matmul(PLQ1, PLQ8)
-                        A11 = matmul(B11, SQDY1)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 246)then
-
-                        B11 = matmul(SQDZ1, DPLQ4)
-                        A11 = matmul(B11, DPLQ5)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 247)then
-
-                        B11 = matmul(SQUY1, DPLQ1)
-                        A11 = matmul(B11, DPLQ8)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 248)then
-
-                        B11 = matmul(SQUZ1, DPLQ2)
-                        A11 = matmul(B11, DPLQ7)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 249)then
-
-                        B11 = matmul(SQDY1, DPLQ3)
-                        A11 = matmul(B11, DPLQ6)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 250)then
-
-                        B11 = matmul(PLQ6, PLQ3)
-                        A11 = matmul(B11, SQDZ1)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 251)then
-
-                        B11 = matmul(PLQ7, PLQ2)
-                        A11 = matmul(B11, SQDY1)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 252)then
-
-                        B11 = matmul(PLQ8, PLQ1)
-                        A11 = matmul(B11, SQUZ1)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 253)then
-
-                        B11 = matmul(PLQ5, PLQ4)
-                        A11 = matmul(B11, SQUY1)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 254)then
-
-                        B11 = matmul(SQDZ1, DPLQ8)
-                        A11 = matmul(B11, DPLQ1)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 255)then
-
-                        B11 = matmul(SQDY1, DPLQ5)
-                        A11 = matmul(B11, DPLQ4)
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 256)then
-
-                        B11 = matmul(SQUZ1, DPLQ6)
-                        A11 = matmul(B11, DPLQ3)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 257)then
-
-                        B11 = matmul(SQUY1, DPLQ7)
-                        A11 = matmul(B11, DPLQ2)
-
-                        ieee = 16
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 11
-!******************************************************************C
-                        if (iddd == 258)then
-
-                        B11 = matmul(PLQ2, PLQ4)
-                        A11 = matmul(B11, SQUY1)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 259)then
-
-                        B11 = matmul(PLQ3, PLQ1)
-                        A11 = matmul(B11, SQUZ1)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 260)then
-
-                        B11 = matmul(PLQ4, PLQ2)
-                        A11 = matmul(B11, SQDY1)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 261)then
-
-                        B11 = matmul(PLQ1, PLQ3)
-                        A11 = matmul(B11, SQDZ1)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 262)then
-
-                        B11 = matmul(SQUY1, DPLQ7)
-                        A11 = matmul(B11, DPLQ5)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 263)then
-
-                        B11 = matmul(SQUZ1, DPLQ6)
-                        A11 = matmul(B11, DPLQ8)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 264)then
-
-                        B11 = matmul(SQDY1, DPLQ5)
-                        A11 = matmul(B11, DPLQ7)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 265)then
-
-                        B11 = matmul(SQDZ1, DPLQ8)
-                        A11 = matmul(B11, DPLQ6)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 266)then
-
-                        B11 = matmul(PLQ6, PLQ8)
-                        A11 = matmul(B11, SQDY1)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 267)then
-
-                        B11 = matmul(PLQ7, PLQ5)
-                        A11 = matmul(B11, SQUZ1)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 268)then
-
-                        B11 = matmul(PLQ8, PLQ6)
-                        A11 = matmul(B11, SQUY1)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 269)then
-
-                        B11 = matmul(PLQ5, PLQ7)
-                        A11 = matmul(B11, SQDZ1)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 270)then
-
-                        B11 = matmul(SQDY1, DPLQ3)
-                        A11 = matmul(B11, DPLQ1)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 271)then
-
-                        B11 = matmul(SQUZ1, DPLQ2)
-                        A11 = matmul(B11, DPLQ4)
-
-                        ieee = 14
-
-                        endif                         
-!******************************************************************C
-                        if (iddd == 272)then
-
-                        B11 = matmul(SQUY1, DPLQ1)
-                        A11 = matmul(B11, DPLQ3)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 273)then
-
-                        B11 = matmul(SQDZ1, DPLQ4)
-                        A11 = matmul(B11, DPLQ2)
-
-                        ieee = 16
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 12
-!******************************************************************C
-                        if (iddd == 274)then
-
-                        B11 = matmul(PLQ2, PLQ3)
-                        C11 = matmul(B11, SQUY1)
-                        A11 = matmul(C11, DPLQ7)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 275)then
-
-                        B11 = matmul(PLQ3, PLQ4)
-                        C11 = matmul(B11, SQUZ1)
-                        A11 = matmul(C11, DPLQ6)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 276)then
-
-                        B11 = matmul(PLQ4, PLQ1)
-                        C11 = matmul(B11, SQDY1)
-                        A11 = matmul(C11, DPLQ5)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 277)then
-
-                        B11 = matmul(PLQ1, PLQ2)
-                        C11 = matmul(B11, SQDZ1)
-                        A11 = matmul(C11, DPLQ8)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 278)then
-
-                        B11 = matmul(PLQ4, SQUY1)
-                        C11 = matmul(B11, DPLQ8)
-                        A11 = matmul(C11, DPLQ5)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 279)then
-
-                        B11 = matmul(PLQ1, SQUZ1)
-                        C11 = matmul(B11, DPLQ7)
-                        A11 = matmul(C11, DPLQ8)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 280)then
-
-                        B11 = matmul(PLQ2, SQDY1)
-                        C11 = matmul(B11, DPLQ6)
-                        A11 = matmul(C11, DPLQ7)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 281)then
-
-                        B11 = matmul(PLQ3, SQDZ1)
-                        C11 = matmul(B11, DPLQ5)
-                        A11 = matmul(C11, DPLQ6)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 282)then
-
-                        B11 = matmul(PLQ6, PLQ7)
-                        C11 = matmul(B11, SQDY1)
-                        A11 = matmul(C11, DPLQ3)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 283)then
-
-                        B11 = matmul(PLQ7, PLQ8)
-                        C11 = matmul(B11, SQUZ1)
-                        A11 = matmul(C11, DPLQ2)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 284)then
-
-                        B11 = matmul(PLQ8, PLQ5)
-                        C11 = matmul(B11, SQUY1)
-                        A11 = matmul(C11, DPLQ1)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 285)then
-
-                        B11 = matmul(PLQ5, PLQ6)
-                        C11 = matmul(B11, SQDZ1)
-                        A11 = matmul(C11, DPLQ4)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 286)then
-
-                        B11 = matmul(PLQ8, SQDY1)
-                        C11 = matmul(B11, DPLQ4)
-                        A11 = matmul(C11, DPLQ1)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 287)then
-
-                        B11 = matmul(PLQ5, SQUZ1)
-                        C11 = matmul(B11, DPLQ3)
-                        A11 = matmul(C11, DPLQ4)
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 288)then
-
-                        B11 = matmul(PLQ6, SQUY1)
-                        C11 = matmul(B11, DPLQ2)
-                        A11 = matmul(C11, DPLQ3)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 289)then
-
-                        B11 = matmul(PLQ7, SQDZ1)
-                        C11 = matmul(B11, DPLQ1)
-                        A11 = matmul(C11, DPLQ2)
-
-                        ieee = 16
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 13
-!******************************************************************C
-                        if (iddd == 290)then
-
-                        B11 = matmul(PLQ2, PLQ3)
-                        C11 = matmul(B11, PLQ4)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ1)
-                        A11 = matmul(C11, DPLQ2)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 291)then
-
-                        B11 = matmul(PLQ3, PLQ4)
-                        C11 = matmul(B11, PLQ1)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ2)
-                        A11 = matmul(C11, DPLQ3)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 292)then
-
-                        B11 = matmul(PLQ4, PLQ1)
-                        C11 = matmul(B11, PLQ2)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ3)
-                        A11 = matmul(C11, DPLQ4)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 293)then
-
-                        B11 = matmul(PLQ1, PLQ2)
-                        C11 = matmul(B11, PLQ3)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ4)
-                        A11 = matmul(C11, DPLQ1)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 294)then
-
-                        B11 = matmul(PLQ5, PLQ6)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ7)
-                        C11 = matmul(B11, DPLQ8)
-                        A11 = matmul(C11, DPLQ5)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 295)then
-
-                        B11 = matmul(PLQ8, PLQ5)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ6)
-                        C11 = matmul(B11, DPLQ7)
-                        A11 = matmul(C11, DPLQ8)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 296)then
-
-                        B11 = matmul(PLQ7, PLQ8)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ5)
-                        C11 = matmul(B11, DPLQ6)
-                        A11 = matmul(C11, DPLQ7)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 297)then
-
-                        B11 = matmul(PLQ6, PLQ7)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ8)
-                        C11 = matmul(B11, DPLQ5)
-                        A11 = matmul(C11, DPLQ6)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 298)then
-
-                        B11 = matmul(PLQ6, PLQ7)
-                        C11 = matmul(B11, PLQ8)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ5)
-                        A11 = matmul(C11, DPLQ6)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 299)then
-
-                        B11 = matmul(PLQ7, PLQ8)
-                        C11 = matmul(B11, PLQ5)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ6)
-                        A11 = matmul(C11, DPLQ7)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 300)then
-
-                        B11 = matmul(PLQ8, PLQ5)
-                        C11 = matmul(B11, PLQ6)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ7)
-                        A11 = matmul(C11, DPLQ8)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 301)then
-
-                        B11 = matmul(PLQ5, PLQ6)
-                        C11 = matmul(B11, PLQ7)
-                        B11 = matmul(C11, PL)
-                        C11 = matmul(B11, DPLQ8)
-                        A11 = matmul(C11, DPLQ5)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 302)then
-
-                        B11 = matmul(PLQ1, PLQ2)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ3)
-                        C11 = matmul(B11, DPLQ4)
-                        A11 = matmul(C11, DPLQ1)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 303)then
-
-                        B11 = matmul(PLQ4, PLQ1)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ2)
-                        C11 = matmul(B11, DPLQ3)
-                        A11 = matmul(C11, DPLQ4)
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 304)then
-
-                        B11 = matmul(PLQ3, PLQ4)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ1)
-                        C11 = matmul(B11, DPLQ2)
-                        A11 = matmul(C11, DPLQ3)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 305)then
-
-                        B11 = matmul(PLQ2, PLQ3)
-                        C11 = matmul(B11, PL)
-                        B11 = matmul(C11, DPLQ4)
-                        C11 = matmul(B11, DPLQ1)
-                        A11 = matmul(C11, DPLQ2)
-
-                        ieee = 16
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 14
-!******************************************************************C
-                        if (iddd == 306)then
-
-                        B11 = matmul(PLQ2, SQUY1)
-                        A11 = matmul(B11, DPLQ7)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 307)then
-
-                        B11 = matmul(PLQ3, SQUZ1)
-                        A11 = matmul(B11, DPLQ6)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 308)then
-
-                        B11 = matmul(PLQ4, SQDY1)
-                        A11 = matmul(B11, DPLQ5)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 309)then
-
-                        B11 = matmul(PLQ1, SQDZ1)
-                        A11 = matmul(B11, DPLQ8)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 310)then
-
-                        B11 = matmul(PLQ4, SQUY1)
-                        A11 = matmul(B11, DPLQ5)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 311)then
-
-                        B11 = matmul(PLQ1, SQUZ1)
-                        A11 = matmul(B11, DPLQ8)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 312)then
-
-                        B11 = matmul(PLQ2, SQDY1)
-                        A11 = matmul(B11, DPLQ7)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 313)then
-
-                        B11 = matmul(PLQ3, SQDZ1)
-                        A11 = matmul(B11, DPLQ6)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 314)then
-
-                        B11 = matmul(PLQ6, SQDY1)
-                        A11 = matmul(B11, DPLQ3)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 315)then
-
-                        B11 = matmul(PLQ7, SQUZ1)
-                        A11 = matmul(B11, DPLQ2)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 316)then
-
-                        B11 = matmul(PLQ8, SQUY1)
-                        A11 = matmul(B11, DPLQ1)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 317)then
-
-                        B11 = matmul(PLQ5, SQDZ1)
-                        A11 = matmul(B11, DPLQ4)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 318)then
-
-                        B11 = matmul(PLQ8, SQDY1)
-                        A11 = matmul(B11, DPLQ1)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 319)then
-
-                        B11 = matmul(PLQ5, SQUZ1)
-                        A11 = matmul(B11, DPLQ4)
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 320)then
-
-                        B11 = matmul(PLQ6, SQUY1)
-                        A11 = matmul(B11, DPLQ3)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 321)then
-
-                        B11 = matmul(PLQ7, SQDZ1)
-                        A11 = matmul(B11, DPLQ2)
-
-                        ieee = 16
-
-                        endif 
-!******************************************************************C
-!     PLAQUETTE OPERATORS 15
-!******************************************************************C
-                        if (iddd == 322)then
-
-                        B11 = matmul(PLQ2, PLQ7)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ6)
-
-                        ieee = 1
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 323)then
-
-                        B11 = matmul(PLQ3, PLQ6)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ5)
-
-                        ieee = 2
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 324)then
-
-                        B11 = matmul(PLQ4, PLQ5)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ8)
-
-                        ieee = 3
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 325)then
-
-                        B11 = matmul(PLQ1, PLQ8)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ7)
-
-                        ieee = 4
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 326)then
-
-                        B11 = matmul(PLQ1, PL)
-                        C11 = matmul(B11, DPLQ4)
-                        A11 = matmul(C11, DPLQ5)
-
-                        ieee = 5
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 327)then
-
-                        B11 = matmul(PLQ2, PL)
-                        C11 = matmul(B11, DPLQ1)
-                        A11 = matmul(C11, DPLQ8)
-
-                        ieee = 6
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 328)then
-
-                        B11 = matmul(PLQ3, PL)
-                        C11 = matmul(B11, DPLQ2)
-                        A11 = matmul(C11, DPLQ7)
-
-                        ieee = 7
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 329)then
-
-                        B11 = matmul(PLQ4, PL)
-                        C11 = matmul(B11, DPLQ3)
-                        A11 = matmul(C11, DPLQ6)
-
-                        ieee = 8
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 330)then
-
-                        B11 = matmul(PLQ6, PLQ3)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ2)
-
-                        ieee = 9
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 331)then
-
-                        B11 = matmul(PLQ7, PLQ2)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ1)
-
-                        ieee = 10
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 332)then
-
-                        B11 = matmul(PLQ8, PLQ1)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ4)
-
-                        ieee = 11
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 333)then
-
-                        B11 = matmul(PLQ5, PLQ4)
-                        C11 = matmul(B11, PL)
-                        A11 = matmul(C11, DPLQ3)
-
-                        ieee = 12
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 334)then
-
-                        B11 = matmul(PLQ5, PL)
-                        C11 = matmul(B11, DPLQ8)
-                        A11 = matmul(C11, DPLQ1)
-
-                        ieee = 13
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 335)then
-
-                        B11 = matmul(PLQ6, PL)
-                        C11 = matmul(B11, DPLQ5)
-                        A11 = matmul(C11, DPLQ4)
-
-                        ieee = 14
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 336)then
-
-                        B11 = matmul(PLQ7, PL)
-                        C11 = matmul(B11, DPLQ6)
-                        A11 = matmul(C11, DPLQ3)
-
-                        ieee = 15
-
-                        endif 
-!******************************************************************C
-                        if (iddd == 337)then
-
-                        B11 = matmul(PLQ8, PL)
-                        C11 = matmul(B11, DPLQ7)
-                        A11 = matmul(C11, DPLQ2)
-
-                        ieee = 16
-
-                        endif                         
-!******************************************************************c
-        endif 
-!******************************************************************C
-! If the operator does not fit in this blocking level (more than once)
-            if (lcnt(ids) < ico) then
-A11 = LIN0
-                M2=ML
-            else
-                if (ico == 1) then
-                    C11 = matmul(A11, LIN1)
-A11 = C11
-                endif 
-
-                if (ico == 2) then
-                    C11 = matmul(A11, LIN2)
-A11 = C11
-                endif 
-
-                if (ico == 4) then
-                    C11 = matmul(A11, LIN4)
-A11 = C11
-                endif 
-                M2=ML
-            endif 
-!***********************************************************************
-            endif 
-            B11 = matmul(A11, REM11)
-!***********************************************************************
-!            CALL RENORMBS(B11,UREN11)
-!            do IJ=1,NCOL2
-!               AA(IJ)=UREN11(IJ)
-!            enddo
-!            JMAT=NCOL
-!            CALL DETNANT(JMAT,DET,AA)
-!c     
-!            DNCOL=CMPLX(1.0/NCOL)
-!            CDET=DET**DNCOL
-!            CNORM=1.0/CDET
-!c     
-!            do IC=1,NCOL2
-!               B11(IC)=UREN11(IC)*CNORM
-!            enddo
-!***********************************************************************
-            AKT1 = cmplx(0.0, 0.0, kind=real64)
-!***********************************************************************
-            do 192 N1=1,NCOL
-            IJ=N1+NCOL*(N1-1)
-            AKT1=AKT1+B11(IJ)
-192        continue
-!************ ***********************************************************     
-            if (iddd <= 4) then
-            CSUMS(IEEE)=CSUMS(IEEE)+AKT1
-            CSUMSMOM(IEEE,1)=CSUMSMOM(IEEE,1)+AKT1*PF(1)
-            CSUMSMOM(IEEE,2)=CSUMSMOM(IEEE,2)+AKT1*PF(2)
-!               CSUMSMOM(IEEE,3)=CSUMSMOM(IEEE,3)+AKT1*PF(3)
-!               CSUMSMOM(IEEE,4)=CSUMSMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 4).and.(iddd < 9)) then
-            CSUM2S(IEEE)=CSUM2S(IEEE)+AKT1
-            CSUM2SMOM(IEEE,1)=CSUM2SMOM(IEEE,1)+AKT1*PF(1)
-            CSUM2SMOM(IEEE,2)=CSUM2SMOM(IEEE,2)+AKT1*PF(2)
-!               CSUM2SMOM(IEEE,3)=CSUM2SMOM(IEEE,3)+AKT1*PF(3)
-!               CSUM2SMOM(IEEE,4)=CSUM2SMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 8).and.(iddd < 13)) then
-            CSUM2WS(IEEE)=CSUM2WS(IEEE)+AKT1
-            CSUM2WSMOM(IEEE,1)=CSUM2WSMOM(IEEE,1)+AKT1*PF(1)
-            CSUM2WSMOM(IEEE,2)=CSUM2WSMOM(IEEE,2)+AKT1*PF(2)
-!               CSUM2WSMOM(IEEE,3)=CSUM2WSMOM(IEEE,3)+AKT1*PF(3)
-!               CSUM2WSMOM(IEEE,4)=CSUM2WSMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 12).and.(iddd < 17)) then
-            CSUMW(IEEE)=CSUMW(IEEE)+AKT1
-            CSUMWMOM(IEEE,1)=CSUMWMOM(IEEE,1)+AKT1*PF(1)
-            CSUMWMOM(IEEE,2)=CSUMWMOM(IEEE,2)+AKT1*PF(2)
-!               CSUMWMOM(IEEE,3)=CSUMWMOM(IEEE,3)+AKT1*PF(3)
-!               CSUMWMOM(IEEE,4)=CSUMWMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 16).and.(iddd < 21)) then
-            CSUM2W(IEEE)=CSUM2W(IEEE)+AKT1
-            CSUM2WMOM(IEEE,1)=CSUM2WMOM(IEEE,1)+AKT1*PF(1)
-            CSUM2WMOM(IEEE,2)=CSUM2WMOM(IEEE,2)+AKT1*PF(2)
-!               CSUM2WMOM(IEEE,3)=CSUM2WMOM(IEEE,3)+AKT1*PF(3)
-!               CSUM2WMOM(IEEE,4)=CSUM2WMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 20).and.(iddd < 25)) then
-            CSUM3W(IEEE)=CSUM3W(IEEE)+AKT1
-            CSUM3WMOM(IEEE,1)=CSUM3WMOM(IEEE,1)+AKT1*PF(1)
-            CSUM3WMOM(IEEE,2)=CSUM3WMOM(IEEE,2)+AKT1*PF(2)
-!               CSUM3WMOM(IEEE,3)=CSUM3WMOM(IEEE,3)+AKT1*PF(3)
-!               CSUM3WMOM(IEEE,4)=CSUM3WMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 24).and.(iddd < 29)) then
-            CSUMUP(IEEE)=CSUMUP(IEEE)+AKT1
-            CSUMUPMOM(IEEE,1)=CSUMUPMOM(IEEE,1)+AKT1*PF(1)
-            CSUMUPMOM(IEEE,2)=CSUMUPMOM(IEEE,2)+AKT1*PF(2)
-!               CSUMUPMOM(IEEE,3)=CSUMUPMOM(IEEE,3)+AKT1*PF(3)
-!               CSUMUPMOM(IEEE,4)=CSUMUPMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 28).and.(iddd < 33)) then
-            CSUMUD(IEEE)=CSUMUD(IEEE)+AKT1
-            CSUMUDMOM(IEEE,1)=CSUMUDMOM(IEEE,1)+AKT1*PF(1)
-            CSUMUDMOM(IEEE,2)=CSUMUDMOM(IEEE,2)+AKT1*PF(2)
-!               CSUMUDMOM(IEEE,3)=CSUMUDMOM(IEEE,3)+AKT1*PF(3)
-!               CSUMUDMOM(IEEE,4)=CSUMUDMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 32).and.(iddd < 41)) then
-            CSUMTT1(IEEE)=CSUMTT1(IEEE)+AKT1
-            CSUMTTMOM1(IEEE,1)=CSUMTTMOM1(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM1(IEEE,2)=CSUMTTMOM1(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM1(IEEE,3)=CSUMTTMOM1(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM1(IEEE,4)=CSUMTTMOM1(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 40).and.(iddd < 49)) then
-            CSUMTT2(IEEE)=CSUMTT2(IEEE)+AKT1
-            CSUMTTMOM2(IEEE,1)=CSUMTTMOM2(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM2(IEEE,2)=CSUMTTMOM2(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM2(IEEE,3)=CSUMTTMOM2(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM2(IEEE,4)=CSUMTTMOM2(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 48).and.(iddd < 57)) then
-            CSUMTT3(IEEE)=CSUMTT3(IEEE)+AKT1
-            CSUMTTMOM3(IEEE,1)=CSUMTTMOM3(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM3(IEEE,2)=CSUMTTMOM3(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM3(IEEE,3)=CSUMTTMOM3(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM3(IEEE,4)=CSUMTTMOM3(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 56).and.(iddd < 65)) then
-            CSUMTT4(IEEE)=CSUMTT4(IEEE)+AKT1
-            CSUMTTMOM4(IEEE,1)=CSUMTTMOM4(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM4(IEEE,2)=CSUMTTMOM4(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM4(IEEE,3)=CSUMTTMOM4(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM4(IEEE,4)=CSUMTTMOM4(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 64).and.(iddd < 69)) then
-            CSUMTT5(IEEE)=CSUMTT5(IEEE)+AKT1
-            CSUMTTMOM5(IEEE,1)=CSUMTTMOM5(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM5(IEEE,2)=CSUMTTMOM5(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM5(IEEE,3)=CSUMTTMOM5(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM5(IEEE,4)=CSUMTTMOM5(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 68).and.(iddd < 73)) then
-            CSUMTT6(IEEE)=CSUMTT6(IEEE)+AKT1
-            CSUMTTMOM6(IEEE,1)=CSUMTTMOM6(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM6(IEEE,2)=CSUMTTMOM6(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM6(IEEE,3)=CSUMTTMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM6(IEEE,4)=CSUMTTMOM6(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 72).and.(iddd < 81)) then
-            CSUMTT7(IEEE)=CSUMTT7(IEEE)+AKT1
-            CSUMTTMOM7(IEEE,1)=CSUMTTMOM7(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM7(IEEE,2)=CSUMTTMOM7(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM7(IEEE,3)=CSUMTTMOM7(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM7(IEEE,4)=CSUMTTMOM7(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 80).and.(iddd < 89)) then
-            CSUMTT8(IEEE)=CSUMTT8(IEEE)+AKT1
-            CSUMTTMOM8(IEEE,1)=CSUMTTMOM8(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM8(IEEE,2)=CSUMTTMOM8(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM8(IEEE,3)=CSUMTTMOM8(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM8(IEEE,4)=CSUMTTMOM8(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 88).and.(iddd < 97)) then
-            CSUMTT9(IEEE)=CSUMTT9(IEEE)+AKT1
-            CSUMTTMOM9(IEEE,1)=CSUMTTMOM9(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM9(IEEE,2)=CSUMTTMOM9(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM9(IEEE,3)=CSUMTTMOM9(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM9(IEEE,4)=CSUMTTMOM9(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 96).and.(iddd < 105)) then
-            CSUMTT10(IEEE)=CSUMTT10(IEEE)+AKT1
-            CSUMTTMOM10(IEEE,1)=CSUMTTMOM10(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM10(IEEE,2)=CSUMTTMOM10(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM10(IEEE,3)=CSUMTTMOM10(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM10(IEEE,4)=CSUMTTMOM10(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 104).and.(iddd < 113)) then
-            CSUMTT11(IEEE)=CSUMTT11(IEEE)+AKT1
-            CSUMTTMOM11(IEEE,1)=CSUMTTMOM11(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM11(IEEE,2)=CSUMTTMOM11(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM11(IEEE,3)=CSUMTTMOM11(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM11(IEEE,4)=CSUMTTMOM11(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 112).and.(iddd < 129)) then
-            CSUMTT12(IEEE)=CSUMTT12(IEEE)+AKT1
-            CSUMTTMOM12(IEEE,1)=CSUMTTMOM12(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM12(IEEE,2)=CSUMTTMOM12(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM12(IEEE,3)=CSUMTTMOM12(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM12(IEEE,4)=CSUMTTMOM12(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 128).and.(iddd < 137)) then
-            CSUMTT13(IEEE)=CSUMTT13(IEEE)+AKT1
-            CSUMTTMOM13(IEEE,1)=CSUMTTMOM13(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM13(IEEE,2)=CSUMTTMOM13(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM13(IEEE,3)=CSUMTTMOM13(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM13(IEEE,4)=CSUMTTMOM13(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 136).and.(iddd < 145)) then
-            CSUMTT14(IEEE)=CSUMTT14(IEEE)+AKT1
-            CSUMTTMOM14(IEEE,1)=CSUMTTMOM14(IEEE,1)+AKT1*PF(1)
-            CSUMTTMOM14(IEEE,2)=CSUMTTMOM14(IEEE,2)+AKT1*PF(2)
-!               CSUMTTMOM14(IEEE,3)=CSUMTTMOM14(IEEE,3)+AKT1*PF(3)
-!               CSUMTTMOM14(IEEE,4)=CSUMTTMOM14(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if (iddd == 145) then
-            CSUMN=CSUMN+AKT1
-            endif 
-
-            if ((iddd > 145).and.(iddd < 154)) then
-            CSUMPLQ(IEEE)=CSUMPLQ(IEEE)+AKT1
-            CSUMPLQMOM(IEEE,1)=CSUMPLQMOM(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM(IEEE,2)=CSUMPLQMOM(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM(IEEE,3)=CSUMPLQMOM(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM(IEEE,4)=CSUMPLQMOM(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 153).and.(iddd < 162)) then
-            CSUMPLQ2(IEEE)=CSUMPLQ2(IEEE)+AKT1
-            CSUMPLQMOM2(IEEE,1)=CSUMPLQMOM2(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM2(IEEE,2)=CSUMPLQMOM2(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM2(IEEE,3)=CSUMPLQMOM2(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM2(IEEE,4)=CSUMPLQMOM2(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 161).and.(iddd < 170)) then
-            CSUMPLQ3(IEEE)=CSUMPLQ3(IEEE)+AKT1
-            CSUMPLQMOM3(IEEE,1)=CSUMPLQMOM3(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM3(IEEE,2)=CSUMPLQMOM3(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM3(IEEE,3)=CSUMPLQMOM3(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM3(IEEE,4)=CSUMPLQMOM3(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 169).and.(iddd < 178)) then
-            CSUMPLQ4(IEEE)=CSUMPLQ4(IEEE)+AKT1
-            CSUMPLQMOM4(IEEE,1)=CSUMPLQMOM4(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM4(IEEE,2)=CSUMPLQMOM4(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM4(IEEE,3)=CSUMPLQMOM4(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM4(IEEE,4)=CSUMPLQMOM4(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 177).and.(iddd < 186)) then
-            CSUMPLQ5(IEEE)=CSUMPLQ5(IEEE)+AKT1
-            CSUMPLQMOM5(IEEE,1)=CSUMPLQMOM5(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM5(IEEE,2)=CSUMPLQMOM5(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM5(IEEE,3)=CSUMPLQMOM5(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM5(IEEE,4)=CSUMPLQMOM5(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 185).and.(iddd < 194)) then
-            CSUMPLQ6(IEEE)=CSUMPLQ6(IEEE)+AKT1
-            CSUMPLQMOM6(IEEE,1)=CSUMPLQMOM6(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM6(IEEE,2)=CSUMPLQMOM6(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 193).and.(iddd < 210)) then
-            CSUMPLQ7(IEEE)=CSUMPLQ7(IEEE)+AKT1
-            CSUMPLQMOM7(IEEE,1)=CSUMPLQMOM7(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM7(IEEE,2)=CSUMPLQMOM7(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 209).and.(iddd < 226)) then 
-            CSUMPLQ8(IEEE)=CSUMPLQ8(IEEE)+AKT1
-            CSUMPLQMOM8(IEEE,1)=CSUMPLQMOM8(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM8(IEEE,2)=CSUMPLQMOM8(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 225).and.(iddd < 242)) then 
-            CSUMPLQ9(IEEE)=CSUMPLQ9(IEEE)+AKT1
-            CSUMPLQMOM9(IEEE,1)=CSUMPLQMOM9(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM9(IEEE,2)=CSUMPLQMOM9(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 241).and.(iddd < 258)) then 
-            CSUMPLQ10(IEEE)=CSUMPLQ10(IEEE)+AKT1
-            CSUMPLQMOM10(IEEE,1)=CSUMPLQMOM10(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM10(IEEE,2)=CSUMPLQMOM10(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif    
-
-            if ((iddd > 257).and.(iddd < 274)) then 
-            CSUMPLQ11(IEEE)=CSUMPLQ11(IEEE)+AKT1
-            CSUMPLQMOM11(IEEE,1)=CSUMPLQMOM11(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM11(IEEE,2)=CSUMPLQMOM11(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif 
-
-            if ((iddd > 273).and.(iddd < 290)) then 
-            CSUMPLQ12(IEEE)=CSUMPLQ12(IEEE)+AKT1
-            CSUMPLQMOM12(IEEE,1)=CSUMPLQMOM12(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM12(IEEE,2)=CSUMPLQMOM12(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif   
-
-            if ((iddd > 289).and.(iddd < 306)) then 
-            CSUMPLQ13(IEEE)=CSUMPLQ13(IEEE)+AKT1
-            CSUMPLQMOM13(IEEE,1)=CSUMPLQMOM13(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM13(IEEE,2)=CSUMPLQMOM13(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif   
-
-            if ((iddd > 305).and.(iddd < 322)) then 
-            CSUMPLQ14(IEEE)=CSUMPLQ14(IEEE)+AKT1
-            CSUMPLQMOM14(IEEE,1)=CSUMPLQMOM14(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM14(IEEE,2)=CSUMPLQMOM14(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif   
-
-            if ((iddd > 321).and.(iddd < 338)) then 
-            CSUMPLQ15(IEEE)=CSUMPLQ15(IEEE)+AKT1
-            CSUMPLQMOM15(IEEE,1)=CSUMPLQMOM15(IEEE,1)+AKT1*PF(1)
-            CSUMPLQMOM15(IEEE,2)=CSUMPLQMOM15(IEEE,2)+AKT1*PF(2)
-!               CSUMPLQMOM6(IEEE,3)=CSUMPLQMOM6(IEEE,3)+AKT1*PF(3)
-!               CSUMPLQMOM6(IEEE,4)=CSUMPLQMOM6(IEEE,4)+AKT1*PF(4)
-            endif   
-    
-    9       continue ! OPERATOR CONSTRUCTION LOOP end
-    
+                        elseif ((iddd > 12).and.(iddd < 17)) then
+                            csumw(ieee)=csumw(ieee)+akt1
+                            csumwmom(ieee,1)=csumwmom(ieee,1)+akt1*pf(1)
+                            csumwmom(ieee,2)=csumwmom(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 16).and.(iddd < 21)) then
+                            csum2w(ieee)=csum2w(ieee)+akt1
+                            csum2wmom(ieee,1)=csum2wmom(ieee,1)+akt1*pf(1)
+                            csum2wmom(ieee,2)=csum2wmom(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 20).and.(iddd < 25)) then
+                            csum3w(ieee)=csum3w(ieee)+akt1
+                            csum3wmom(ieee,1)=csum3wmom(ieee,1)+akt1*pf(1)
+                            csum3wmom(ieee,2)=csum3wmom(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 24).and.(iddd < 29)) then
+                            csumup(ieee)=csumup(ieee)+akt1
+                            csumupmom(ieee,1)=csumupmom(ieee,1)+akt1*pf(1)
+                            csumupmom(ieee,2)=csumupmom(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 28).and.(iddd < 33)) then
+                            csumud(ieee)=csumud(ieee)+akt1
+                            csumudmom(ieee,1)=csumudmom(ieee,1)+akt1*pf(1)
+                            csumudmom(ieee,2)=csumudmom(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 32).and.(iddd < 41)) then
+                            csumtt1(ieee)=csumtt1(ieee)+akt1
+                            csumttmom1(ieee,1)=csumttmom1(ieee,1)+akt1*pf(1)
+                            csumttmom1(ieee,2)=csumttmom1(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 40).and.(iddd < 49)) then
+                            csumtt2(ieee)=csumtt2(ieee)+akt1
+                            csumttmom2(ieee,1)=csumttmom2(ieee,1)+akt1*pf(1)
+                            csumttmom2(ieee,2)=csumttmom2(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 48).and.(iddd < 57)) then
+                            csumtt3(ieee)=csumtt3(ieee)+akt1
+                            csumttmom3(ieee,1)=csumttmom3(ieee,1)+akt1*pf(1)
+                            csumttmom3(ieee,2)=csumttmom3(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 56).and.(iddd < 65)) then
+                            csumtt4(ieee)=csumtt4(ieee)+akt1
+                            csumttmom4(ieee,1)=csumttmom4(ieee,1)+akt1*pf(1)
+                            csumttmom4(ieee,2)=csumttmom4(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 64).and.(iddd < 69)) then
+                            csumtt5(ieee)=csumtt5(ieee)+akt1
+                            csumttmom5(ieee,1)=csumttmom5(ieee,1)+akt1*pf(1)
+                            csumttmom5(ieee,2)=csumttmom5(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 68).and.(iddd < 73)) then
+                            csumtt6(ieee)=csumtt6(ieee)+akt1
+                            csumttmom6(ieee,1)=csumttmom6(ieee,1)+akt1*pf(1)
+                            csumttmom6(ieee,2)=csumttmom6(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 72).and.(iddd < 81)) then
+                            csumtt7(ieee)=csumtt7(ieee)+akt1
+                            csumttmom7(ieee,1)=csumttmom7(ieee,1)+akt1*pf(1)
+                            csumttmom7(ieee,2)=csumttmom7(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 80).and.(iddd < 89)) then
+                            csumtt8(ieee)=csumtt8(ieee)+akt1
+                            csumttmom8(ieee,1)=csumttmom8(ieee,1)+akt1*pf(1)
+                            csumttmom8(ieee,2)=csumttmom8(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 88).and.(iddd < 97)) then
+                            csumtt9(ieee)=csumtt9(ieee)+akt1
+                            csumttmom9(ieee,1)=csumttmom9(ieee,1)+akt1*pf(1)
+                            csumttmom9(ieee,2)=csumttmom9(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 96).and.(iddd < 105)) then
+                            csumtt10(ieee)=csumtt10(ieee)+akt1
+                            csumttmom10(ieee,1)=csumttmom10(ieee,1)+akt1*pf(1)
+                            csumttmom10(ieee,2)=csumttmom10(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 104).and.(iddd < 113)) then
+                            csumtt11(ieee)=csumtt11(ieee)+akt1
+                            csumttmom11(ieee,1)=csumttmom11(ieee,1)+akt1*pf(1)
+                            csumttmom11(ieee,2)=csumttmom11(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 112).and.(iddd < 129)) then
+                            csumtt12(ieee)=csumtt12(ieee)+akt1
+                            csumttmom12(ieee,1)=csumttmom12(ieee,1)+akt1*pf(1)
+                            csumttmom12(ieee,2)=csumttmom12(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 128).and.(iddd < 137)) then
+                            csumtt13(ieee)=csumtt13(ieee)+akt1
+                            csumttmom13(ieee,1)=csumttmom13(ieee,1)+akt1*pf(1)
+                            csumttmom13(ieee,2)=csumttmom13(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 136).and.(iddd < 145)) then
+                            csumtt14(ieee)=csumtt14(ieee)+akt1
+                            csumttmom14(ieee,1)=csumttmom14(ieee,1)+akt1*pf(1)
+                            csumttmom14(ieee,2)=csumttmom14(ieee,2)+akt1*pf(2)
+                        
+
+                        elseif (iddd == 145) then
+                            csumn=csumn+akt1
+                        
+
+                        elseif ((iddd > 145).and.(iddd < 154)) then
+                            csumplq8(ieee, 1) = csumplq8(ieee, 1) + akt1
+                            csumplqmom8(ieee,1,1)=csumplqmom8(ieee,1,1)+akt1*pf(1)
+                            csumplqmom8(ieee,2,1)=csumplqmom8(ieee,2,1)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 153).and.(iddd < 162)) then
+                            csumplq8(ieee,2)=csumplq8(ieee,2)+akt1
+                            csumplqmom8(ieee,1,2)=csumplqmom8(ieee,1,2)+akt1*pf(1)
+                            csumplqmom8(ieee, 2, 2)=csumplqmom8(ieee, 2, 2)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 161).and.(iddd < 170)) then
+                            csumplq8(ieee,3)=csumplq8(ieee,3)+akt1
+                            csumplqmom8(ieee, 1, 3)=csumplqmom8(ieee, 1, 3)+akt1*pf(1)
+                            csumplqmom8(ieee, 2, 3)=csumplqmom8(ieee, 2, 3)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 169).and.(iddd < 178)) then
+                            csumplq8(ieee,4)=csumplq8(ieee,4)+akt1
+                            csumplqmom8(ieee, 1, 4)=csumplqmom8(ieee, 1, 4)+akt1*pf(1)
+                            csumplqmom8(ieee, 2, 4)=csumplqmom8(ieee, 2, 4)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 177).and.(iddd < 186)) then
+                            csumplq8(ieee,5)=csumplq8(ieee,5)+akt1
+                            csumplqmom8(ieee, 1, 5)=csumplqmom8(ieee, 1, 5)+akt1*pf(1)
+                            csumplqmom8(ieee, 2, 5)=csumplqmom8(ieee, 2, 5)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 185).and.(iddd < 194)) then
+                            csumplq8(ieee,6)=csumplq8(ieee,6)+akt1
+                            csumplqmom8(ieee, 1, 6)=csumplqmom8(ieee, 1, 6)+akt1*pf(1)
+                            csumplqmom8(ieee, 2, 6)=csumplqmom8(ieee, 2, 6)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 193).and.(iddd < 210)) then
+                            csumplq16(ieee,7)=csumplq16(ieee,7)+akt1
+                            csumplqmom16(ieee,1,7)=csumplqmom16(ieee,1,7)+akt1*pf(1)
+                            csumplqmom16(ieee,2,7)=csumplqmom16(ieee,2,7)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 209).and.(iddd < 226)) then
+                            csumplq16(ieee,8)=csumplq16(ieee,8)+akt1
+                            csumplqmom16(ieee,1,8)=csumplqmom16(ieee,1,8)+akt1*pf(1)
+                            csumplqmom16(ieee,2,8)=csumplqmom16(ieee,2,8)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 225).and.(iddd < 242)) then
+                            csumplq16(ieee,9)=csumplq16(ieee,9)+akt1
+                            csumplqmom16(ieee,1,9)=csumplqmom16(ieee,1,9)+akt1*pf(1)
+                            csumplqmom16(ieee,2,9)=csumplqmom16(ieee,2,9)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 241).and.(iddd < 258)) then
+                            csumplq16(ieee,10)=csumplq16(ieee,10)+akt1
+                            csumplqmom16(ieee,1,10)=csumplqmom16(ieee,1,10)+akt1*pf(1)
+                            csumplqmom16(ieee,2,10)=csumplqmom16(ieee,2,10)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 257).and.(iddd < 274)) then
+                            csumplq16(ieee,11)=csumplq16(ieee,11)+akt1
+                            csumplqmom16(ieee,1,11)=csumplqmom16(ieee,1,11)+akt1*pf(1)
+                            csumplqmom16(ieee,2,11)=csumplqmom16(ieee,2,11)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 273).and.(iddd < 290)) then
+                            csumplq16(ieee,12)=csumplq16(ieee,12)+akt1
+                            csumplqmom16(ieee,1,12)=csumplqmom16(ieee,1,12)+akt1*pf(1)
+                            csumplqmom16(ieee,2,12)=csumplqmom16(ieee,2,12)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 289).and.(iddd < 306)) then
+                            csumplq16(ieee,13)=csumplq16(ieee,13)+akt1
+                            csumplqmom16(ieee,1,13)=csumplqmom16(ieee,1,13)+akt1*pf(1)
+                            csumplqmom16(ieee,2,13)=csumplqmom16(ieee,2,13)+akt1*pf(2)
+                        
+
+                        elseif ((iddd > 305).and.(iddd < 322)) then
+                            csumplq16(ieee,14)=csumplq16(ieee,14)+akt1
+                            csumplqmom16(ieee,1,14)=csumplqmom16(ieee,1,14)+akt1*pf(1)
+                            csumplqmom16(ieee,2,14)=csumplqmom16(ieee,2,14)+akt1*pf(2)
+                        
+
+                        else
+                            csumplq16(ieee,15)=csumplq16(ieee,15)+akt1
+                            csumplqmom16(ieee,1,15)=csumplqmom16(ieee,1,15)+akt1*pf(1)
+                            csumplqmom16(ieee,2,15)=csumplqmom16(ieee,2,15)+akt1*pf(2)
+                        endif
+
+                    enddo
+
+                enddo
+            enddo
         enddo
-        enddo
-        enddo
-    !**********************************************************************     
-        ADIV1=1.0/(4.0*LS(KU))
-        ADIV2=1.0/(8.0*LS(KU))
-        ADIV3=1.0/(16.0*LS(KU))
-        ADIVN=1.0/LS(KU)
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+        adiv1=1.0/(4.0*ls(ku))
+        adiv2=1.0/(8.0*ls(ku))
+        adiv3=1.0/(16.0*ls(ku))
+        adivn=1.0/ls(ku)
     !**********************************************************************
-        ALINE1(N4,ID)=CSUMN*ADIVN
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+        lines(time_slice, id, 1)=csumn*adivn
     !**********************************************************************
-        ALINE2(N4,ID)=(CSUMS(1)+CSUMS(2)+CSUMS(3)+CSUMS(4))*ADIV1
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+        lines(time_slice, id, 2)=(csums(1)+csums(2)+csums(3)+csums(4))*adiv1
     !**********************************************************************
-        ALINEMOM2(N4,ID,1)=(CSUMSMOM(1,1)+CSUMSMOM(2,1)&
-        +CSUMSMOM(3,1)+CSUMSMOM(4,1))*ADIV1
-        ALINEMOM2(N4,ID,2)=(CSUMSMOM(1,2)+CSUMSMOM(2,2)&
-        +CSUMSMOM(3,2)+CSUMSMOM(4,2))*ADIV1
-    !      ALINEMOM2(N4,ID,3)=(CSUMSMOM(1,3)+CSUMSMOM(2,3)&
-    !     &+CSUMSMOM(3,3)+CSUMSMOM(4,3))*ADIV1
-    !      ALINEMOM2(N4,ID,4)=(CSUMSMOM(1,4)+CSUMSMOM(2,4)&
-    !     &+CSUMSMOM(3,4)+CSUMSMOM(4,4))*ADIV1
+    !     j=0, pp=+, q=1,2,3,4
+    !**********************************************************************
+        momentum_lines(time_slice, id, 1, 2)=(csumsmom(1,1)+csumsmom(2,1)&
+        +csumsmom(3,1)+csumsmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 2)=(csumsmom(1,2)+csumsmom(2,2)&
+        +csumsmom(3,2)+csumsmom(4,2))*adiv1
+    !      alinemom2(time_slice, id,3)=(csumsmom(1,3)+csumsmom(2,3)&
+    !     &+csumsmom(3,3)+csumsmom(4,3))*adiv1
+    !      alinemom2(time_slice, id,4)=(csumsmom(1,4)+csumsmom(2,4)&
+    !     &+csumsmom(3,4)+csumsmom(4,4))*adiv1
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE3(N4,ID)=(CSUMS(1)+GIOT*CSUMS(2)-CSUMS(3)-GIOT*CSUMS(4))&
-        *ADIV1
+        lines(time_slice, id, 3)=(csums(1)+giot*csums(2)-csums(3)-giot*csums(4))&
+        *adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM3(N4,ID,1)=(CSUMSMOM(1,1)+GIOT*CSUMSMOM(2,1)&
-        -CSUMSMOM(3,1)-GIOT*CSUMSMOM(4,1))*ADIV1
-        ALINEMOM3(N4,ID,2)=(CSUMSMOM(1,2)+GIOT*CSUMSMOM(2,2)&
-        -CSUMSMOM(3,2)-GIOT*CSUMSMOM(4,2))*ADIV1
-    !      ALINEMOM3(N4,ID,3)=(CSUMSMOM(1,3)+GIOT*CSUMSMOM(2,3)&
-    !     &-CSUMSMOM(3,3)-GIOT*CSUMSMOM(4,3))*ADIV1
-    !      ALINEMOM3(N4,ID,4)=(CSUMSMOM(1,4)+GIOT*CSUMSMOM(2,4)&
-    !     &-CSUMSMOM(3,4)-GIOT*CSUMSMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 3)=(csumsmom(1,1)+giot*csumsmom(2,1)&
+        -csumsmom(3,1)-giot*csumsmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 3)=(csumsmom(1,2)+giot*csumsmom(2,2)&
+        -csumsmom(3,2)-giot*csumsmom(4,2))*adiv1
+    !      alinemom3(time_slice, id,3)=(csumsmom(1,3)+giot*csumsmom(2,3)&
+    !     &-csumsmom(3,3)-giot*csumsmom(4,3))*adiv1
+    !      alinemom3(time_slice, id,4)=(csumsmom(1,4)+giot*csumsmom(2,4)&
+    !     &-csumsmom(3,4)-giot*csumsmom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE4(N4,ID)=(CSUMS(1)-CSUMS(2)+CSUMS(3)-CSUMS(4))*ADIV1
+        lines(time_slice, id, 4)=(csums(1)-csums(2)+csums(3)-csums(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM4(N4,ID,1)=(CSUMSMOM(1,1)-CSUMSMOM(2,1)&
-        +CSUMSMOM(3,1)-CSUMSMOM(4,1))*ADIV1
-        ALINEMOM4(N4,ID,2)=(CSUMSMOM(1,2)-CSUMSMOM(2,2)&
-        +CSUMSMOM(3,2)-CSUMSMOM(4,2))*ADIV1
-    !      ALINEMOM4(N4,ID,3)=(CSUMSMOM(1,3)-CSUMSMOM(2,3)&
-    !     &+CSUMSMOM(3,3)-CSUMSMOM(4,3))*ADIV1
-    !      ALINEMOM4(N4,ID,4)=(CSUMSMOM(1,4)-CSUMSMOM(2,4)&
-    !     &+CSUMSMOM(3,4)-CSUMSMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 4)=(csumsmom(1,1)-csumsmom(2,1)&
+        +csumsmom(3,1)-csumsmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 4)=(csumsmom(1,2)-csumsmom(2,2)&
+        +csumsmom(3,2)-csumsmom(4,2))*adiv1
+    !      alinemom4(time_slice, id,3)=(csumsmom(1,3)-csumsmom(2,3)&
+    !     &+csumsmom(3,3)-csumsmom(4,3))*adiv1
+    !      alinemom4(time_slice, id,4)=(csumsmom(1,4)-csumsmom(2,4)&
+    !     &+csumsmom(3,4)-csumsmom(4,4))*adiv1
     !**********************************************************************
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE5(N4,ID)=(CSUM2S(1)+CSUM2S(2)+CSUM2S(3)+CSUM2S(4))*ADIV1
+        lines(time_slice, id, 5)=(csum2s(1)+csum2s(2)+csum2s(3)+csum2s(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM5(N4,ID,1)=(CSUM2SMOM(1,1)+CSUM2SMOM(2,1)&
-        +CSUM2SMOM(3,1)+CSUM2SMOM(4,1))*ADIV1
-        ALINEMOM5(N4,ID,2)=(CSUM2SMOM(1,2)+CSUM2SMOM(2,2)&
-        +CSUM2SMOM(3,2)+CSUM2SMOM(4,2))*ADIV1
-    !      ALINEMOM5(N4,ID,3)=(CSUM2SMOM(1,3)+CSUM2SMOM(2,3)&
-    !     &+CSUM2SMOM(3,3)+CSUM2SMOM(4,3))*ADIV1
-    !      ALINEMOM5(N4,ID,4)=(CSUM2SMOM(1,4)+CSUM2SMOM(2,4)&
-    !     &+CSUM2SMOM(3,4)+CSUM2SMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 5)=(csum2smom(1,1)+csum2smom(2,1)&
+        +csum2smom(3,1)+csum2smom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 5)=(csum2smom(1,2)+csum2smom(2,2)&
+        +csum2smom(3,2)+csum2smom(4,2))*adiv1
+    !      alinemom5(time_slice, id,3)=(csum2smom(1,3)+csum2smom(2,3)&
+    !     &+csum2smom(3,3)+csum2smom(4,3))*adiv1
+    !      alinemom5(time_slice, id,4)=(csum2smom(1,4)+csum2smom(2,4)&
+    !     &+csum2smom(3,4)+csum2smom(4,4))*adiv1
     !***********************************************************************
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE6(N4,ID)=(CSUM2S(1)+GIOT*CSUM2S(2)-CSUM2S(3)&
-        -GIOT*CSUM2S(4))*ADIV1
+        lines(time_slice, id, 6)=(csum2s(1)+giot*csum2s(2)-csum2s(3)&
+        -giot*csum2s(4))*adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM6(N4,ID,1)=(CSUM2SMOM(1,1)+GIOT*CSUM2SMOM(2,1)&
-        -CSUM2SMOM(3,1)-GIOT*CSUM2SMOM(4,1))*ADIV1
-        ALINEMOM6(N4,ID,2)=(CSUM2SMOM(1,2)+GIOT*CSUM2SMOM(2,2)&
-        -CSUM2SMOM(3,2)-GIOT*CSUM2SMOM(4,2))*ADIV1
-    !      ALINEMOM6(N4,ID,3)=(CSUM2SMOM(1,3)+GIOT*CSUM2SMOM(2,3)&
-    !     &-CSUM2SMOM(3,3)-GIOT*CSUM2SMOM(4,3))*ADIV1
-    !      ALINEMOM6(N4,ID,4)=(CSUM2SMOM(1,4)+GIOT*CSUM2SMOM(2,4)&
-    !     &-CSUM2SMOM(3,4)-GIOT*CSUM2SMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 6)=(csum2smom(1,1)+giot*csum2smom(2,1)&
+        -csum2smom(3,1)-giot*csum2smom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 6)=(csum2smom(1,2)+giot*csum2smom(2,2)&
+        -csum2smom(3,2)-giot*csum2smom(4,2))*adiv1
+    !      alinemom6(time_slice, id,3)=(csum2smom(1,3)+giot*csum2smom(2,3)&
+    !     &-csum2smom(3,3)-giot*csum2smom(4,3))*adiv1
+    !      alinemom6(time_slice, id,4)=(csum2smom(1,4)+giot*csum2smom(2,4)&
+    !     &-csum2smom(3,4)-giot*csum2smom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE7(N4,ID)=(CSUM2S(1)-CSUM2S(2)+CSUM2S(3)-CSUM2S(4))*ADIV1
+        lines(time_slice, id, 7)=(csum2s(1)-csum2s(2)+csum2s(3)-csum2s(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM7(N4,ID,1)=(CSUM2SMOM(1,1)-CSUM2SMOM(2,1)&
-        +CSUM2SMOM(3,1)-CSUM2SMOM(4,1))*ADIV1
-        ALINEMOM7(N4,ID,2)=(CSUM2SMOM(1,2)-CSUM2SMOM(2,2)&
-        +CSUM2SMOM(3,2)-CSUM2SMOM(4,2))*ADIV1
-    !      ALINEMOM7(N4,ID,3)=(CSUM2SMOM(1,3)-CSUM2SMOM(2,3)&
-    !     &+CSUM2SMOM(3,3)-CSUM2SMOM(4,3))*ADIV1
-    !      ALINEMOM7(N4,ID,4)=(CSUM2SMOM(1,4)-CSUM2SMOM(2,4)&
-    !     &+CSUM2SMOM(3,4)-CSUM2SMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 7)=(csum2smom(1,1)-csum2smom(2,1)&
+        +csum2smom(3,1)-csum2smom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 7)=(csum2smom(1,2)-csum2smom(2,2)&
+        +csum2smom(3,2)-csum2smom(4,2))*adiv1
+    !      alinemom7(time_slice, id,3)=(csum2smom(1,3)-csum2smom(2,3)&
+    !     &+csum2smom(3,3)-csum2smom(4,3))*adiv1
+    !      alinemom7(time_slice, id,4)=(csum2smom(1,4)-csum2smom(2,4)&
+    !     &+csum2smom(3,4)-csum2smom(4,4))*adiv1
     !**********************************************************************
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE8(N4,ID)=(CSUM2WS(1)+CSUM2WS(2)+CSUM2WS(3)+CSUM2WS(4))*ADIV1
+        lines(time_slice, id, 8)=(csum2ws(1)+csum2ws(2)+csum2ws(3)+csum2ws(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM8(N4,ID,1)=(CSUM2WSMOM(1,1)+CSUM2WSMOM(2,1)&
-        +CSUM2WSMOM(3,1)+CSUM2WSMOM(4,1))*ADIV1
-        ALINEMOM8(N4,ID,2)=(CSUM2WSMOM(1,2)+CSUM2WSMOM(2,2)&
-        +CSUM2WSMOM(3,2)+CSUM2WSMOM(4,2))*ADIV1
-    !      ALINEMOM8(N4,ID,3)=(CSUM2WSMOM(1,3)+CSUM2WSMOM(2,3)&
-    !     &+CSUM2WSMOM(3,3)+CSUM2WSMOM(4,3))*ADIV1
-    !      ALINEMOM8(N4,ID,4)=(CSUM2WSMOM(1,4)+CSUM2WSMOM(2,4)&
-    !     &+CSUM2WSMOM(3,4)+CSUM2WSMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 8)=(csum2wsmom(1,1)+csum2wsmom(2,1)&
+        +csum2wsmom(3,1)+csum2wsmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 8)=(csum2wsmom(1,2)+csum2wsmom(2,2)&
+        +csum2wsmom(3,2)+csum2wsmom(4,2))*adiv1
+    !      alinemom8(time_slice, id,3)=(csum2wsmom(1,3)+csum2wsmom(2,3)&
+    !     &+csum2wsmom(3,3)+csum2wsmom(4,3))*adiv1
+    !      alinemom8(time_slice, id,4)=(csum2wsmom(1,4)+csum2wsmom(2,4)&
+    !     &+csum2wsmom(3,4)+csum2wsmom(4,4))*adiv1
     !************************************************************************
     !***********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE9(N4,ID)=(CSUM2WS(1)+GIOT*CSUM2WS(2)-CSUM2WS(3)&
-        -GIOT*CSUM2WS(4))*ADIV1
+        lines(time_slice, id, 9)=(csum2ws(1)+giot*csum2ws(2)-csum2ws(3)&
+        -giot*csum2ws(4))*adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM9(N4,ID,1)=(CSUM2WSMOM(1,1)+GIOT*CSUM2WSMOM(2,1)&
-        -CSUM2WSMOM(3,1)-GIOT*CSUM2WSMOM(4,1))*ADIV1
-        ALINEMOM9(N4,ID,2)=(CSUM2WSMOM(1,2)+GIOT*CSUM2WSMOM(2,2)&
-        -CSUM2WSMOM(3,2)-GIOT*CSUM2WSMOM(4,2))*ADIV1
-    !      ALINEMOM9(N4,ID,3)=(CSUM2WSMOM(1,3)+GIOT*CSUM2WSMOM(2,3)&
-    !     &-CSUM2WSMOM(3,3)-GIOT*CSUM2WSMOM(4,3))*ADIV1
-    !      ALINEMOM9(N4,ID,4)=(CSUM2WSMOM(1,4)+GIOT*CSUM2WSMOM(2,4)&
-    !     &-CSUM2WSMOM(3,4)-GIOT*CSUM2WSMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 9)=(csum2wsmom(1,1)+giot*csum2wsmom(2,1)&
+        -csum2wsmom(3,1)-giot*csum2wsmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 9)=(csum2wsmom(1,2)+giot*csum2wsmom(2,2)&
+        -csum2wsmom(3,2)-giot*csum2wsmom(4,2))*adiv1
+    !      alinemom9(time_slice, id,3)=(csum2wsmom(1,3)+giot*csum2wsmom(2,3)&
+    !     &-csum2wsmom(3,3)-giot*csum2wsmom(4,3))*adiv1
+    !      alinemom9(time_slice, id,4)=(csum2wsmom(1,4)+giot*csum2wsmom(2,4)&
+    !     &-csum2wsmom(3,4)-giot*csum2wsmom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE10(N4,ID)=(CSUM2WS(1)-CSUM2WS(2)+CSUM2WS(3)-CSUM2WS(4))*ADIV1
+        lines(time_slice, id, 10)=(csum2ws(1)-csum2ws(2)+csum2ws(3)-csum2ws(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM10(N4,ID,1)=(CSUM2WSMOM(1,1)-CSUM2WSMOM(2,1)&
-        +CSUM2WSMOM(3,1)-CSUM2WSMOM(4,1))*ADIV1
-        ALINEMOM10(N4,ID,2)=(CSUM2WSMOM(1,2)-CSUM2WSMOM(2,2)&
-        +CSUM2WSMOM(3,2)-CSUM2WSMOM(4,2))*ADIV1
-    !      ALINEMOM10(N4,ID,3)=(CSUM2WSMOM(1,3)-CSUM2WSMOM(2,3)&
-    !     &+CSUM2WSMOM(3,3)-CSUM2WSMOM(4,3))*ADIV1
-    !      ALINEMOM10(N4,ID,4)=(CSUM2WSMOM(1,4)-CSUM2WSMOM(2,4)&
-    !     &+CSUM2WSMOM(3,4)-CSUM2WSMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 10)=(csum2wsmom(1,1)-csum2wsmom(2,1)&
+        +csum2wsmom(3,1)-csum2wsmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 10)=(csum2wsmom(1,2)-csum2wsmom(2,2)&
+        +csum2wsmom(3,2)-csum2wsmom(4,2))*adiv1
+    !      alinemom10(time_slice, id,3)=(csum2wsmom(1,3)-csum2wsmom(2,3)&
+    !     &+csum2wsmom(3,3)-csum2wsmom(4,3))*adiv1
+    !      alinemom10(time_slice, id,4)=(csum2wsmom(1,4)-csum2wsmom(2,4)&
+    !     &+csum2wsmom(3,4)-csum2wsmom(4,4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE11(N4,ID)=(CSUMW(1)+CSUMW(2)+CSUMW(3)+CSUMW(4))*ADIV1
+        lines(time_slice, id, 11)=(csumw(1)+csumw(2)+csumw(3)+csumw(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM11(N4,ID,1)=(CSUMWMOM(1,1)+CSUMWMOM(2,1)&
-        +CSUMWMOM(3,1)+CSUMWMOM(4,1))*ADIV1
-        ALINEMOM11(N4,ID,2)=(CSUMWMOM(1,2)+CSUMWMOM(2,2)&
-        +CSUMWMOM(3,2)+CSUMWMOM(4,2))*ADIV1
-    !      ALINEMOM11(N4,ID,3)=(CSUMWMOM(1,3)+CSUMWMOM(2,3)&
-    !     &+CSUMWMOM(3,3)+CSUMWMOM(4,3))*ADIV1
-    !      ALINEMOM11(N4,ID,4)=(CSUMWMOM(1,4)+CSUMWMOM(2,4)&
-    !     &+CSUMWMOM(3,4)+CSUMWMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 11)=(csumwmom(1,1)+csumwmom(2,1)&
+        +csumwmom(3,1)+csumwmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 11)=(csumwmom(1,2)+csumwmom(2,2)&
+        +csumwmom(3,2)+csumwmom(4,2))*adiv1
+    !      alinemom11(time_slice, id,3)=(csumwmom(1,3)+csumwmom(2,3)&
+    !     &+csumwmom(3,3)+csumwmom(4,3))*adiv1
+    !      alinemom11(time_slice, id,4)=(csumwmom(1,4)+csumwmom(2,4)&
+    !     &+csumwmom(3,4)+csumwmom(4,4))*adiv1
     !***********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !***********************************************************************
-        ALINE12(N4,ID)=(CSUMW(1)+GIOT*CSUMW(2)-CSUMW(3)&
-        -GIOT*CSUMW(4))*ADIV1
+        lines(time_slice, id, 12)=(csumw(1)+giot*csumw(2)-csumw(3)&
+        -giot*csumw(4))*adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM12(N4,ID,1)=(CSUMWMOM(1,1)+GIOT*CSUMWMOM(2,1)&
-        -CSUMWMOM(3,1)-GIOT*CSUMWMOM(4,1))*ADIV1
-        ALINEMOM12(N4,ID,2)=(CSUMWMOM(1,2)+GIOT*CSUMWMOM(2,2)&
-        -CSUMWMOM(3,2)-GIOT*CSUMWMOM(4,2))*ADIV1
-    !      ALINEMOM12(N4,ID,3)=(CSUMWMOM(1,3)+GIOT*CSUMWMOM(2,3)&
-    !     &-CSUMWMOM(3,3)-GIOT*CSUMWMOM(4,3))*ADIV1
-    !      ALINEMOM12(N4,ID,4)=(CSUMWMOM(1,4)+GIOT*CSUMWMOM(2,4)&
-    !     &-CSUMWMOM(3,4)-GIOT*CSUMWMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 12)=(csumwmom(1,1)+giot*csumwmom(2,1)&
+        -csumwmom(3,1)-giot*csumwmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 12)=(csumwmom(1,2)+giot*csumwmom(2,2)&
+        -csumwmom(3,2)-giot*csumwmom(4,2))*adiv1
+    !      alinemom12(time_slice, id,3)=(csumwmom(1,3)+giot*csumwmom(2,3)&
+    !     &-csumwmom(3,3)-giot*csumwmom(4,3))*adiv1
+    !      alinemom12(time_slice, id,4)=(csumwmom(1,4)+giot*csumwmom(2,4)&
+    !     &-csumwmom(3,4)-giot*csumwmom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE13(N4,ID)=(CSUMW(1)-CSUMW(2)+CSUMW(3)-CSUMW(4))*ADIV1
+        lines(time_slice, id, 13)=(csumw(1)-csumw(2)+csumw(3)-csumw(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM13(N4,ID,1)=(CSUMWMOM(1,1)-CSUMWMOM(2,1)&
-        +CSUMWMOM(3,1)-CSUMWMOM(4,1))*ADIV1
-        ALINEMOM13(N4,ID,2)=(CSUMWMOM(1,2)-CSUMWMOM(2,2)&
-        +CSUMWMOM(3,2)-CSUMWMOM(4,2))*ADIV1
-    !      ALINEMOM13(N4,ID,3)=(CSUMWMOM(1,3)-CSUMWMOM(2,3)&
-    !     &+CSUMWMOM(3,3)-CSUMWMOM(4,3))*ADIV1
-    !      ALINEMOM13(N4,ID,4)=(CSUMWMOM(1,4)-CSUMWMOM(2,4)&
-    !     &+CSUMWMOM(3,4)-CSUMWMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 13)=(csumwmom(1,1)-csumwmom(2,1)&
+        +csumwmom(3,1)-csumwmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 13)=(csumwmom(1,2)-csumwmom(2,2)&
+        +csumwmom(3,2)-csumwmom(4,2))*adiv1
+    !      alinemom13(time_slice, id,3)=(csumwmom(1,3)-csumwmom(2,3)&
+    !     &+csumwmom(3,3)-csumwmom(4,3))*adiv1
+    !      alinemom13(time_slice, id,4)=(csumwmom(1,4)-csumwmom(2,4)&
+    !     &+csumwmom(3,4)-csumwmom(4,4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE14(N4,ID)=(CSUM2W(1)+CSUM2W(2)+CSUM2W(3)+CSUM2W(4))*ADIV1
+        lines(time_slice, id, 14)=(csum2w(1)+csum2w(2)+csum2w(3)+csum2w(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM14(N4,ID,1)=(CSUM2WMOM(1,1)+CSUM2WMOM(2,1)&
-        +CSUM2WMOM(3,1)+CSUM2WMOM(4,1))*ADIV1
-        ALINEMOM14(N4,ID,2)=(CSUM2WMOM(1,2)+CSUM2WMOM(2,2)&
-        +CSUM2WMOM(3,2)+CSUM2WMOM(4,2))*ADIV1
-    !      ALINEMOM14(N4,ID,3)=(CSUM2WMOM(1,3)+CSUM2WMOM(2,3)&
-    !     &+CSUM2WMOM(3,3)+CSUM2WMOM(4,3))*ADIV1
-    !      ALINEMOM14(N4,ID,4)=(CSUM2WMOM(1,4)+CSUM2WMOM(2,4)&
-    !     &+CSUM2WMOM(3,4)+CSUM2WMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 14)=(csum2wmom(1,1)+csum2wmom(2,1)&
+        +csum2wmom(3,1)+csum2wmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 14)=(csum2wmom(1,2)+csum2wmom(2,2)&
+        +csum2wmom(3,2)+csum2wmom(4,2))*adiv1
+    !      alinemom14(time_slice, id,3)=(csum2wmom(1,3)+csum2wmom(2,3)&
+    !     &+csum2wmom(3,3)+csum2wmom(4,3))*adiv1
+    !      alinemom14(time_slice, id,4)=(csum2wmom(1,4)+csum2wmom(2,4)&
+    !     &+csum2wmom(3,4)+csum2wmom(4,4))*adiv1
     !***********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE15(N4,ID)=(CSUM2W(1)+GIOT*CSUM2W(2)-CSUM2W(3)&
-        -GIOT*CSUM2W(4))*ADIV1
+        lines(time_slice, id, 15)=(csum2w(1)+giot*csum2w(2)-csum2w(3)&
+        -giot*csum2w(4))*adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM15(N4,ID,1)=(CSUM2WMOM(1,1)+GIOT*CSUM2WMOM(2,1)&
-        -CSUM2WMOM(3,1)-GIOT*CSUM2WMOM(4,1))*ADIV1
-        ALINEMOM15(N4,ID,2)=(CSUM2WMOM(1,2)+GIOT*CSUM2WMOM(2,2)&
-        -CSUM2WMOM(3,2)-GIOT*CSUM2WMOM(4,2))*ADIV1
-    !      ALINEMOM15(N4,ID,3)=(CSUM2WMOM(1,3)+GIOT*CSUM2WMOM(2,3)&
-    !     &-CSUM2WMOM(3,3)-GIOT*CSUM2WMOM(4,3))*ADIV1
-    !      ALINEMOM15(N4,ID,4)=(CSUM2WMOM(1,4)+GIOT*CSUM2WMOM(2,4)&
-    !     &-CSUM2WMOM(3,4)-GIOT*CSUM2WMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 15)=(csum2wmom(1,1)+giot*csum2wmom(2,1)&
+        -csum2wmom(3,1)-giot*csum2wmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 15)=(csum2wmom(1,2)+giot*csum2wmom(2,2)&
+        -csum2wmom(3,2)-giot*csum2wmom(4,2))*adiv1
+    !      alinemom15(time_slice, id,3)=(csum2wmom(1,3)+giot*csum2wmom(2,3)&
+    !     &-csum2wmom(3,3)-giot*csum2wmom(4,3))*adiv1
+    !      alinemom15(time_slice, id,4)=(csum2wmom(1,4)+giot*csum2wmom(2,4)&
+    !     &-csum2wmom(3,4)-giot*csum2wmom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE16(N4,ID)=(CSUM2W(1)-CSUM2W(2)+CSUM2W(3)-CSUM2W(4))*ADIV1
+        lines(time_slice, id, 16)=(csum2w(1)-csum2w(2)+csum2w(3)-csum2w(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM16(N4,ID,1)=(CSUM2WMOM(1,1)-CSUM2WMOM(2,1)&
-        +CSUM2WMOM(3,1)-CSUM2WMOM(4,1))*ADIV1
-        ALINEMOM16(N4,ID,2)=(CSUM2WMOM(1,2)-CSUM2WMOM(2,2)&
-        +CSUM2WMOM(3,2)-CSUM2WMOM(4,2))*ADIV1
-    !      ALINEMOM16(N4,ID,3)=(CSUM2WMOM(1,3)-CSUM2WMOM(2,3)&
-    !     &+CSUM2WMOM(3,3)-CSUM2WMOM(4,3))*ADIV1
-    !      ALINEMOM16(N4,ID,4)=(CSUM2WMOM(1,4)-CSUM2WMOM(2,4)&
-    !     &+CSUM2WMOM(3,4)-CSUM2WMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 16)=(csum2wmom(1,1)-csum2wmom(2,1)&
+        +csum2wmom(3,1)-csum2wmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 16)=(csum2wmom(1,2)-csum2wmom(2,2)&
+        +csum2wmom(3,2)-csum2wmom(4,2))*adiv1
+    !      alinemom16(time_slice, id,3)=(csum2wmom(1,3)-csum2wmom(2,3)&
+    !     &+csum2wmom(3,3)-csum2wmom(4,3))*adiv1
+    !      alinemom16(time_slice, id,4)=(csum2wmom(1,4)-csum2wmom(2,4)&
+    !     &+csum2wmom(3,4)-csum2wmom(4,4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE17(N4,ID)=(CSUM3W(1)+CSUM3W(2)+CSUM3W(3)+CSUM3W(4))*ADIV1
+        lines(time_slice, id, 17)=(csum3w(1)+csum3w(2)+csum3w(3)+csum3w(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM17(N4,ID,1)=(CSUM3WMOM(1,1)+CSUM3WMOM(2,1)&
-        +CSUM3WMOM(3,1)+CSUM3WMOM(4,1))*ADIV1
-        ALINEMOM17(N4,ID,2)=(CSUM3WMOM(1,2)+CSUM3WMOM(2,2)&
-        +CSUM3WMOM(3,2)+CSUM3WMOM(4,2))*ADIV1
-    !      ALINEMOM17(N4,ID,3)=(CSUM3WMOM(1,3)+CSUM3WMOM(2,3)&
-    !     &+CSUM3WMOM(3,3)+CSUM3WMOM(4,3))*ADIV1
-    !      ALINEMOM17(N4,ID,4)=(CSUM3WMOM(1,4)+CSUM3WMOM(2,4)&
-    !     &+CSUM3WMOM(3,4)+CSUM3WMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 17)=(csum3wmom(1,1)+csum3wmom(2,1)&
+        +csum3wmom(3,1)+csum3wmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 17)=(csum3wmom(1,2)+csum3wmom(2,2)&
+        +csum3wmom(3,2)+csum3wmom(4,2))*adiv1
+    !      alinemom17(time_slice, id,3)=(csum3wmom(1,3)+csum3wmom(2,3)&
+    !     &+csum3wmom(3,3)+csum3wmom(4,3))*adiv1
+    !      alinemom17(time_slice, id,4)=(csum3wmom(1,4)+csum3wmom(2,4)&
+    !     &+csum3wmom(3,4)+csum3wmom(4,4))*adiv1
     !***********************************************************************
-    !     J=1, Pr=+ q=0
+    !     j=1, pr=+ q=0
     !**********************************************************************
-        ALINE18(N4,ID)=(CSUM3W(1)+GIOT*CSUM3W(2)-CSUM3W(3)-GIOT*CSUM3W(4))&
-        *ADIV1
+        lines(time_slice, id, 18)=(csum3w(1)+giot*csum3w(2)-csum3w(3)-giot*csum3w(4))&
+        *adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM18(N4,ID,1)=(CSUM3WMOM(1,1)+GIOT*CSUM3WMOM(2,1)&
-        -CSUM3WMOM(3,1)-GIOT*CSUM3WMOM(4,1))*ADIV1
-        ALINEMOM18(N4,ID,2)=(CSUM3WMOM(1,2)+GIOT*CSUM3WMOM(2,2)&
-        -CSUM3WMOM(3,2)-GIOT*CSUM3WMOM(4,2))*ADIV1
-    !      ALINEMOM18(N4,ID,3)=(CSUM3WMOM(1,3)+GIOT*CSUM3WMOM(2,3)&
-    !     &-CSUM3WMOM(3,3)-GIOT*CSUM3WMOM(4,3))*ADIV1
-    !      ALINEMOM18(N4,ID,4)=(CSUM3WMOM(1,4)+GIOT*CSUM3WMOM(2,4)&
-    !     &-CSUM3WMOM(3,4)-GIOT*CSUM3WMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 18)=(csum3wmom(1,1)+giot*csum3wmom(2,1)&
+        -csum3wmom(3,1)-giot*csum3wmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 18)=(csum3wmom(1,2)+giot*csum3wmom(2,2)&
+        -csum3wmom(3,2)-giot*csum3wmom(4,2))*adiv1
+    !      alinemom18(time_slice, id,3)=(csum3wmom(1,3)+giot*csum3wmom(2,3)&
+    !     &-csum3wmom(3,3)-giot*csum3wmom(4,3))*adiv1
+    !      alinemom18(time_slice, id,4)=(csum3wmom(1,4)+giot*csum3wmom(2,4)&
+    !     &-csum3wmom(3,4)-giot*csum3wmom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE19(N4,ID)=(CSUM3W(1)-CSUM3W(2)+CSUM3W(3)-CSUM3W(4))*ADIV1
+        lines(time_slice, id, 19)=(csum3w(1)-csum3w(2)+csum3w(3)-csum3w(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM19(N4,ID,1)=(CSUM3WMOM(1,1)-CSUM3WMOM(2,1)&
-        +CSUM3WMOM(3,1)-CSUM3WMOM(4,1))*ADIV1
-        ALINEMOM19(N4,ID,2)=(CSUM3WMOM(1,2)-CSUM3WMOM(2,2)&
-        +CSUM3WMOM(3,2)-CSUM3WMOM(4,2))*ADIV1
-    !      ALINEMOM19(N4,ID,3)=(CSUM3WMOM(1,3)-CSUM3WMOM(2,3)&
-    !     &+CSUM3WMOM(3,3)-CSUM3WMOM(4,3))*ADIV1
-    !      ALINEMOM19(N4,ID,4)=(CSUM3WMOM(1,4)-CSUM3WMOM(2,4)&
-    !     &+CSUM3WMOM(3,4)-CSUM3WMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 19)=(csum3wmom(1,1)-csum3wmom(2,1)&
+        +csum3wmom(3,1)-csum3wmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 19)=(csum3wmom(1,2)-csum3wmom(2,2)&
+        +csum3wmom(3,2)-csum3wmom(4,2))*adiv1
+    !      alinemom19(time_slice, id,3)=(csum3wmom(1,3)-csum3wmom(2,3)&
+    !     &+csum3wmom(3,3)-csum3wmom(4,3))*adiv1
+    !      alinemom19(time_slice, id,4)=(csum3wmom(1,4)-csum3wmom(2,4)&
+    !     &+csum3wmom(3,4)-csum3wmom(4,4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE20(N4,ID)=(CSUMUP(1)+CSUMUP(2)+CSUMUP(3)+CSUMUP(4))*ADIV1
+        lines(time_slice, id, 20)=(csumup(1)+csumup(2)+csumup(3)+csumup(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM20(N4,ID,1)=(CSUMUPMOM(1,1)+CSUMUPMOM(2,1)&
-        +CSUMUPMOM(3,1)+CSUMUPMOM(4,1))*ADIV1
-        ALINEMOM20(N4,ID,2)=(CSUMUPMOM(1,2)+CSUMUPMOM(2,2)&
-        +CSUMUPMOM(3,2)+CSUMUPMOM(4,2))*ADIV1
-    !      ALINEMOM20(N4,ID,3)=(CSUMUPMOM(1,3)+CSUMUPMOM(2,3)&
-    !     &+CSUMUPMOM(3,3)+CSUMUPMOM(4,3))*ADIV1
-    !      ALINEMOM20(N4,ID,4)=(CSUMUPMOM(1,4)+CSUMUPMOM(2,4)&
-    !     &+CSUMUPMOM(3,4)+CSUMUPMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 20)=(csumupmom(1,1)+csumupmom(2,1)&
+        +csumupmom(3,1)+csumupmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 20)=(csumupmom(1,2)+csumupmom(2,2)&
+        +csumupmom(3,2)+csumupmom(4,2))*adiv1
+    !      alinemom20(time_slice, id,3)=(csumupmom(1,3)+csumupmom(2,3)&
+    !     &+csumupmom(3,3)+csumupmom(4,3))*adiv1
+    !      alinemom20(time_slice, id,4)=(csumupmom(1,4)+csumupmom(2,4)&
+    !     &+csumupmom(3,4)+csumupmom(4,4))*adiv1
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE21(N4,ID)=(CSUMUP(1)+GIOT*CSUMUP(2)-CSUMUP(3)-GIOT*CSUMUP(4))&
-        *ADIV1
+        lines(time_slice, id, 21)=(csumup(1)+giot*csumup(2)-csumup(3)-giot*csumup(4))&
+        *adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM21(N4,ID,1)=(CSUMUPMOM(1,1)+GIOT*CSUMUPMOM(2,1)&
-        -CSUMUPMOM(3,1)-GIOT*CSUMUPMOM(4,1))*ADIV1
-        ALINEMOM21(N4,ID,2)=(CSUMUPMOM(1,2)+GIOT*CSUMUPMOM(2,2)&
-        -CSUMUPMOM(3,2)-GIOT*CSUMUPMOM(4,2))*ADIV1
-    !      ALINEMOM21(N4,ID,3)=(CSUMUPMOM(1,3)+GIOT*CSUMUPMOM(2,3)&
-    !     &-CSUMUPMOM(3,3)-GIOT*CSUMUPMOM(4,3))*ADIV1
-    !      ALINEMOM21(N4,ID,4)=(CSUMUPMOM(1,4)+GIOT*CSUMUPMOM(2,4)&
-    !     &-CSUMUPMOM(3,4)-GIOT*CSUMUPMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 21)=(csumupmom(1,1)+giot*csumupmom(2,1)&
+        -csumupmom(3,1)-giot*csumupmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 21)=(csumupmom(1,2)+giot*csumupmom(2,2)&
+        -csumupmom(3,2)-giot*csumupmom(4,2))*adiv1
+    !      alinemom21(time_slice, id,3)=(csumupmom(1,3)+giot*csumupmom(2,3)&
+    !     &-csumupmom(3,3)-giot*csumupmom(4,3))*adiv1
+    !      alinemom21(time_slice, id,4)=(csumupmom(1,4)+giot*csumupmom(2,4)&
+    !     &-csumupmom(3,4)-giot*csumupmom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE22(N4,ID)=(CSUMUP(1)-CSUMUP(2)+CSUMUP(3)-CSUMUP(4))*ADIV1
+        lines(time_slice, id, 22)=(csumup(1)-csumup(2)+csumup(3)-csumup(4))*adiv1
     !***********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM22(N4,ID,1)=(CSUMUPMOM(1,1)-CSUMUPMOM(2,1)&
-        +CSUMUPMOM(3,1)-CSUMUPMOM(4,1))*ADIV1
-        ALINEMOM22(N4,ID,2)=(CSUMUPMOM(1,2)-CSUMUPMOM(2,2)&
-        +CSUMUPMOM(3,2)-CSUMUPMOM(4,2))*ADIV1
-    !      ALINEMOM22(N4,ID,3)=(CSUMUPMOM(1,3)-CSUMUPMOM(2,3)&
-    !     &+CSUMUPMOM(3,3)-CSUMUPMOM(4,3))*ADIV1
-    !      ALINEMOM22(N4,ID,4)=(CSUMUPMOM(1,4)-CSUMUPMOM(2,4)&
-    !     &+CSUMUPMOM(3,4)-CSUMUPMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 22)=(csumupmom(1,1)-csumupmom(2,1)&
+        +csumupmom(3,1)-csumupmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 22)=(csumupmom(1,2)-csumupmom(2,2)&
+        +csumupmom(3,2)-csumupmom(4,2))*adiv1
+    !      alinemom22(time_slice, id,3)=(csumupmom(1,3)-csumupmom(2,3)&
+    !     &+csumupmom(3,3)-csumupmom(4,3))*adiv1
+    !      alinemom22(time_slice, id,4)=(csumupmom(1,4)-csumupmom(2,4)&
+    !     &+csumupmom(3,4)-csumupmom(4,4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE23(N4,ID)=(CSUMUD(1)+CSUMUD(2)+CSUMUD(3)+CSUMUD(4))*ADIV1
+        lines(time_slice, id, 23)=(csumud(1)+csumud(2)+csumud(3)+csumud(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM23(N4,ID,1)=(CSUMUDMOM(1,1)+CSUMUDMOM(2,1)&
-        +CSUMUDMOM(3,1)+CSUMUDMOM(4,1))*ADIV1
-        ALINEMOM23(N4,ID,2)=(CSUMUDMOM(1,2)+CSUMUDMOM(2,2)&
-        +CSUMUDMOM(3,2)+CSUMUDMOM(4,2))*ADIV1
-    !      ALINEMOM23(N4,ID,3)=(CSUMUDMOM(1,3)+CSUMUDMOM(2,3)&
-    !     &+CSUMUDMOM(3,3)+CSUMUDMOM(4,3))*ADIV1
-    !      ALINEMOM23(N4,ID,4)=(CSUMUDMOM(1,4)+CSUMUDMOM(2,4)&
-    !     &+CSUMUDMOM(3,4)+CSUMUDMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 23)=(csumudmom(1,1)+csumudmom(2,1)&
+        +csumudmom(3,1)+csumudmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 23)=(csumudmom(1,2)+csumudmom(2,2)&
+        +csumudmom(3,2)+csumudmom(4,2))*adiv1
+    !      alinemom23(time_slice, id,3)=(csumudmom(1,3)+csumudmom(2,3)&
+    !     &+csumudmom(3,3)+csumudmom(4,3))*adiv1
+    !      alinemom23(time_slice, id,4)=(csumudmom(1,4)+csumudmom(2,4)&
+    !     &+csumudmom(3,4)+csumudmom(4,4))*adiv1
     !***********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE24(N4,ID)=(CSUMUD(1)+GIOT*CSUMUD(2)-CSUMUD(3)&
-        -GIOT*CSUMUD(4))*ADIV1
+        lines(time_slice, id, 24)=(csumud(1)+giot*csumud(2)-csumud(3)&
+        -giot*csumud(4))*adiv1
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !***********************************************************************
-        ALINEMOM24(N4,ID,1)=(CSUMUDMOM(1,1)+GIOT*CSUMUDMOM(2,1)&
-        -CSUMUDMOM(3,1)-GIOT*CSUMUDMOM(4,1))*ADIV1
-        ALINEMOM24(N4,ID,2)=(CSUMUDMOM(1,2)+GIOT*CSUMUDMOM(2,2)&
-        -CSUMUDMOM(3,2)-GIOT*CSUMUDMOM(4,2))*ADIV1
-    !      ALINEMOM24(N4,ID,3)=(CSUMUDMOM(1,3)+GIOT*CSUMUDMOM(2,3)&
-    !     &-CSUMUDMOM(3,3)-GIOT*CSUMUDMOM(4,3))*ADIV1
-    !      ALINEMOM24(N4,ID,4)=(CSUMUDMOM(1,4)+GIOT*CSUMUDMOM(2,4)&
-    !     &-CSUMUDMOM(3,4)-GIOT*CSUMUDMOM(4,4))*ADIV1
+        momentum_lines(time_slice, id, 1, 24)=(csumudmom(1,1)+giot*csumudmom(2,1)&
+        -csumudmom(3,1)-giot*csumudmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 24)=(csumudmom(1,2)+giot*csumudmom(2,2)&
+        -csumudmom(3,2)-giot*csumudmom(4,2))*adiv1
+    !      alinemom24(time_slice, id,3)=(csumudmom(1,3)+giot*csumudmom(2,3)&
+    !     &-csumudmom(3,3)-giot*csumudmom(4,3))*adiv1
+    !      alinemom24(time_slice, id,4)=(csumudmom(1,4)+giot*csumudmom(2,4)&
+    !     &-csumudmom(3,4)-giot*csumudmom(4,4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE25(N4,ID)=(CSUMUD(1)-CSUMUD(2)+CSUMUD(3)-CSUMUD(4))*ADIV1
+        lines(time_slice, id, 25)=(csumud(1)-csumud(2)+csumud(3)-csumud(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        ALINEMOM25(N4,ID,1)=(CSUMUDMOM(1,1)-CSUMUDMOM(2,1)&
-        +CSUMUDMOM(3,1)-CSUMUDMOM(4,1))*ADIV1
-        ALINEMOM25(N4,ID,2)=(CSUMUDMOM(1,2)-CSUMUDMOM(2,2)&
-        +CSUMUDMOM(3,2)-CSUMUDMOM(4,2))*ADIV1
-    !      ALINEMOM25(N4,ID,3)=(CSUMUDMOM(1,3)-CSUMUDMOM(2,3)&
-    !     &+CSUMUDMOM(3,3)-CSUMUDMOM(4,3))*ADIV1
-    !      ALINEMOM25(N4,ID,4)=(CSUMUDMOM(1,4)-CSUMUDMOM(2,4)&
-    !     &+CSUMUDMOM(3,4)-CSUMUDMOM(4,4))*ADIV1
-    !**********************************************************************
-    !**********************************************************************
+        momentum_lines(time_slice, id, 1, 25)=(csumudmom(1,1)-csumudmom(2,1)&
+        +csumudmom(3,1)-csumudmom(4,1))*adiv1
+        momentum_lines(time_slice, id, 2, 25)=(csumudmom(1,2)-csumudmom(2,2)&
+        +csumudmom(3,2)-csumudmom(4,2))*adiv1
+    !      alinemom25(time_slice, id,3)=(csumudmom(1,3)-csumudmom(2,3)&
+    !     &+csumudmom(3,3)-csumudmom(4,3))*adiv1
+    !      alinemom25(time_slice, id,4)=(csumudmom(1,4)-csumudmom(2,4)&
+    !     &+csumudmom(3,4)-csumudmom(4,4))*adiv1
     !**********************************************************************
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
     !**********************************************************************
-        ALINE26(N4,ID)=(CSUMTT1(1)+CSUMTT1(2)+CSUMTT1(3)+CSUMTT1(4)+&
-        (CSUMTT1(7)+CSUMTT1(6)+CSUMTT1(5)+CSUMTT1(8)))*ADIV2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM26(N4,ID,IK)=(CSUMTTMOM1(1,IK)+CSUMTTMOM1(2,IK)&
-        +CSUMTTMOM1(3,IK)+CSUMTTMOM1(4,IK)+CSUMTTMOM1(7,IK)&
-        +CSUMTTMOM1(6,IK)+CSUMTTMOM1(5,IK)&
-        +CSUMTTMOM1(8,IK))*ADIV2
+        lines(time_slice, id, 26)=(csumtt1(1)+csumtt1(2)+csumtt1(3)+csumtt1(4)+&
+        (csumtt1(7)+csumtt1(6)+csumtt1(5)+csumtt1(8)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 26)=(csumttmom1(1,ik)+csumttmom1(2,ik)&
+        +csumttmom1(3,ik)+csumttmom1(4,ik)+csumttmom1(7,ik)&
+        +csumttmom1(6,ik)+csumttmom1(5,ik)&
+        +csumttmom1(8,ik))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        ALINE27(N4,ID)=(CSUMTT1(1)+CSUMTT1(2)+CSUMTT1(3)+CSUMTT1(4)-&
-        (CSUMTT1(7)+CSUMTT1(6)+CSUMTT1(5)+CSUMTT1(8)))*ADIV2
+        lines(time_slice, id, 27)=(csumtt1(1)+csumtt1(2)+csumtt1(3)+csumtt1(4)-&
+        (csumtt1(7)+csumtt1(6)+csumtt1(5)+csumtt1(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
+    !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM27(N4,ID,IK)=(CSUMTTMOM1(1,IK)+CSUMTTMOM1(2,IK)&
-        +CSUMTTMOM1(3,IK)+CSUMTTMOM1(4,IK)-(CSUMTTMOM1(7,IK)&
-        +CSUMTTMOM1(6,IK)+CSUMTTMOM1(5,IK)&
-        +CSUMTTMOM1(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 27)=(csumttmom1(1,ik)+csumttmom1(2,ik)&
+        +csumttmom1(3,ik)+csumttmom1(4,ik)-(csumttmom1(7,ik)&
+        +csumttmom1(6,ik)+csumttmom1(5,ik)&
+        +csumttmom1(8,ik)))*adiv2
         enddo
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE28(N4,ID)=(CSUMTT1(1)+GIOT*CSUMTT1(2)-CSUMTT1(3)&
-        -GIOT*CSUMTT1(4)+(CSUMTT1(6)+GIOT*CSUMTT1(7)-CSUMTT1(8)&
-        -GIOT*CSUMTT1(5)))*ADIV2
+        lines(time_slice, id, 28)=(csumtt1(1)+giot*csumtt1(2)-csumtt1(3)&
+        -giot*csumtt1(4)+(csumtt1(6)+giot*csumtt1(7)-csumtt1(8)&
+        -giot*csumtt1(5)))*adiv2
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM28(N4,ID,IK)=(CSUMTTMOM1(1,IK)+GIOT*CSUMTTMOM1(2,IK)&
-        -CSUMTTMOM1(3,IK)-GIOT*CSUMTTMOM1(4,IK))*ADIV1
-        enddo
-    !***********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************
-        ALINE29(N4,ID)=(CSUMTT1(1)+GIOT*CSUMTT1(2)-CSUMTT1(3)&
-        -GIOT*CSUMTT1(4)-(CSUMTT1(6)+GIOT*CSUMTT1(7)-CSUMTT1(8)&
-        -GIOT*CSUMTT1(5)))*ADIV2
-    !***********************************************************************
-    !     J=1, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM29(N4,ID,IK)=(CSUMTTMOM1(6,IK)+GIOT*CSUMTTMOM1(7,IK)&
-        -CSUMTTMOM1(8,IK)-GIOT*CSUMTTMOM1(5,IK))*ADIV1
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE30(N4,ID)=(CSUMTT1(1)-CSUMTT1(2)+CSUMTT1(3)-CSUMTT1(4)+&
-        CSUMTT1(7)-CSUMTT1(6)+CSUMTT1(5)-CSUMTT1(8))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM30(N4,ID,IK)=(CSUMTTMOM1(1,IK)-CSUMTTMOM1(2,IK)&
-        +CSUMTTMOM1(3,IK)-CSUMTTMOM1(4,IK)+CSUMTTMOM1(7,IK)&
-        -CSUMTTMOM1(6,IK)+CSUMTTMOM1(5,IK)-CSUMTTMOM1(8,IK))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE31(N4,ID)=(CSUMTT1(1)-CSUMTT1(2)+CSUMTT1(3)-CSUMTT1(4)-&
-        (CSUMTT1(7)-CSUMTT1(6)+CSUMTT1(5)-CSUMTT1(8)))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM31(N4,ID,IK)=(CSUMTTMOM1(1,IK)-CSUMTTMOM1(2,IK)&
-        +CSUMTTMOM1(3,IK)-CSUMTTMOM1(4,IK)-(CSUMTTMOM1(7,IK)&
-        -CSUMTTMOM1(6,IK)+CSUMTTMOM1(5,IK)-CSUMTTMOM1(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE32(N4,ID)=(CSUMTT2(1)+CSUMTT2(2)+CSUMTT2(3)+CSUMTT2(4)+&
-        CSUMTT2(5)+CSUMTT2(6)+CSUMTT2(7)+CSUMTT2(8))*ADIV2
-    !**********************************************************************
-    !     J=0, Pp=+, q=0
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM32(N4,ID,IK)=(CSUMTTMOM2(1,IK)+CSUMTTMOM2(2,IK)&
-        +CSUMTTMOM2(3,IK)+CSUMTTMOM2(4,IK)+CSUMTTMOM2(5,IK)&
-        +CSUMTTMOM2(6,IK)+CSUMTTMOM2(7,IK)&
-        +CSUMTTMOM2(8,IK))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE33(N4,ID)=(CSUMTT2(1)+CSUMTT2(2)+CSUMTT2(3)+CSUMTT2(4)-&
-        (CSUMTT2(5)+CSUMTT2(6)+CSUMTT2(7)+CSUMTT2(8)))*ADIV2
-    !**********************************************************************
-    !     J=0, Pp=-, q
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM33(N4,ID,IK)=(CSUMTTMOM2(1,IK)+CSUMTTMOM2(2,IK)&
-        +CSUMTTMOM2(3,IK)+CSUMTTMOM2(4,IK)-(CSUMTTMOM2(5,IK)&
-        +CSUMTTMOM2(6,IK)+CSUMTTMOM2(7,IK)&
-        +CSUMTTMOM2(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 28)=(csumttmom1(1,ik)+giot*csumttmom1(2,ik)&
+        -csumttmom1(3,ik)-giot*csumttmom1(4,ik))*adiv1
         enddo
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE34(N4,ID)=(CSUMTT2(1)+GIOT*CSUMTT2(2)-CSUMTT2(3)&
-        -GIOT*CSUMTT2(4)+(CSUMTT2(7)+GIOT*CSUMTT2(8)-CSUMTT2(5)&
-        -GIOT*CSUMTT2(6)))*ADIV2
+        lines(time_slice, id, 29)=(csumtt1(1)+giot*csumtt1(2)-csumtt1(3)&
+        -giot*csumtt1(4)-(csumtt1(6)+giot*csumtt1(7)-csumtt1(8)&
+        -giot*csumtt1(5)))*adiv2
     !***********************************************************************
-    !     J=1, q=0
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM34(N4,ID,IK)=(CSUMTTMOM2(1,IK)+GIOT*CSUMTTMOM2(2,IK)&
-        -CSUMTTMOM2(3,IK)-GIOT*CSUMTTMOM2(4,IK))*ADIV1
-        enddo
-    !***********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************
-        ALINE35(N4,ID)=(CSUMTT2(1)+GIOT*CSUMTT2(2)-CSUMTT2(3)&
-        -GIOT*CSUMTT2(4)-(CSUMTT2(7)+GIOT*CSUMTT2(8)-CSUMTT2(5)&
-        -GIOT*CSUMTT2(6)))*ADIV2
-    !***********************************************************************
-    !     J=1, q=0
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM35(N4,ID,IK)=(CSUMTTMOM2(7,IK)+GIOT*CSUMTTMOM2(8,IK)&
-        -CSUMTTMOM2(5,IK)-GIOT*CSUMTTMOM2(6,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 29)=(csumttmom1(6,ik)+giot*csumttmom1(7,ik)&
+        -csumttmom1(8,ik)-giot*csumttmom1(5,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
+    !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        ALINE36(N4,ID)=(CSUMTT2(1)-CSUMTT2(2)+CSUMTT2(3)-CSUMTT2(4)+&
-        CSUMTT2(6)-CSUMTT2(5)+CSUMTT2(8)-CSUMTT2(7))*ADIV2
+        lines(time_slice, id, 30)=(csumtt1(1)-csumtt1(2)+csumtt1(3)-csumtt1(4)+&
+        csumtt1(7)-csumtt1(6)+csumtt1(5)-csumtt1(8))*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=0
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM36(N4,ID,IK)=(CSUMTTMOM2(1,IK)-CSUMTTMOM2(2,IK)&
-        +CSUMTTMOM2(3,IK)-CSUMTTMOM2(4,IK)+CSUMTTMOM2(6,IK)&
-        -CSUMTTMOM2(5,IK)+CSUMTTMOM2(8,IK)&
-        -CSUMTTMOM2(7,IK))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 30)=(csumttmom1(1,ik)-csumttmom1(2,ik)&
+        +csumttmom1(3,ik)-csumttmom1(4,ik)+csumttmom1(7,ik)&
+        -csumttmom1(6,ik)+csumttmom1(5,ik)-csumttmom1(8,ik))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
+    !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE37(N4,ID)=(CSUMTT2(1)-CSUMTT2(2)+CSUMTT2(3)-CSUMTT2(4)-&
-        (CSUMTT2(6)-CSUMTT2(5)+CSUMTT2(8)-CSUMTT2(7)))*ADIV2
+        lines(time_slice, id, 31)=(csumtt1(1)-csumtt1(2)+csumtt1(3)-csumtt1(4)-&
+        (csumtt1(7)-csumtt1(6)+csumtt1(5)-csumtt1(8)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
+    !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM37(N4,ID,IK)=(CSUMTTMOM2(1,IK)-CSUMTTMOM2(2,IK)&
-        +CSUMTTMOM2(3,IK)-CSUMTTMOM2(4,IK)-(CSUMTTMOM2(6,IK)&
-        -CSUMTTMOM2(5,IK)+CSUMTTMOM2(8,IK)&
-        -CSUMTTMOM2(7,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 31)=(csumttmom1(1,ik)-csumttmom1(2,ik)&
+        +csumttmom1(3,ik)-csumttmom1(4,ik)-(csumttmom1(7,ik)&
+        -csumttmom1(6,ik)+csumttmom1(5,ik)-csumttmom1(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE38(N4,ID)=(CSUMTT3(1)+CSUMTT3(2)+CSUMTT3(3)+CSUMTT3(4)+&
-        CSUMTT3(5)+CSUMTT3(6)+CSUMTT3(7)+CSUMTT3(8))*ADIV2
+        lines(time_slice, id, 32)=(csumtt2(1)+csumtt2(2)+csumtt2(3)+csumtt2(4)+&
+        csumtt2(5)+csumtt2(6)+csumtt2(7)+csumtt2(8))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM38(N4,ID,IK)=(CSUMTTMOM3(1,IK)+CSUMTTMOM3(2,IK)&
-        +CSUMTTMOM3(3,IK)+CSUMTTMOM3(4,IK)+CSUMTTMOM3(5,IK)&
-        +CSUMTTMOM3(6,IK)+CSUMTTMOM3(7,IK)&
-        +CSUMTTMOM3(8,IK))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 32)=(csumttmom2(1,ik)+csumttmom2(2,ik)&
+        +csumttmom2(3,ik)+csumttmom2(4,ik)+csumttmom2(5,ik)&
+        +csumttmom2(6,ik)+csumttmom2(7,ik)&
+        +csumttmom2(8,ik))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        ALINE39(N4,ID)=(CSUMTT3(1)+CSUMTT3(2)+CSUMTT3(3)+CSUMTT3(4)-&
-        (CSUMTT3(5)+CSUMTT3(6)+CSUMTT3(7)+CSUMTT3(8)))*ADIV2
+        lines(time_slice, id, 33)=(csumtt2(1)+csumtt2(2)+csumtt2(3)+csumtt2(4)-&
+        (csumtt2(5)+csumtt2(6)+csumtt2(7)+csumtt2(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
+    !     j=0, pp=-, q
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM39(N4,ID,IK)=(CSUMTTMOM3(1,IK)+CSUMTTMOM3(2,IK)&
-        +CSUMTTMOM3(3,IK)+CSUMTTMOM3(4,IK)-(CSUMTTMOM3(5,IK)&
-        +CSUMTTMOM3(6,IK)+CSUMTTMOM3(7,IK)&
-        +CSUMTTMOM3(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 33)=(csumttmom2(1,ik)+csumttmom2(2,ik)&
+        +csumttmom2(3,ik)+csumttmom2(4,ik)-(csumttmom2(5,ik)&
+        +csumttmom2(6,ik)+csumttmom2(7,ik)&
+        +csumttmom2(8,ik)))*adiv2
         enddo
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE40(N4,ID)=(CSUMTT3(1)+GIOT*CSUMTT3(2)-CSUMTT3(3)&
-        -GIOT*CSUMTT3(4)+(CSUMTT3(6)+GIOT*CSUMTT3(7)-CSUMTT3(8)&
-        -GIOT*CSUMTT3(5)))*ADIV2
+        lines(time_slice, id, 34)=(csumtt2(1)+giot*csumtt2(2)-csumtt2(3)&
+        -giot*csumtt2(4)+(csumtt2(7)+giot*csumtt2(8)-csumtt2(5)&
+        -giot*csumtt2(6)))*adiv2
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM40(N4,ID,IK)=(CSUMTTMOM3(1,IK)+GIOT*CSUMTTMOM3(2,IK)&
-        -CSUMTTMOM3(3,IK)-GIOT*CSUMTTMOM3(4,IK))*ADIV1
-        enddo
-    !***********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************
-        ALINE41(N4,ID)=(CSUMTT3(1)+GIOT*CSUMTT3(2)-CSUMTT3(3)&
-        -GIOT*CSUMTT3(4)-(CSUMTT3(6)+GIOT*CSUMTT3(7)-CSUMTT3(8)&
-        -GIOT*CSUMTT3(5)))*ADIV2
-    !***********************************************************************
-    !     J=1, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM41(N4,ID,IK)=(CSUMTTMOM3(6,IK)+GIOT*CSUMTTMOM3(7,IK)&
-        -CSUMTTMOM3(8,IK)-GIOT*CSUMTTMOM3(5,IK))*ADIV1
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE42(N4,ID)=(CSUMTT3(1)-CSUMTT3(2)+CSUMTT3(3)-CSUMTT3(4)+&
-        (CSUMTT3(7)-CSUMTT3(6)+CSUMTT3(5)-CSUMTT3(8)))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM42(N4,ID,IK)=(CSUMTTMOM3(1,IK)-CSUMTTMOM3(2,IK)&
-        +CSUMTTMOM3(3,IK)-CSUMTTMOM3(4,IK)+(CSUMTTMOM3(7,IK)&
-        -CSUMTTMOM3(6,IK)+CSUMTTMOM3(5,IK)-CSUMTTMOM3(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE43(N4,ID)=(CSUMTT3(1)-CSUMTT3(2)+CSUMTT3(3)-CSUMTT3(4)-&
-        (CSUMTT3(7)-CSUMTT3(6)+CSUMTT3(5)-CSUMTT3(8)))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM43(N4,ID,IK)=(CSUMTTMOM3(1,IK)-CSUMTTMOM3(2,IK)&
-        +CSUMTTMOM3(3,IK)-CSUMTTMOM3(4,IK)-(CSUMTTMOM3(7,IK)&
-        -CSUMTTMOM3(6,IK)+CSUMTTMOM3(5,IK)-CSUMTTMOM3(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE44(N4,ID)=(CSUMTT4(1)+CSUMTT4(2)+CSUMTT4(3)+CSUMTT4(4)+&
-        CSUMTT4(5)+CSUMTT4(6)+CSUMTT4(7)+CSUMTT4(8))*ADIV2
-    !**********************************************************************
-    !     J=0, Pp=+, q=0
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM44(N4,ID,IK)=(CSUMTTMOM4(1,IK)+CSUMTTMOM4(2,IK)&
-        +CSUMTTMOM4(3,IK)+CSUMTTMOM4(4,IK)+CSUMTTMOM4(5,IK)&
-        +CSUMTTMOM4(6,IK)+CSUMTTMOM4(7,IK)&
-        +CSUMTTMOM4(8,IK))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE45(N4,ID)=(CSUMTT4(1)+CSUMTT4(2)+CSUMTT4(3)+CSUMTT4(4)-&
-        (CSUMTT4(5)+CSUMTT4(6)+CSUMTT4(7)+CSUMTT4(8)))*ADIV2
-    !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM45(N4,ID,IK)=(CSUMTTMOM4(1,IK)+CSUMTTMOM4(2,IK)&
-        +CSUMTTMOM4(3,IK)+CSUMTTMOM4(4,IK)-(CSUMTTMOM4(5,IK)&
-        +CSUMTTMOM4(6,IK)+CSUMTTMOM4(7,IK)&
-        +CSUMTTMOM4(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 34)=(csumttmom2(1,ik)+giot*csumttmom2(2,ik)&
+        -csumttmom2(3,ik)-giot*csumttmom2(4,ik))*adiv1
         enddo
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE46(N4,ID)=(CSUMTT4(1)+GIOT*CSUMTT4(2)-CSUMTT4(3)&
-        -GIOT*CSUMTT4(4)+(CSUMTT4(7)+GIOT*CSUMTT4(8)-CSUMTT4(5)&
-        -GIOT*CSUMTT4(6)))*ADIV2
+        lines(time_slice, id, 35)=(csumtt2(1)+giot*csumtt2(2)-csumtt2(3)&
+        -giot*csumtt2(4)-(csumtt2(7)+giot*csumtt2(8)-csumtt2(5)&
+        -giot*csumtt2(6)))*adiv2
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM46(N4,ID,IK)=(CSUMTTMOM4(1,IK)+GIOT*CSUMTTMOM4(2,IK)&
-        -CSUMTTMOM4(3,IK)-GIOT*CSUMTTMOM4(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 35)=(csumttmom2(7,ik)+giot*csumttmom2(8,ik)&
+        -csumttmom2(5,ik)-giot*csumttmom2(6,ik))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 36)=(csumtt2(1)-csumtt2(2)+csumtt2(3)-csumtt2(4)+&
+        csumtt2(6)-csumtt2(5)+csumtt2(8)-csumtt2(7))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 36)=(csumttmom2(1,ik)-csumttmom2(2,ik)&
+        +csumttmom2(3,ik)-csumttmom2(4,ik)+csumttmom2(6,ik)&
+        -csumttmom2(5,ik)+csumttmom2(8,ik)&
+        -csumttmom2(7,ik))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 37)=(csumtt2(1)-csumtt2(2)+csumtt2(3)-csumtt2(4)-&
+        (csumtt2(6)-csumtt2(5)+csumtt2(8)-csumtt2(7)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 37)=(csumttmom2(1,ik)-csumttmom2(2,ik)&
+        +csumttmom2(3,ik)-csumttmom2(4,ik)-(csumttmom2(6,ik)&
+        -csumttmom2(5,ik)+csumttmom2(8,ik)&
+        -csumttmom2(7,ik)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 38)=(csumtt3(1)+csumtt3(2)+csumtt3(3)+csumtt3(4)+&
+        csumtt3(5)+csumtt3(6)+csumtt3(7)+csumtt3(8))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 38)=(csumttmom3(1,ik)+csumttmom3(2,ik)&
+        +csumttmom3(3,ik)+csumttmom3(4,ik)+csumttmom3(5,ik)&
+        +csumttmom3(6,ik)+csumttmom3(7,ik)&
+        +csumttmom3(8,ik))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 39)=(csumtt3(1)+csumtt3(2)+csumtt3(3)+csumtt3(4)-&
+        (csumtt3(5)+csumtt3(6)+csumtt3(7)+csumtt3(8)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 39)=(csumttmom3(1,ik)+csumttmom3(2,ik)&
+        +csumttmom3(3,ik)+csumttmom3(4,ik)-(csumttmom3(5,ik)&
+        +csumttmom3(6,ik)+csumttmom3(7,ik)&
+        +csumttmom3(8,ik)))*adiv2
         enddo
     !***********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE47(N4,ID)=(CSUMTT4(1)+GIOT*CSUMTT4(2)-CSUMTT4(3)&
-        -GIOT*CSUMTT4(4)-(CSUMTT4(7)+GIOT*CSUMTT4(8)-CSUMTT4(5)&
-        -GIOT*CSUMTT4(6)))*ADIV2
+        lines(time_slice, id, 40)=(csumtt3(1)+giot*csumtt3(2)-csumtt3(3)&
+        -giot*csumtt3(4)+(csumtt3(6)+giot*csumtt3(7)-csumtt3(8)&
+        -giot*csumtt3(5)))*adiv2
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM47(N4,ID,IK)=(CSUMTTMOM4(7,IK)+GIOT*CSUMTTMOM4(8,IK)&
-        -CSUMTTMOM4(5,IK)-GIOT*CSUMTTMOM4(6,IK))*ADIV1
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE48(N4,ID)=(CSUMTT4(1)-CSUMTT4(2)+CSUMTT4(3)-CSUMTT4(4)+&
-        CSUMTT4(8)-CSUMTT4(7)+CSUMTT4(6)-CSUMTT4(5))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM48(N4,ID,IK)=(CSUMTTMOM4(1,IK)-CSUMTTMOM4(2,IK)&
-        +CSUMTTMOM4(3,IK)-CSUMTTMOM4(4,IK)+CSUMTTMOM4(8,IK)&
-        -CSUMTTMOM4(7,IK)+CSUMTTMOM4(6,IK)-CSUMTTMOM4(5,IK))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE49(N4,ID)=(CSUMTT4(1)-CSUMTT4(2)+CSUMTT4(3)-CSUMTT4(4)-&
-        (CSUMTT4(8)-CSUMTT4(7)+CSUMTT4(6)-CSUMTT4(5)))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM49(N4,ID,IK)=(CSUMTTMOM4(1,IK)-CSUMTTMOM4(2,IK)&
-        +CSUMTTMOM4(3,IK)-CSUMTTMOM4(4,IK)-(CSUMTTMOM4(8,IK)&
-        -CSUMTTMOM4(7,IK)+CSUMTTMOM4(6,IK)-CSUMTTMOM4(5,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-5 OPERATORS
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE50(N4,ID)=(CSUMTT5(1)+CSUMTT5(2)+CSUMTT5(3)+CSUMTT5(4))*ADIV1
-    !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM50(N4,ID,IK)=(CSUMTTMOM5(1,IK)+CSUMTTMOM5(2,IK)&
-        +CSUMTTMOM5(3,IK)+CSUMTTMOM5(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 40)=(csumttmom3(1,ik)+giot*csumttmom3(2,ik)&
+        -csumttmom3(3,ik)-giot*csumttmom3(4,ik))*adiv1
         enddo
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE51(N4,ID)=(CSUMTT5(1)+GIOT*CSUMTT5(2)-CSUMTT5(3)&
-        -GIOT*CSUMTT5(4))*ADIV1
+        lines(time_slice, id, 41)=(csumtt3(1)+giot*csumtt3(2)-csumtt3(3)&
+        -giot*csumtt3(4)-(csumtt3(6)+giot*csumtt3(7)-csumtt3(8)&
+        -giot*csumtt3(5)))*adiv2
     !***********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM51(N4,ID,IK)=(CSUMTTMOM5(1,IK)+GIOT*CSUMTTMOM5(2,IK)&
-        -CSUMTTMOM5(3,IK)-GIOT*CSUMTTMOM5(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 41)=(csumttmom3(6,ik)+giot*csumttmom3(7,ik)&
+        -csumttmom3(8,ik)-giot*csumttmom3(5,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        ALINE52(N4,ID)=(CSUMTT5(1)-CSUMTT5(2)+CSUMTT5(3)-CSUMTT5(4))*ADIV1
+        lines(time_slice, id, 42)=(csumtt3(1)-csumtt3(2)+csumtt3(3)-csumtt3(4)+&
+        (csumtt3(7)-csumtt3(6)+csumtt3(5)-csumtt3(8)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM52(N4,ID,IK)=(CSUMTTMOM5(1,IK)-CSUMTTMOM5(2,IK)&
-        +CSUMTTMOM5(3,IK)-CSUMTTMOM5(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 42)=(csumttmom3(1,ik)-csumttmom3(2,ik)&
+        +csumttmom3(3,ik)-csumttmom3(4,ik)+(csumttmom3(7,ik)&
+        -csumttmom3(6,ik)+csumttmom3(5,ik)-csumttmom3(8,ik)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 43)=(csumtt3(1)-csumtt3(2)+csumtt3(3)-csumtt3(4)-&
+        (csumtt3(7)-csumtt3(6)+csumtt3(5)-csumtt3(8)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 43)=(csumttmom3(1,ik)-csumttmom3(2,ik)&
+        +csumttmom3(3,ik)-csumttmom3(4,ik)-(csumttmom3(7,ik)&
+        -csumttmom3(6,ik)+csumttmom3(5,ik)-csumttmom3(8,ik)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 44)=(csumtt4(1)+csumtt4(2)+csumtt4(3)+csumtt4(4)+&
+        csumtt4(5)+csumtt4(6)+csumtt4(7)+csumtt4(8))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=0
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 44)=(csumttmom4(1,ik)+csumttmom4(2,ik)&
+        +csumttmom4(3,ik)+csumttmom4(4,ik)+csumttmom4(5,ik)&
+        +csumttmom4(6,ik)+csumttmom4(7,ik)&
+        +csumttmom4(8,ik))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 45)=(csumtt4(1)+csumtt4(2)+csumtt4(3)+csumtt4(4)-&
+        (csumtt4(5)+csumtt4(6)+csumtt4(7)+csumtt4(8)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 45)=(csumttmom4(1,ik)+csumttmom4(2,ik)&
+        +csumttmom4(3,ik)+csumttmom4(4,ik)-(csumttmom4(5,ik)&
+        +csumttmom4(6,ik)+csumttmom4(7,ik)&
+        +csumttmom4(8,ik)))*adiv2
+        enddo
+    !***********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 46)=(csumtt4(1)+giot*csumtt4(2)-csumtt4(3)&
+        -giot*csumtt4(4)+(csumtt4(7)+giot*csumtt4(8)-csumtt4(5)&
+        -giot*csumtt4(6)))*adiv2
+    !***********************************************************************
+    !     j=1, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 46)=(csumttmom4(1,ik)+giot*csumttmom4(2,ik)&
+        -csumttmom4(3,ik)-giot*csumttmom4(4,ik))*adiv1
+        enddo
+    !***********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 47)=(csumtt4(1)+giot*csumtt4(2)-csumtt4(3)&
+        -giot*csumtt4(4)-(csumtt4(7)+giot*csumtt4(8)-csumtt4(5)&
+        -giot*csumtt4(6)))*adiv2
+    !***********************************************************************
+    !     j=1, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 47)=(csumttmom4(7,ik)+giot*csumttmom4(8,ik)&
+        -csumttmom4(5,ik)-giot*csumttmom4(6,ik))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 48)=(csumtt4(1)-csumtt4(2)+csumtt4(3)-csumtt4(4)+&
+        csumtt4(8)-csumtt4(7)+csumtt4(6)-csumtt4(5))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 48)=(csumttmom4(1,ik)-csumttmom4(2,ik)&
+        +csumttmom4(3,ik)-csumttmom4(4,ik)+csumttmom4(8,ik)&
+        -csumttmom4(7,ik)+csumttmom4(6,ik)-csumttmom4(5,ik))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 49)=(csumtt4(1)-csumtt4(2)+csumtt4(3)-csumtt4(4)-&
+        (csumtt4(8)-csumtt4(7)+csumtt4(6)-csumtt4(5)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 49)=(csumttmom4(1,ik)-csumttmom4(2,ik)&
+        +csumttmom4(3,ik)-csumttmom4(4,ik)-(csumttmom4(8,ik)&
+        -csumttmom4(7,ik)+csumttmom4(6,ik)-csumttmom4(5,ik)))*adiv2
+        enddo
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-5 operators
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 50)=(csumtt5(1)+csumtt5(2)+csumtt5(3)+csumtt5(4))*adiv1
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 50)=(csumttmom5(1,ik)+csumttmom5(2,ik)&
+        +csumttmom5(3,ik)+csumttmom5(4,ik))*adiv1
+        enddo
+    !***********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 51)=(csumtt5(1)+giot*csumtt5(2)-csumtt5(3)&
+        -giot*csumtt5(4))*adiv1
+    !***********************************************************************
+    !     j=1, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 51)=(csumttmom5(1,ik)+giot*csumttmom5(2,ik)&
+        -csumttmom5(3,ik)-giot*csumttmom5(4,ik))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 52)=(csumtt5(1)-csumtt5(2)+csumtt5(3)-csumtt5(4))*adiv1
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 52)=(csumttmom5(1,ik)-csumttmom5(2,ik)&
+        +csumttmom5(3,ik)-csumttmom5(4,ik))*adiv1
+        enddo
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     ! 6
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-6 OPERATORS 
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-6 operators
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE53(N4,ID)=(CSUMTT6(1)+CSUMTT6(2)+CSUMTT6(3)+CSUMTT6(4))*ADIV1
+        lines(time_slice, id, 53)=(csumtt6(1)+csumtt6(2)+csumtt6(3)+csumtt6(4))*adiv1
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM53(N4,ID,IK)=(CSUMTTMOM6(1,IK)+CSUMTTMOM6(2,IK)&
-        +CSUMTTMOM6(3,IK)+CSUMTTMOM6(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 53)=(csumttmom6(1,ik)+csumttmom6(2,ik)&
+        +csumttmom6(3,ik)+csumttmom6(4,ik))*adiv1
         enddo
     !***********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE54(N4,ID)=(CSUMTT6(1)+GIOT*CSUMTT6(2)-CSUMTT6(3)&
-        -GIOT*CSUMTT6(4))*ADIV1
+        lines(time_slice, id, 54)=(csumtt6(1)+giot*csumtt6(2)-csumtt6(3)&
+        -giot*csumtt6(4))*adiv1
     !***********************************************************************
-    !     J=1, q
+    !     j=1, q
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM54(N4,ID,IK)=(CSUMTTMOM6(1,IK)+GIOT*CSUMTTMOM6(2,IK)&
-        -CSUMTTMOM6(3,IK)-GIOT*CSUMTTMOM6(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 54)=(csumttmom6(1,ik)+giot*csumttmom6(2,ik)&
+        -csumttmom6(3,ik)-giot*csumttmom6(4,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE55(N4,ID)=(CSUMTT6(1)-CSUMTT6(2)+CSUMTT6(3)-CSUMTT6(4))*ADIV1
+        lines(time_slice, id, 55)=(csumtt6(1)-csumtt6(2)+csumtt6(3)-csumtt6(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM55(N4,ID,IK)=(CSUMTTMOM6(1,IK)-CSUMTTMOM6(2,IK)&
-        +CSUMTTMOM6(3,IK)-CSUMTTMOM6(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 55)=(csumttmom6(1,ik)-csumttmom6(2,ik)&
+        +csumttmom6(3,ik)-csumttmom6(4,ik))*adiv1
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     ! 7
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-7 OPERATORS 
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-7 operators
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE56(N4,ID)=(CSUMTT7(1)+CSUMTT7(2)+CSUMTT7(3)+CSUMTT7(4)+&
-        (CSUMTT7(5)+CSUMTT7(6)+CSUMTT7(7)+CSUMTT7(8)))*ADIV2
+        lines(time_slice, id, 56)=(csumtt7(1)+csumtt7(2)+csumtt7(3)+csumtt7(4)+&
+        (csumtt7(5)+csumtt7(6)+csumtt7(7)+csumtt7(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, q=0
+    !     j=0, pp=+, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM56(N4,ID,IK)=(CSUMTTMOM7(1,IK)+CSUMTTMOM7(2,IK)&
-        +CSUMTTMOM7(3,IK)+CSUMTTMOM7(4,IK)+(CSUMTTMOM7(5,IK)&
-        +CSUMTTMOM7(6,IK)+CSUMTTMOM7(7,IK)&
-        +CSUMTTMOM7(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 56)=(csumttmom7(1,ik)+csumttmom7(2,ik)&
+        +csumttmom7(3,ik)+csumttmom7(4,ik)+(csumttmom7(5,ik)&
+        +csumttmom7(6,ik)+csumttmom7(7,ik)&
+        +csumttmom7(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        ALINE57(N4,ID)=(CSUMTT7(1)+CSUMTT7(2)+CSUMTT7(3)+CSUMTT7(4)-&
-        (CSUMTT7(5)+CSUMTT7(6)+CSUMTT7(7)+CSUMTT7(8)))*ADIV2
+        lines(time_slice, id, 57)=(csumtt7(1)+csumtt7(2)+csumtt7(3)+csumtt7(4)-&
+        (csumtt7(5)+csumtt7(6)+csumtt7(7)+csumtt7(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=-, q=0
+    !     j=0, pp=-, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM57(N4,ID,IK)=(CSUMTTMOM7(1,IK)+CSUMTTMOM7(2,IK)&
-        +CSUMTTMOM7(3,IK)+CSUMTTMOM7(4,IK)-(CSUMTTMOM7(5,IK)&
-        +CSUMTTMOM7(6,IK)+CSUMTTMOM7(7,IK)&
-        +CSUMTTMOM7(8,IK)))*ADIV2
-        enddo
-    !***********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************
-        ALINE58(N4,ID)=(CSUMTT7(1)+GIOT*CSUMTT7(2)-CSUMTT7(3)&
-        -GIOT*CSUMTT7(4)+&
-        (CSUMTT7(7)+GIOT*CSUMTT7(8)-CSUMTT7(5)-GIOT*CSUMTT7(6)))*ADIV2
-    !***********************************************************************
-    !     J=1, q=0
-    !**********************************************************************
-        do IK=1,2
-        ALINEMOM58(N4,ID,IK)=(CSUMTTMOM7(1,IK)+GIOT*CSUMTTMOM7(2,IK)&
-        -CSUMTTMOM7(3,IK)-GIOT*CSUMTTMOM7(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 57)=(csumttmom7(1,ik)+csumttmom7(2,ik)&
+        +csumttmom7(3,ik)+csumttmom7(4,ik)-(csumttmom7(5,ik)&
+        +csumttmom7(6,ik)+csumttmom7(7,ik)&
+        +csumttmom7(8,ik)))*adiv2
         enddo
     !***********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE59(N4,ID)=(CSUMTT7(1)+GIOT*CSUMTT7(2)-CSUMTT7(3)&
-        -GIOT*CSUMTT7(4)-&
-        (CSUMTT7(7)+GIOT*CSUMTT7(8)-CSUMTT7(5)-GIOT*CSUMTT7(6)))*ADIV2
+        lines(time_slice, id, 58)=(csumtt7(1)+giot*csumtt7(2)-csumtt7(3)&
+        -giot*csumtt7(4)+&
+        (csumtt7(7)+giot*csumtt7(8)-csumtt7(5)-giot*csumtt7(6)))*adiv2
     !***********************************************************************
-    !     J=1, q=0
+    !     j=1, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM59(N4,ID,IK)=(CSUMTTMOM7(7,IK)+GIOT*CSUMTTMOM7(8,IK)&
-        -CSUMTTMOM7(5,IK)-GIOT*CSUMTTMOM7(6,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 58)=(csumttmom7(1,ik)+giot*csumttmom7(2,ik)&
+        -csumttmom7(3,ik)-giot*csumttmom7(4,ik))*adiv1
+        enddo
+    !***********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 59)=(csumtt7(1)+giot*csumtt7(2)-csumtt7(3)&
+        -giot*csumtt7(4)-&
+        (csumtt7(7)+giot*csumtt7(8)-csumtt7(5)-giot*csumtt7(6)))*adiv2
+    !***********************************************************************
+    !     j=1, q=0
+    !**********************************************************************
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 59)=(csumttmom7(7,ik)+giot*csumttmom7(8,ik)&
+        -csumttmom7(5,ik)-giot*csumttmom7(6,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
+    !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        ALINE60(N4,ID)=(CSUMTT7(1)-CSUMTT7(2)+CSUMTT7(3)-CSUMTT7(4)+&
-        (CSUMTT7(8)-CSUMTT7(7)+CSUMTT7(6)-CSUMTT7(5)))*ADIV2
+        lines(time_slice, id, 60)=(csumtt7(1)-csumtt7(2)+csumtt7(3)-csumtt7(4)+&
+        (csumtt7(8)-csumtt7(7)+csumtt7(6)-csumtt7(5)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM60(N4,ID,IK)=(CSUMTTMOM7(1,IK)-CSUMTTMOM7(2,IK)&
-        +CSUMTTMOM7(3,IK)-CSUMTTMOM7(4,IK)+(CSUMTTMOM7(8,IK)&
-        -CSUMTTMOM7(7,IK)+CSUMTTMOM7(6,IK)&
-        -CSUMTTMOM7(5,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 60)=(csumttmom7(1,ik)-csumttmom7(2,ik)&
+        +csumttmom7(3,ik)-csumttmom7(4,ik)+(csumttmom7(8,ik)&
+        -csumttmom7(7,ik)+csumttmom7(6,ik)&
+        -csumttmom7(5,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
+    !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE61(N4,ID)=(CSUMTT7(1)-CSUMTT7(2)+CSUMTT7(3)-CSUMTT7(4)-&
-        (CSUMTT7(8)-CSUMTT7(7)+CSUMTT7(6)-CSUMTT7(5)))*ADIV2
+        lines(time_slice, id, 61)=(csumtt7(1)-csumtt7(2)+csumtt7(3)-csumtt7(4)-&
+        (csumtt7(8)-csumtt7(7)+csumtt7(6)-csumtt7(5)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
+    !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM61(N4,ID,IK)=(CSUMTTMOM7(1,IK)-CSUMTTMOM7(2,IK)&
-        +CSUMTTMOM7(3,IK)-CSUMTTMOM7(4,IK)-(CSUMTTMOM7(8,IK)&
-        -CSUMTTMOM7(7,IK)+CSUMTTMOM7(6,IK)&
-        -CSUMTTMOM7(5,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 61)=(csumttmom7(1,ik)-csumttmom7(2,ik)&
+        +csumttmom7(3,ik)-csumttmom7(4,ik)-(csumttmom7(8,ik)&
+        -csumttmom7(7,ik)+csumttmom7(6,ik)&
+        -csumttmom7(5,ik)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     ! 8
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-8 OPERATORS CP=+,Pr=+
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-8 operators cp=+,pr=+
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE62(N4,ID)=(CSUMTT8(1)+CSUMTT8(2)+CSUMTT8(3)+CSUMTT8(4)&
-        +(CSUMTT8(5)+CSUMTT8(6)+CSUMTT8(7)+CSUMTT8(8)))*ADIV2
+        lines(time_slice, id, 62)=(csumtt8(1)+csumtt8(2)+csumtt8(3)+csumtt8(4)&
+        +(csumtt8(5)+csumtt8(6)+csumtt8(7)+csumtt8(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM62(N4,ID,IK)=(CSUMTTMOM8(1,IK)+CSUMTTMOM8(2,IK)&
-        +CSUMTTMOM8(3,IK)+CSUMTTMOM8(4,IK)+(CSUMTTMOM8(5,IK)&
-        +CSUMTTMOM8(6,IK)+CSUMTTMOM8(7,IK)&
-        +CSUMTTMOM8(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 62)=(csumttmom8(1,ik)+csumttmom8(2,ik)&
+        +csumttmom8(3,ik)+csumttmom8(4,ik)+(csumttmom8(5,ik)&
+        +csumttmom8(6,ik)+csumttmom8(7,ik)&
+        +csumttmom8(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=+, q=0
+    !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE63(N4,ID)=(CSUMTT8(1)+CSUMTT8(2)+CSUMTT8(3)+CSUMTT8(4)&
-        -(CSUMTT8(5)+CSUMTT8(6)+CSUMTT8(7)+CSUMTT8(8)))*ADIV2
+        lines(time_slice, id, 63)=(csumtt8(1)+csumtt8(2)+csumtt8(3)+csumtt8(4)&
+        -(csumtt8(5)+csumtt8(6)+csumtt8(7)+csumtt8(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
+    !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM63(N4,ID,IK)=(CSUMTTMOM8(1,IK)+CSUMTTMOM8(2,IK)&
-        +CSUMTTMOM8(3,IK)+CSUMTTMOM8(4,IK)-(CSUMTTMOM8(5,IK)&
-        +CSUMTTMOM8(6,IK)+CSUMTTMOM8(7,IK)&
-        +CSUMTTMOM8(8,IK)))*ADIV2
-        enddo
-    !***********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************
-        ALINE64(N4,ID)=(CSUMTT8(1)+GIOT*CSUMTT8(2)-CSUMTT8(3)&
-        -GIOT*CSUMTT8(4))*ADIV1
-    !***********************************************************************
-    !     J=1, q=0
-    !**********************************************************************
-        do IK=1,2
-            ALINEMOM64(N4,ID,IK)=(CSUMTTMOM8(1,IK)+GIOT*CSUMTTMOM8(2,IK)&
-        -CSUMTTMOM8(3,IK)-GIOT*CSUMTTMOM8(4,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 63)=(csumttmom8(1,ik)+csumttmom8(2,ik)&
+        +csumttmom8(3,ik)+csumttmom8(4,ik)-(csumttmom8(5,ik)&
+        +csumttmom8(6,ik)+csumttmom8(7,ik)&
+        +csumttmom8(8,ik)))*adiv2
         enddo
     !***********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE65(N4,ID)=(CSUMTT8(7)+GIOT*CSUMTT8(6)-CSUMTT8(5)&
-        -GIOT*CSUMTT8(8))*ADIV1
+        lines(time_slice, id, 64)=(csumtt8(1)+giot*csumtt8(2)-csumtt8(3)&
+        -giot*csumtt8(4))*adiv1
     !***********************************************************************
-    !     J=1, q=0
+    !     j=1, q=0
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM65(N4,ID,IK)=(CSUMTTMOM8(7,IK)+GIOT*CSUMTTMOM8(6,IK)&
-        -CSUMTTMOM8(5,IK)-GIOT*CSUMTTMOM8(8,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 64)=(csumttmom8(1,ik)+giot*csumttmom8(2,ik)&
+        -csumttmom8(3,ik)-giot*csumttmom8(4,ik))*adiv1
+        enddo
+    !***********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 65)=(csumtt8(7)+giot*csumtt8(6)-csumtt8(5)&
+        -giot*csumtt8(8))*adiv1
+    !***********************************************************************
+    !     j=1, q=0
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 65)=(csumttmom8(7,ik)+giot*csumttmom8(6,ik)&
+        -csumttmom8(5,ik)-giot*csumttmom8(8,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE66(N4,ID)=(CSUMTT8(1)-CSUMTT8(2)+CSUMTT8(3)-CSUMTT8(4)&
-        +(CSUMTT8(5)-CSUMTT8(6)+CSUMTT8(7)-CSUMTT8(8)))*ADIV2
+        lines(time_slice, id, 66)=(csumtt8(1)-csumtt8(2)+csumtt8(3)-csumtt8(4)&
+        +(csumtt8(5)-csumtt8(6)+csumtt8(7)-csumtt8(8)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM66(N4,ID,IK)=(CSUMTTMOM8(1,IK)-CSUMTTMOM8(2,IK)&
-        +CSUMTTMOM8(3,IK)-CSUMTTMOM8(4,IK)+(CSUMTTMOM8(5,IK)&
-        -CSUMTTMOM8(6,IK)+CSUMTTMOM8(7,IK)&
-        -CSUMTTMOM8(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 66)=(csumttmom8(1,ik)-csumttmom8(2,ik)&
+        +csumttmom8(3,ik)-csumttmom8(4,ik)+(csumttmom8(5,ik)&
+        -csumttmom8(6,ik)+csumttmom8(7,ik)&
+        -csumttmom8(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
+    !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE67(N4,ID)=(CSUMTT8(1)-CSUMTT8(2)+CSUMTT8(3)-CSUMTT8(4)&
-        -(CSUMTT8(5)-CSUMTT8(6)+CSUMTT8(7)-CSUMTT8(8)))*ADIV2
+        lines(time_slice, id, 67)=(csumtt8(1)-csumtt8(2)+csumtt8(3)-csumtt8(4)&
+        -(csumtt8(5)-csumtt8(6)+csumtt8(7)-csumtt8(8)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
+    !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM67(N4,ID,IK)=(CSUMTTMOM8(1,IK)-CSUMTTMOM8(2,IK)&
-        +CSUMTTMOM8(3,IK)-CSUMTTMOM8(4,IK)-(CSUMTTMOM8(5,IK)&
-        -CSUMTTMOM8(6,IK)+CSUMTTMOM8(7,IK)&
-        -CSUMTTMOM8(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 67)=(csumttmom8(1,ik)-csumttmom8(2,ik)&
+        +csumttmom8(3,ik)-csumttmom8(4,ik)-(csumttmom8(5,ik)&
+        -csumttmom8(6,ik)+csumttmom8(7,ik)&
+        -csumttmom8(8,ik)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     ! 9
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-9 OPERATORS 
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-9 operators
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE68(N4,ID)=(CSUMTT9(1)+CSUMTT9(2)+CSUMTT9(3)+CSUMTT9(4)+&
-        (CSUMTT9(5)+CSUMTT9(6)+CSUMTT9(7)+CSUMTT9(8)))*ADIV2
+        lines(time_slice, id, 68)=(csumtt9(1)+csumtt9(2)+csumtt9(3)+csumtt9(4)+&
+        (csumtt9(5)+csumtt9(6)+csumtt9(7)+csumtt9(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2
+    !     j=0, pp=+, q=1,2
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM68(N4,ID,IK)=(CSUMTTMOM9(1,IK)+CSUMTTMOM9(2,IK)+&
-        CSUMTTMOM9(3,IK)+CSUMTTMOM9(4,IK)&
-        +(CSUMTTMOM9(5,IK)+CSUMTTMOM9(6,IK)+CSUMTTMOM9(7,IK)&
-        +CSUMTTMOM9(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 68)=(csumttmom9(1,ik)+csumttmom9(2,ik)+&
+        csumttmom9(3,ik)+csumttmom9(4,ik)&
+        +(csumttmom9(5,ik)+csumttmom9(6,ik)+csumttmom9(7,ik)&
+        +csumttmom9(8,ik)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-9 OPERATORS CP=-,Pz=-,J=0
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-9 operators cp=-,pz=-,j=0
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        ALINE69(N4,ID)=(CSUMTT9(1)+CSUMTT9(2)+CSUMTT9(3)+CSUMTT9(4)&
-        -(CSUMTT9(5)+CSUMTT9(6)+CSUMTT9(7)+CSUMTT9(8)))*ADIV2
+        lines(time_slice, id, 69)=(csumtt9(1)+csumtt9(2)+csumtt9(3)+csumtt9(4)&
+        -(csumtt9(5)+csumtt9(6)+csumtt9(7)+csumtt9(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2
+    !     j=0, pp=-, q=1,2
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM69(N4,ID,IK)=(CSUMTTMOM9(1,IK)+CSUMTTMOM9(2,IK)+&
-        CSUMTTMOM9(3,IK)+CSUMTTMOM9(4,IK)&
-        -(CSUMTTMOM9(5,IK)+CSUMTTMOM9(6,IK)+CSUMTTMOM9(7,IK)&
-        +CSUMTTMOM9(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************      
-        ALINE70(N4,ID)=(CSUMTT9(1)+GIOT*CSUMTT9(2)-CSUMTT9(3)&
-        -GIOT*CSUMTT9(4)+(CSUMTT9(7)+GIOT*CSUMTT9(8)-CSUMTT9(5)&
-        -GIOT*CSUMTT9(6)))*ADIV2
-    !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************      
-        do IK=1,2
-            ALINEMOM70(N4,ID,IK)=(CSUMTTMOM9(1,IK)+GIOT*CSUMTTMOM9(2,IK)&
-        -CSUMTTMOM9(3,IK)-GIOT*CSUMTTMOM9(4,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 69)=(csumttmom9(1,ik)+csumttmom9(2,ik)+&
+        csumttmom9(3,ik)+csumttmom9(4,ik)&
+        -(csumttmom9(5,ik)+csumttmom9(6,ik)+csumttmom9(7,ik)&
+        +csumttmom9(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************            
-        ALINE71(N4,ID)=(CSUMTT9(1)+GIOT*CSUMTT9(2)-CSUMTT9(3)&
-        -GIOT*CSUMTT9(4)-(CSUMTT9(7)+GIOT*CSUMTT9(8)-CSUMTT9(5)&
-        -GIOT*CSUMTT9(6)))*ADIV2
+    !     j=1, pr=+, q=0
     !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************            
-        do IK=1,2
-            ALINEMOM71(N4,ID,IK)=(CSUMTTMOM9(7,IK)+GIOT*CSUMTTMOM9(8,IK)&
-        -CSUMTTMOM9(5,IK)-GIOT*CSUMTTMOM9(6,IK))*ADIV1
+        lines(time_slice, id, 70)=(csumtt9(1)+giot*csumtt9(2)-csumtt9(3)&
+        -giot*csumtt9(4)+(csumtt9(7)+giot*csumtt9(8)-csumtt9(5)&
+        -giot*csumtt9(6)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 70)=(csumttmom9(1,ik)+giot*csumttmom9(2,ik)&
+        -csumttmom9(3,ik)-giot*csumttmom9(4,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************            
-        ALINE72(N4,ID)=(CSUMTT9(1)-CSUMTT9(2)+CSUMTT9(3)-CSUMTT9(4)&
-        +(CSUMTT9(7)-CSUMTT9(6)+CSUMTT9(5)-CSUMTT9(8)))*ADIV2
+    !     j=1, pr=-, q=0
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2
-    !**********************************************************************            
-        do IK=1,2
-            ALINEMOM72(N4,ID,IK)=(CSUMTTMOM9(1,IK)-CSUMTTMOM9(2,IK)&
-        +CSUMTTMOM9(3,IK)-CSUMTTMOM9(4,IK)&
-        +(CSUMTTMOM9(7,IK)-CSUMTTMOM9(6,IK)+CSUMTTMOM9(5,IK)&
-        -CSUMTTMOM9(8,IK)))*ADIV2
+        lines(time_slice, id, 71)=(csumtt9(1)+giot*csumtt9(2)-csumtt9(3)&
+        -giot*csumtt9(4)-(csumtt9(7)+giot*csumtt9(8)-csumtt9(5)&
+        -giot*csumtt9(6)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 71)=(csumttmom9(7,ik)+giot*csumttmom9(8,ik)&
+        -csumttmom9(5,ik)-giot*csumttmom9(6,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=-, q=0 !Here!
-    !**********************************************************************                  
-        ALINE73(N4,ID)=(CSUMTT9(1)-CSUMTT9(2)+CSUMTT9(3)-CSUMTT9(4)&
-        -(CSUMTT9(7)-CSUMTT9(6)+CSUMTT9(5)-CSUMTT9(8)))*ADIV2
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************                  
-        do IK=1,2
-            ALINEMOM73(N4,ID,IK)=(CSUMTTMOM9(1,IK)-CSUMTTMOM9(2,IK)&
-        +CSUMTTMOM9(3,IK)-CSUMTTMOM9(4,IK)&
-        -(CSUMTTMOM9(7,IK)-CSUMTTMOM9(6,IK)+CSUMTTMOM9(5,IK)&
-        -CSUMTTMOM9(8,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-10 OPERATORS
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
+        lines(time_slice, id, 72)=(csumtt9(1)-csumtt9(2)+csumtt9(3)-csumtt9(4)&
+        +(csumtt9(7)-csumtt9(6)+csumtt9(5)-csumtt9(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************                  
-        ALINE74(N4,ID)=(CSUMTT10(1)+CSUMTT10(2)+CSUMTT10(3)+CSUMTT10(4)&
-        +(CSUMTT10(5)+CSUMTT10(6)+CSUMTT10(7)+CSUMTT10(8)))*ADIV2
+    !     j=2, pp=+, q=1,2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************                  
-        do IK=1,2
-            ALINEMOM74(N4,ID,IK)=(CSUMTTMOM10(1,IK)+CSUMTTMOM10(2,IK)&
-        +CSUMTTMOM10(3,IK)+CSUMTTMOM10(4,IK)&
-        +(CSUMTTMOM10(5,IK)+CSUMTTMOM10(6,IK)+CSUMTTMOM10(7,IK)&
-        +CSUMTTMOM10(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 72)=(csumttmom9(1,ik)-csumttmom9(2,ik)&
+        +csumttmom9(3,ik)-csumttmom9(4,ik)&
+        +(csumttmom9(7,ik)-csumttmom9(6,ik)+csumttmom9(5,ik)&
+        -csumttmom9(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************                        
-        ALINE75(N4,ID)=(CSUMTT10(1)+CSUMTT10(2)+CSUMTT10(3)+CSUMTT10(4)&
-        -(CSUMTT10(5)+CSUMTT10(6)+CSUMTT10(7)+CSUMTT10(8)))*ADIV2
+    !     j=2, pp=-, pr=-, q=0 !here!
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************                        
-        do IK=1,2
-            ALINEMOM75(N4,ID,IK)=(CSUMTTMOM10(1,IK)+CSUMTTMOM10(2,IK)&
-        +CSUMTTMOM10(3,IK)+CSUMTTMOM10(4,IK)&
-        -(CSUMTTMOM10(5,IK)+CSUMTTMOM10(6,IK)+CSUMTTMOM10(7,IK)&
-        +CSUMTTMOM10(8,IK)))*ADIV2
+        lines(time_slice, id, 73)=(csumtt9(1)-csumtt9(2)+csumtt9(3)-csumtt9(4)&
+        -(csumtt9(7)-csumtt9(6)+csumtt9(5)-csumtt9(8)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 73)=(csumttmom9(1,ik)-csumttmom9(2,ik)&
+        +csumttmom9(3,ik)-csumttmom9(4,ik)&
+        -(csumttmom9(7,ik)-csumttmom9(6,ik)+csumttmom9(5,ik)&
+        -csumttmom9(8,ik)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-10 operators
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 74)=(csumtt10(1)+csumtt10(2)+csumtt10(3)+csumtt10(4)&
+        +(csumtt10(5)+csumtt10(6)+csumtt10(7)+csumtt10(8)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 74)=(csumttmom10(1,ik)+csumttmom10(2,ik)&
+        +csumttmom10(3,ik)+csumttmom10(4,ik)&
+        +(csumttmom10(5,ik)+csumttmom10(6,ik)+csumttmom10(7,ik)&
+        +csumttmom10(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************                  
-        ALINE76(N4,ID)=(CSUMTT10(1)+GIOT*CSUMTT10(2)-CSUMTT10(3)&
-        -GIOT*CSUMTT10(4)+(CSUMTT10(7)+GIOT*CSUMTT10(6)-CSUMTT10(5)&
-        -GIOT*CSUMTT10(8)))*ADIV2
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1,2
-            ALINEMOM76(N4,ID,IK)=(CSUMTTMOM10(1,IK)+GIOT*CSUMTTMOM10(2,IK)&
-        -CSUMTTMOM10(3,IK)-GIOT*CSUMTTMOM10(4,IK))*ADIV1
+        lines(time_slice, id, 75)=(csumtt10(1)+csumtt10(2)+csumtt10(3)+csumtt10(4)&
+        -(csumtt10(5)+csumtt10(6)+csumtt10(7)+csumtt10(8)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 75)=(csumttmom10(1,ik)+csumttmom10(2,ik)&
+        +csumttmom10(3,ik)+csumttmom10(4,ik)&
+        -(csumttmom10(5,ik)+csumttmom10(6,ik)+csumttmom10(7,ik)&
+        +csumttmom10(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE77(N4,ID)=(CSUMTT10(1)+GIOT*CSUMTT10(2)-CSUMTT10(3)&
-        -GIOT*CSUMTT10(4)-(CSUMTT10(7)+GIOT*CSUMTT10(6)-CSUMTT10(5)&
-        -GIOT*CSUMTT10(8)))*ADIV2
+        lines(time_slice, id, 76)=(csumtt10(1)+giot*csumtt10(2)-csumtt10(3)&
+        -giot*csumtt10(4)+(csumtt10(7)+giot*csumtt10(6)-csumtt10(5)&
+        -giot*csumtt10(8)))*adiv2
     !**********************************************************************
-    !     J=1, q=1,2
+    !     j=1, q=1,2
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM77(N4,ID,IK)=(CSUMTTMOM10(7,IK)+GIOT*CSUMTTMOM10(6,IK)&
-        -CSUMTTMOM10(5,IK)-GIOT*CSUMTTMOM10(8,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 76)=(csumttmom10(1,ik)+giot*csumttmom10(2,ik)&
+        -csumttmom10(3,ik)-giot*csumttmom10(4,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE78(N4,ID)=(CSUMTT10(1)-CSUMTT10(2)+CSUMTT10(3)-CSUMTT10(4)&
-        +(CSUMTT10(5)-CSUMTT10(6)+CSUMTT10(7)-CSUMTT10(8)))*ADIV2
+        lines(time_slice, id, 77)=(csumtt10(1)+giot*csumtt10(2)-csumtt10(3)&
+        -giot*csumtt10(4)-(csumtt10(7)+giot*csumtt10(6)-csumtt10(5)&
+        -giot*csumtt10(8)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2
+    !     j=1, q=1,2
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM78(N4,ID,IK)=(CSUMTTMOM10(1,IK)-CSUMTTMOM10(2,IK)&
-        +CSUMTTMOM10(3,IK)-CSUMTTMOM10(4,IK)&
-        +(CSUMTTMOM10(5,IK)-CSUMTTMOM10(6,IK)+CSUMTTMOM10(7,IK)&
-        -CSUMTTMOM10(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 77)=(csumttmom10(7,ik)+giot*csumttmom10(6,ik)&
+        -csumttmom10(5,ik)-giot*csumttmom10(8,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************      
-        ALINE79(N4,ID)=(CSUMTT10(1)-CSUMTT10(2)+CSUMTT10(3)-CSUMTT10(4)&
-        -(CSUMTT10(5)-CSUMTT10(6)+CSUMTT10(7)-CSUMTT10(8)))*ADIV2
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************      
-        do IK=1,2
-            ALINEMOM79(N4,ID,IK)=(CSUMTTMOM10(1,IK)-CSUMTTMOM10(2,IK)&
-        +CSUMTTMOM10(3,IK)-CSUMTTMOM10(4,IK)&
-        -(CSUMTTMOM10(5,IK)-CSUMTTMOM10(6,IK)+CSUMTTMOM10(7,IK)&
-        -CSUMTTMOM10(8,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-11 OPERATORS
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+        lines(time_slice, id, 78)=(csumtt10(1)-csumtt10(2)+csumtt10(3)-csumtt10(4)&
+        +(csumtt10(5)-csumtt10(6)+csumtt10(7)-csumtt10(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************            
-        ALINE80(N4,ID)=(CSUMTT11(1)+CSUMTT11(2)+CSUMTT11(3)+CSUMTT11(4)&
-        +(CSUMTT11(5)+CSUMTT11(6)+CSUMTT11(7)+CSUMTT11(8)))*ADIV2
+    !     j=2, pp=+, q=1,2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************            
-        do IK=1,2
-            ALINEMOM80(N4,ID,IK)=(CSUMTTMOM11(1,IK)+CSUMTTMOM11(2,IK)&
-        +CSUMTTMOM11(3,IK)+CSUMTTMOM11(4,IK)&
-        +(CSUMTTMOM11(5,IK)+CSUMTTMOM11(6,IK)+CSUMTTMOM11(7,IK)&
-        +CSUMTTMOM11(8,IK)))*ADIV2
-        enddo      
-    !**********************************************************************
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************            
-        ALINE81(N4,ID)=(CSUMTT11(1)+CSUMTT11(2)+CSUMTT11(3)+CSUMTT11(4)&
-        -(CSUMTT11(5)+CSUMTT11(6)+CSUMTT11(7)+CSUMTT11(8)))*ADIV2
-    !**********************************************************************
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************            
-        do IK=1,2
-            ALINEMOM81(N4,ID,IK)=(CSUMTTMOM11(1,IK)+CSUMTTMOM11(2,IK)&
-        +CSUMTTMOM11(3,IK)+CSUMTTMOM11(4,IK)&
-        -(CSUMTTMOM11(5,IK)+CSUMTTMOM11(6,IK)+CSUMTTMOM11(7,IK)&
-        +CSUMTTMOM11(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 78)=(csumttmom10(1,ik)-csumttmom10(2,ik)&
+        +csumttmom10(3,ik)-csumttmom10(4,ik)&
+        +(csumttmom10(5,ik)-csumttmom10(6,ik)+csumttmom10(7,ik)&
+        -csumttmom10(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE82(N4,ID)=(CSUMTT11(1)+GIOT*CSUMTT11(2)-CSUMTT11(3)&
-        -GIOT*CSUMTT11(4))*ADIV1
+    !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1,2
-            ALINEMOM82(N4,ID,IK)=(CSUMTTMOM11(1,IK)+GIOT*CSUMTTMOM11(2,IK)&
-        -CSUMTTMOM11(3,IK)-GIOT*CSUMTTMOM11(4,IK))*ADIV1
+        lines(time_slice, id, 79)=(csumtt10(1)-csumtt10(2)+csumtt10(3)-csumtt10(4)&
+        -(csumtt10(5)-csumtt10(6)+csumtt10(7)-csumtt10(8)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 79)=(csumttmom10(1,ik)-csumttmom10(2,ik)&
+        +csumttmom10(3,ik)-csumttmom10(4,ik)&
+        -(csumttmom10(5,ik)-csumttmom10(6,ik)+csumttmom10(7,ik)&
+        -csumttmom10(8,ik)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-11 operators
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 80)=(csumtt11(1)+csumtt11(2)+csumtt11(3)+csumtt11(4)&
+        +(csumtt11(5)+csumtt11(6)+csumtt11(7)+csumtt11(8)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 80)=(csumttmom11(1,ik)+csumttmom11(2,ik)&
+        +csumttmom11(3,ik)+csumttmom11(4,ik)&
+        +(csumttmom11(5,ik)+csumttmom11(6,ik)+csumttmom11(7,ik)&
+        +csumttmom11(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                        
-        ALINE83(N4,ID)=(CSUMTT11(7)+GIOT*CSUMTT11(6)-CSUMTT11(5)&
-        -GIOT*CSUMTT11(8))*ADIV1
+    !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1,2
-            ALINEMOM83(N4,ID,IK)=(CSUMTTMOM11(7,IK)+GIOT*CSUMTTMOM11(6,IK)&
-        -CSUMTTMOM11(5,IK)-GIOT*CSUMTTMOM11(8,IK))*ADIV1
+        lines(time_slice, id, 81)=(csumtt11(1)+csumtt11(2)+csumtt11(3)+csumtt11(4)&
+        -(csumtt11(5)+csumtt11(6)+csumtt11(7)+csumtt11(8)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 81)=(csumttmom11(1,ik)+csumttmom11(2,ik)&
+        +csumttmom11(3,ik)+csumttmom11(4,ik)&
+        -(csumttmom11(5,ik)+csumttmom11(6,ik)+csumttmom11(7,ik)&
+        +csumttmom11(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE84(N4,ID)=(CSUMTT11(1)-CSUMTT11(2)+CSUMTT11(3)-CSUMTT11(4)&
-        +(CSUMTT11(5)-CSUMTT11(6)+CSUMTT11(7)-CSUMTT11(8)))*ADIV2
+        lines(time_slice, id, 82)=(csumtt11(1)+giot*csumtt11(2)-csumtt11(3)&
+        -giot*csumtt11(4))*adiv1
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2
-    !**********************************************************************                  
-        do IK=1,2
-            ALINEMOM84(N4,ID,IK)=(CSUMTTMOM11(1,IK)-CSUMTTMOM11(2,IK)&
-        +CSUMTTMOM11(3,IK)-CSUMTTMOM11(4,IK)&
-        +(CSUMTTMOM11(5,IK)-CSUMTTMOM11(6,IK)+CSUMTTMOM11(7,IK)&
-        -CSUMTTMOM11(8,IK)))*ADIV2
-        enddo      
+    !     j=1, q=1,2
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************                        
-        ALINE85(N4,ID)=(CSUMTT11(1)-CSUMTT11(2)+CSUMTT11(3)-CSUMTT11(4)&
-        -(CSUMTT11(5)-CSUMTT11(6)+CSUMTT11(7)-CSUMTT11(8)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 82)=(csumttmom11(1,ik)+giot*csumttmom11(2,ik)&
+        -csumttmom11(3,ik)-giot*csumttmom11(4,ik))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 83)=(csumtt11(7)+giot*csumtt11(6)-csumtt11(5)&
+        -giot*csumtt11(8))*adiv1
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 83)=(csumttmom11(7,ik)+giot*csumttmom11(6,ik)&
+        -csumttmom11(5,ik)-giot*csumttmom11(8,ik))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 84)=(csumtt11(1)-csumtt11(2)+csumtt11(3)-csumtt11(4)&
+        +(csumtt11(5)-csumtt11(6)+csumtt11(7)-csumtt11(8)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 84)=(csumttmom11(1,ik)-csumttmom11(2,ik)&
+        +csumttmom11(3,ik)-csumttmom11(4,ik)&
+        +(csumttmom11(5,ik)-csumttmom11(6,ik)+csumttmom11(7,ik)&
+        -csumttmom11(8,ik)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 85)=(csumtt11(1)-csumtt11(2)+csumtt11(3)-csumtt11(4)&
+        -(csumtt11(5)-csumtt11(6)+csumtt11(7)-csumtt11(8)))*adiv2
     !c**********************************************************************
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************                        
-        do IK=1,2
-            ALINEMOM85(N4,ID,IK)=(CSUMTTMOM11(1,IK)-CSUMTTMOM11(2,IK)&
-        +CSUMTTMOM11(3,IK)-CSUMTTMOM11(4,IK)&
-        -(CSUMTTMOM11(5,IK)-CSUMTTMOM11(6,IK)+CSUMTTMOM11(7,IK)&
-        -CSUMTTMOM11(8,IK)))*ADIV2
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 85)=(csumttmom11(1,ik)-csumttmom11(2,ik)&
+        +csumttmom11(3,ik)-csumttmom11(4,ik)&
+        -(csumttmom11(5,ik)-csumttmom11(6,ik)+csumttmom11(7,ik)&
+        -csumttmom11(8,ik)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     12 THIS!!!!!
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-12 OPERATORS 
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     12 this!!!!!
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-12 operators
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE86(N4,ID)=(CSUMTT12(1)+CSUMTT12(2)+CSUMTT12(3)+CSUMTT12(4)&
-        +(CSUMTT12(5)+CSUMTT12(6)+CSUMTT12(7)+CSUMTT12(8))&
-        +(CSUMTT12(9)+CSUMTT12(10)+CSUMTT12(11)+CSUMTT12(12))&
-        +(CSUMTT12(13)+CSUMTT12(14)+CSUMTT12(15)+CSUMTT12(16)))*ADIV3
+        lines(time_slice, id, 86)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        +(csumtt12(5)+csumtt12(6)+csumtt12(7)+csumtt12(8))&
+        +(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
+        +(csumtt12(13)+csumtt12(14)+csumtt12(15)+csumtt12(16)))*adiv3
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM86(N4,ID,IK)=(CSUMTTMOM12(1,IK)+CSUMTTMOM12(2,IK)&
-        +CSUMTTMOM12(3,IK)+CSUMTTMOM12(4,IK)&
-        +(CSUMTTMOM12(9,IK)+CSUMTTMOM12(10,IK)+CSUMTTMOM12(11,IK)&
-        +CSUMTTMOM12(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE87(N4,ID)=(CSUMTT12(1)+CSUMTT12(2)+CSUMTT12(3)+CSUMTT12(4)&
-        +(CSUMTT12(9)+CSUMTT12(10)+CSUMTT12(11)+CSUMTT12(12))&
-        -(CSUMTT12(7)+CSUMTT12(8)+CSUMTT12(5)+CSUMTT12(6))&
-        -(CSUMTT12(15)+CSUMTT12(16)+CSUMTT12(13)+CSUMTT12(14)))*ADIV3
-    !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
-    !**********************************************************************
-        do IK=1,2
-            ALINEMOM87(N4,ID,IK)=(CSUMTTMOM12(7,IK)+CSUMTTMOM12(8,IK)&
-        +CSUMTTMOM12(5,IK)+CSUMTTMOM12(6,IK)+(CSUMTTMOM12(15,IK)&
-        +CSUMTTMOM12(16,IK)+CSUMTTMOM12(13,IK)+CSUMTTMOM12(14,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 86)=(csumttmom12(1,ik)+csumttmom12(2,ik)&
+        +csumttmom12(3,ik)+csumttmom12(4,ik)&
+        +(csumttmom12(9,ik)+csumttmom12(10,ik)+csumttmom12(11,ik)&
+        +csumttmom12(12,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=+, q=0
+    !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        ALINE88(N4,ID)=(CSUMTT12(1)+CSUMTT12(2)+CSUMTT12(3)+CSUMTT12(4)&
-        -(CSUMTT12(9)+CSUMTT12(10)+CSUMTT12(11)+CSUMTT12(12))&
-        +(CSUMTT12(7)+CSUMTT12(8)+CSUMTT12(5)+CSUMTT12(6))&
-        -(CSUMTT12(15)+CSUMTT12(16)+CSUMTT12(13)+CSUMTT12(14)))*ADIV3
+        lines(time_slice, id, 87)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        +(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
+        -(csumtt12(7)+csumtt12(8)+csumtt12(5)+csumtt12(6))&
+        -(csumtt12(15)+csumtt12(16)+csumtt12(13)+csumtt12(14)))*adiv3
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM88(N4,ID,IK)=(CSUMTTMOM12(1,IK)+CSUMTTMOM12(2,IK)&
-        +CSUMTTMOM12(3,IK)+CSUMTTMOM12(4,IK)-(CSUMTTMOM12(9,IK)&
-        +CSUMTTMOM12(10,IK)+CSUMTTMOM12(11,IK)+CSUMTTMOM12(12,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 87)=(csumttmom12(7,ik)+csumttmom12(8,ik)&
+        +csumttmom12(5,ik)+csumttmom12(6,ik)+(csumttmom12(15,ik)&
+        +csumttmom12(16,ik)+csumttmom12(13,ik)+csumttmom12(14,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
+    !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE89(N4,ID)=(CSUMTT12(1)+CSUMTT12(2)+CSUMTT12(3)+CSUMTT12(4)&
-        -(CSUMTT12(9)+CSUMTT12(10)+CSUMTT12(11)+CSUMTT12(12))&
-        -(CSUMTT12(7)+CSUMTT12(8)+CSUMTT12(5)+CSUMTT12(6))&
-        +(CSUMTT12(15)+CSUMTT12(16)+CSUMTT12(13)+CSUMTT12(14)))*ADIV3
+        lines(time_slice, id, 88)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        -(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
+        +(csumtt12(7)+csumtt12(8)+csumtt12(5)+csumtt12(6))&
+        -(csumtt12(15)+csumtt12(16)+csumtt12(13)+csumtt12(14)))*adiv3
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
+    !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM89(N4,ID,IK)=(CSUMTTMOM12(7,IK)+CSUMTTMOM12(8,IK)&
-        +CSUMTTMOM12(5,IK)+CSUMTTMOM12(6,IK)-(CSUMTTMOM12(15,IK)&
-        +CSUMTTMOM12(16,IK)+CSUMTTMOM12(13,IK)+CSUMTTMOM12(14,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 88)=(csumttmom12(1,ik)+csumttmom12(2,ik)&
+        +csumttmom12(3,ik)+csumttmom12(4,ik)-(csumttmom12(9,ik)&
+        +csumttmom12(10,ik)+csumttmom12(11,ik)+csumttmom12(12,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        ALINE90(N4,ID)=(CSUMTT12(1)+GIOT*CSUMTT12(2)-CSUMTT12(3)&
-        -GIOT*CSUMTT12(4)&
-        +(CSUMTT12(7)+GIOT*CSUMTT12(8)-CSUMTT12(5)-GIOT*CSUMTT12(6))&
-        )*ADIV2
+        lines(time_slice, id, 89)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        -(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
+        -(csumtt12(7)+csumtt12(8)+csumtt12(5)+csumtt12(6))&
+        +(csumtt12(15)+csumtt12(16)+csumtt12(13)+csumtt12(14)))*adiv3
     !**********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM90(N4,ID,IK)=(CSUMTTMOM12(1,IK)+GIOT*CSUMTTMOM12(2,IK)&
-        -CSUMTTMOM12(3,IK)-GIOT*CSUMTTMOM12(4,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 89)=(csumttmom12(7,ik)+csumttmom12(8,ik)&
+        +csumttmom12(5,ik)+csumttmom12(6,ik)-(csumttmom12(15,ik)&
+        +csumttmom12(16,ik)+csumttmom12(13,ik)+csumttmom12(14,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE91(N4,ID)=(CSUMTT12(9)+GIOT*CSUMTT12(10)-CSUMTT12(11)&
-        -GIOT*CSUMTT12(12)&
-        +(CSUMTT12(15)+GIOT*CSUMTT12(16)-CSUMTT12(13)-GIOT*CSUMTT12(14))&
-        )*ADIV2
+        lines(time_slice, id, 90)=(csumtt12(1)+giot*csumtt12(2)-csumtt12(3)&
+        -giot*csumtt12(4)&
+        +(csumtt12(7)+giot*csumtt12(8)-csumtt12(5)-giot*csumtt12(6))&
+        )*adiv2
     !**********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM91(N4,ID,IK)=(CSUMTTMOM12(9,IK)+GIOT*CSUMTTMOM12(10,IK)&
-        -CSUMTTMOM12(11,IK)-GIOT*CSUMTTMOM12(12,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 90)=(csumttmom12(1,ik)+giot*csumttmom12(2,ik)&
+        -csumttmom12(3,ik)-giot*csumttmom12(4,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE92(N4,ID)=(CSUMTT12(1)+GIOT*CSUMTT12(2)-CSUMTT12(3)&
-        -GIOT*CSUMTT12(4)&
-        -(CSUMTT12(7)+GIOT*CSUMTT12(8)-CSUMTT12(5)-GIOT*CSUMTT12(6))&
-        )*ADIV2
+        lines(time_slice, id, 91)=(csumtt12(9)+giot*csumtt12(10)-csumtt12(11)&
+        -giot*csumtt12(12)&
+        +(csumtt12(15)+giot*csumtt12(16)-csumtt12(13)-giot*csumtt12(14))&
+        )*adiv2
     !**********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM92(N4,ID,IK)=(CSUMTTMOM12(7,IK)+GIOT*CSUMTTMOM12(8,IK)&
-        -CSUMTTMOM12(5,IK)-GIOT*CSUMTTMOM12(6,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 91)=(csumttmom12(9,ik)+giot*csumttmom12(10,ik)&
+        -csumttmom12(11,ik)-giot*csumttmom12(12,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE93(N4,ID)=(CSUMTT12(9)+GIOT*CSUMTT12(10)-CSUMTT12(11)&
-        -GIOT*CSUMTT12(12)&
-        -(CSUMTT12(15)+GIOT*CSUMTT12(16)-CSUMTT12(13)-GIOT*CSUMTT12(14))&
-        )*ADIV2
+        lines(time_slice, id, 92)=(csumtt12(1)+giot*csumtt12(2)-csumtt12(3)&
+        -giot*csumtt12(4)&
+        -(csumtt12(7)+giot*csumtt12(8)-csumtt12(5)-giot*csumtt12(6))&
+        )*adiv2
     !**********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM93(N4,ID,IK)=(CSUMTTMOM12(15,IK)&
-        +GIOT*CSUMTTMOM12(16,IK)&
-        -CSUMTTMOM12(13,IK)-GIOT*CSUMTTMOM12(14,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 92)=(csumttmom12(7,ik)+giot*csumttmom12(8,ik)&
+        -csumttmom12(5,ik)-giot*csumttmom12(6,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE94(N4,ID)=(CSUMTT12(1)-CSUMTT12(2)+CSUMTT12(3)-CSUMTT12(4)&
-        +(CSUMTT12(9)-CSUMTT12(10)+CSUMTT12(11)-CSUMTT12(12))&
-        +(CSUMTT12(7)-CSUMTT12(8)+CSUMTT12(5)-CSUMTT12(6))&
-        +(CSUMTT12(15)-CSUMTT12(16)+CSUMTT12(13)-CSUMTT12(14)))*ADIV3
+        lines(time_slice, id, 93)=(csumtt12(9)+giot*csumtt12(10)-csumtt12(11)&
+        -giot*csumtt12(12)&
+        -(csumtt12(15)+giot*csumtt12(16)-csumtt12(13)-giot*csumtt12(14))&
+        )*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM94(N4,ID,IK)=(CSUMTTMOM12(1,IK)-CSUMTTMOM12(2,IK)&
-        +CSUMTTMOM12(3,IK)-CSUMTTMOM12(4,IK)&
-        +(CSUMTTMOM12(9,IK)-CSUMTTMOM12(10,IK)+CSUMTTMOM12(11,IK)&
-        -CSUMTTMOM12(12,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 93)=(csumttmom12(15,ik)&
+        +giot*csumttmom12(16,ik)&
+        -csumttmom12(13,ik)-giot*csumttmom12(14,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
+    !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE95(N4,ID)=(CSUMTT12(1)-CSUMTT12(2)+CSUMTT12(3)-CSUMTT12(4)&
-        +(CSUMTT12(9)-CSUMTT12(10)+CSUMTT12(11)-CSUMTT12(12))&
-        -(CSUMTT12(7)-CSUMTT12(8)+CSUMTT12(5)-CSUMTT12(6))&
-        -(CSUMTT12(15)-CSUMTT12(16)+CSUMTT12(13)-CSUMTT12(14)))*ADIV3
+        lines(time_slice, id, 94)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        +(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
+        +(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
+        +(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM95(N4,ID,IK)=(CSUMTTMOM12(7,IK)-CSUMTTMOM12(8,IK)&
-        +CSUMTTMOM12(5,IK)-CSUMTTMOM12(6,IK)+(CSUMTTMOM12(15,IK)&
-        -CSUMTTMOM12(16,IK)+CSUMTTMOM12(13,IK)-CSUMTTMOM12(14,IK))&
-        )*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 94)=(csumttmom12(1,ik)-csumttmom12(2,ik)&
+        +csumttmom12(3,ik)-csumttmom12(4,ik)&
+        +(csumttmom12(9,ik)-csumttmom12(10,ik)+csumttmom12(11,ik)&
+        -csumttmom12(12,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
+    !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        ALINE96(N4,ID)=(CSUMTT12(1)-CSUMTT12(2)+CSUMTT12(3)-CSUMTT12(4)&
-        -(CSUMTT12(9)-CSUMTT12(10)+CSUMTT12(11)-CSUMTT12(12))&
-        +(CSUMTT12(7)-CSUMTT12(8)+CSUMTT12(5)-CSUMTT12(6))&
-        -(CSUMTT12(15)-CSUMTT12(16)+CSUMTT12(13)-CSUMTT12(14)))*ADIV3
+        lines(time_slice, id, 95)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        +(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
+        -(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
+        -(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM96(N4,ID,IK)=(CSUMTTMOM12(1,IK)-CSUMTTMOM12(2,IK)&
-        +CSUMTTMOM12(3,IK)-CSUMTTMOM12(4,IK)-(CSUMTTMOM12(9,IK)&
-        -CSUMTTMOM12(10,IK)+CSUMTTMOM12(11,IK)-CSUMTTMOM12(12,IK))&
-        )*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 95)=(csumttmom12(7,ik)-csumttmom12(8,ik)&
+        +csumttmom12(5,ik)-csumttmom12(6,ik)+(csumttmom12(15,ik)&
+        -csumttmom12(16,ik)+csumttmom12(13,ik)-csumttmom12(14,ik))&
+        )*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=-, q=0
+    !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE97(N4,ID)=(CSUMTT12(1)-CSUMTT12(2)+CSUMTT12(3)-CSUMTT12(4)&
-        -(CSUMTT12(9)-CSUMTT12(10)+CSUMTT12(11)-CSUMTT12(12))&
-        -(CSUMTT12(7)-CSUMTT12(8)+CSUMTT12(5)-CSUMTT12(6))&
-        +(CSUMTT12(15)-CSUMTT12(16)+CSUMTT12(13)-CSUMTT12(14)))*ADIV3
+        lines(time_slice, id, 96)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        -(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
+        +(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
+        -(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
+    !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM97(N4,ID,IK)=(CSUMTTMOM12(7,IK)-CSUMTTMOM12(8,IK)&
-        +CSUMTTMOM12(5,IK)-CSUMTTMOM12(6,IK)-(CSUMTTMOM12(15,IK)&
-        -CSUMTTMOM12(16,IK)+CSUMTTMOM12(13,IK)-CSUMTTMOM12(14,IK))&
-        )*ADIV2
-        enddo  
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 96)=(csumttmom12(1,ik)-csumttmom12(2,ik)&
+        +csumttmom12(3,ik)-csumttmom12(4,ik)-(csumttmom12(9,ik)&
+        -csumttmom12(10,ik)+csumttmom12(11,ik)-csumttmom12(12,ik))&
+        )*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 97)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        -(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
+        -(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
+        +(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2,3,4
+    !**********************************************************************
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 97)=(csumttmom12(7,ik)-csumttmom12(8,ik)&
+        +csumttmom12(5,ik)-csumttmom12(6,ik)-(csumttmom12(15,ik)&
+        -csumttmom12(16,ik)+csumttmom12(13,ik)-csumttmom12(14,ik))&
+        )*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !     13
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     TT-13 OPERATORS CP=+,Pz=+,J=0
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     tt-13 operators cp=+,pz=+,j=0
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE98(N4,ID)=(CSUMTT13(1)+CSUMTT13(2)+CSUMTT13(3)+CSUMTT13(4)+&
-        CSUMTT13(5)+CSUMTT13(6)+CSUMTT13(7)+CSUMTT13(8))*ADIV2
+        lines(time_slice, id, 98)=(csumtt13(1)+csumtt13(2)+csumtt13(3)+csumtt13(4)+&
+        csumtt13(5)+csumtt13(6)+csumtt13(7)+csumtt13(8))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2,3,4
+    !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM98(N4,ID,IK)=(CSUMTTMOM13(1,IK)+CSUMTTMOM13(2,IK)&
-        +CSUMTTMOM13(3,IK)+CSUMTTMOM13(4,IK)+CSUMTTMOM13(5,IK)&
-        +CSUMTTMOM13(6,IK)+CSUMTTMOM13(7,IK)&
-        +CSUMTTMOM13(8,IK))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 98)=(csumttmom13(1,ik)+csumttmom13(2,ik)&
+        +csumttmom13(3,ik)+csumttmom13(4,ik)+csumttmom13(5,ik)&
+        +csumttmom13(6,ik)+csumttmom13(7,ik)&
+        +csumttmom13(8,ik))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        ALINE99(N4,ID)=(CSUMTT13(1)+CSUMTT13(2)+CSUMTT13(3)+CSUMTT13(4)&
-        -(CSUMTT13(5)+CSUMTT13(6)+CSUMTT13(7)+CSUMTT13(8)))*ADIV2
+        lines(time_slice, id, 99)=(csumtt13(1)+csumtt13(2)+csumtt13(3)+csumtt13(4)&
+        -(csumtt13(5)+csumtt13(6)+csumtt13(7)+csumtt13(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
+    !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM99(N4,ID,IK)=(CSUMTTMOM13(1,IK)+CSUMTTMOM13(2,IK)&
-        +CSUMTTMOM13(3,IK)+CSUMTTMOM13(4,IK)-(CSUMTTMOM13(5,IK)&
-        +CSUMTTMOM13(6,IK)+CSUMTTMOM13(7,IK)&
-        +CSUMTTMOM13(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 99)=(csumttmom13(1,ik)+csumttmom13(2,ik)&
+        +csumttmom13(3,ik)+csumttmom13(4,ik)-(csumttmom13(5,ik)&
+        +csumttmom13(6,ik)+csumttmom13(7,ik)&
+        +csumttmom13(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE100(N4,ID)=(CSUMTT13(1)+GIOT*CSUMTT13(2)-CSUMTT13(3)&
-        -GIOT*CSUMTT13(4)+(CSUMTT13(7)+GIOT*CSUMTT13(8)-CSUMTT13(5)&
-        -GIOT*CSUMTT13(6)))*ADIV2
+        lines(time_slice, id, 100)=(csumtt13(1)+giot*csumtt13(2)-csumtt13(3)&
+        -giot*csumtt13(4)+(csumtt13(7)+giot*csumtt13(8)-csumtt13(5)&
+        -giot*csumtt13(6)))*adiv2
     !**********************************************************************
-    !     J=1, q=0
+    !     j=1, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM100(N4,ID,IK)=(CSUMTTMOM13(1,IK)+GIOT*CSUMTTMOM13(2,IK)&
-        -CSUMTTMOM13(3,IK)-GIOT*CSUMTTMOM13(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 100)=(csumttmom13(1,ik)+giot*csumttmom13(2,ik)&
+        -csumttmom13(3,ik)-giot*csumttmom13(4,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE101(N4,ID)=(CSUMTT13(1)+GIOT*CSUMTT13(2)-CSUMTT13(3)&
-        -GIOT*CSUMTT13(4)&
-        -(CSUMTT13(7)+GIOT*CSUMTT13(8)-CSUMTT13(5)&
-        -GIOT*CSUMTT13(6)))*ADIV2
+        lines(time_slice, id, 101)=(csumtt13(1)+giot*csumtt13(2)-csumtt13(3)&
+        -giot*csumtt13(4)&
+        -(csumtt13(7)+giot*csumtt13(8)-csumtt13(5)&
+        -giot*csumtt13(6)))*adiv2
     !**********************************************************************
-    !     J=1, q=0
+    !     j=1, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM101(N4,ID,IK)=(CSUMTTMOM13(7,IK)+GIOT*CSUMTTMOM13(8,IK)&
-        -CSUMTTMOM13(5,IK)-GIOT*CSUMTTMOM13(6,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 101)=(csumttmom13(7,ik)+giot*csumttmom13(8,ik)&
+        -csumttmom13(5,ik)-giot*csumttmom13(6,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
+    !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        ALINE102(N4,ID)=(CSUMTT13(1)-CSUMTT13(2)+CSUMTT13(3)-CSUMTT13(4)+&
-        CSUMTT13(6)-CSUMTT13(5)+CSUMTT13(8)-CSUMTT13(7))*ADIV2
+        lines(time_slice, id, 102)=(csumtt13(1)-csumtt13(2)+csumtt13(3)-csumtt13(4)+&
+        csumtt13(6)-csumtt13(5)+csumtt13(8)-csumtt13(7))*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM102(N4,ID,IK)=(CSUMTTMOM13(1,IK)-CSUMTTMOM13(2,IK)&
-        +CSUMTTMOM13(3,IK)-CSUMTTMOM13(4,IK)+CSUMTTMOM13(6,IK)&
-        -CSUMTTMOM13(5,IK)+CSUMTTMOM13(8,IK)&
-        -CSUMTTMOM13(7,IK))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 102)=(csumttmom13(1,ik)-csumttmom13(2,ik)&
+        +csumttmom13(3,ik)-csumttmom13(4,ik)+csumttmom13(6,ik)&
+        -csumttmom13(5,ik)+csumttmom13(8,ik)&
+        -csumttmom13(7,ik))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
+    !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE103(N4,ID)=(CSUMTT13(1)-CSUMTT13(2)+CSUMTT13(3)-CSUMTT13(4)&
-        -(CSUMTT13(6)-CSUMTT13(5)+CSUMTT13(8)-CSUMTT13(7)))*ADIV2
+        lines(time_slice, id, 103)=(csumtt13(1)-csumtt13(2)+csumtt13(3)-csumtt13(4)&
+        -(csumtt13(6)-csumtt13(5)+csumtt13(8)-csumtt13(7)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
+    !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM103(N4,ID,IK)=(CSUMTTMOM13(1,IK)-CSUMTTMOM13(2,IK)&
-        +CSUMTTMOM13(3,IK)-CSUMTTMOM13(4,IK)-(CSUMTTMOM13(6,IK)&
-        -CSUMTTMOM13(5,IK)+CSUMTTMOM13(8,IK)&
-        -CSUMTTMOM13(7,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 103)=(csumttmom13(1,ik)-csumttmom13(2,ik)&
+        +csumttmom13(3,ik)-csumttmom13(4,ik)-(csumttmom13(6,ik)&
+        -csumttmom13(5,ik)+csumttmom13(8,ik)&
+        -csumttmom13(7,ik)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     14 THISSSSSSSS!!!!!!!
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     14 thissssssss!!!!!!!
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE104(N4,ID)=(CSUMTT14(1)+CSUMTT14(2)+CSUMTT14(3)+CSUMTT14(4)+&
-        CSUMTT14(5)+CSUMTT14(6)+CSUMTT14(7)+CSUMTT14(8))*ADIV2
+        lines(time_slice, id, 104)=(csumtt14(1)+csumtt14(2)+csumtt14(3)+csumtt14(4)+&
+        csumtt14(5)+csumtt14(6)+csumtt14(7)+csumtt14(8))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, q=0
+    !     j=0, pp=+, q=0
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM104(N4,ID,IK)=(CSUMTTMOM14(1,IK)+CSUMTTMOM14(2,IK)&
-        +CSUMTTMOM14(3,IK)+CSUMTTMOM14(4,IK)+CSUMTTMOM14(5,IK)&
-        +CSUMTTMOM14(6,IK)+CSUMTTMOM14(7,IK)&
-        +CSUMTTMOM14(8,IK))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 104)=(csumttmom14(1,ik)+csumttmom14(2,ik)&
+        +csumttmom14(3,ik)+csumttmom14(4,ik)+csumttmom14(5,ik)&
+        +csumttmom14(6,ik)+csumttmom14(7,ik)&
+        +csumttmom14(8,ik))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        ALINE105(N4,ID)=(CSUMTT14(1)+CSUMTT14(2)+CSUMTT14(3)+CSUMTT14(4)-&
-        (CSUMTT14(5)+CSUMTT14(6)+CSUMTT14(7)+CSUMTT14(8)))*ADIV2
+        lines(time_slice, id, 105)=(csumtt14(1)+csumtt14(2)+csumtt14(3)+csumtt14(4)-&
+        (csumtt14(5)+csumtt14(6)+csumtt14(7)+csumtt14(8)))*adiv2
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2,3,4
+    !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM105(N4,ID,IK)=(CSUMTTMOM14(1,IK)+CSUMTTMOM14(2,IK)&
-        +CSUMTTMOM14(3,IK)+CSUMTTMOM14(4,IK)-(CSUMTTMOM14(5,IK)&
-        +CSUMTTMOM14(6,IK)+CSUMTTMOM14(7,IK)&
-        +CSUMTTMOM14(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 105)=(csumttmom14(1,ik)+csumttmom14(2,ik)&
+        +csumttmom14(3,ik)+csumttmom14(4,ik)-(csumttmom14(5,ik)&
+        +csumttmom14(6,ik)+csumttmom14(7,ik)&
+        +csumttmom14(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=+, q=0
+    !     j=1, pr=+, q=0
     !**********************************************************************
-        ALINE106(N4,ID)=(CSUMTT14(1)+GIOT*CSUMTT14(2)-CSUMTT14(3)&
-        -GIOT*CSUMTT14(4)+(CSUMTT14(6)+GIOT*CSUMTT14(7)-CSUMTT14(8)&
-        -GIOT*CSUMTT14(5)))*ADIV2
+        lines(time_slice, id, 106)=(csumtt14(1)+giot*csumtt14(2)-csumtt14(3)&
+        -giot*csumtt14(4)+(csumtt14(6)+giot*csumtt14(7)-csumtt14(8)&
+        -giot*csumtt14(5)))*adiv2
     !**********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-        ALINEMOM106(N4,ID,IK)=(CSUMTTMOM14(1,IK)+GIOT*CSUMTTMOM14(2,IK)&
-        -CSUMTTMOM14(3,IK)-GIOT*CSUMTTMOM14(4,IK))*ADIV1
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 106)=(csumttmom14(1,ik)+giot*csumttmom14(2,ik)&
+        -csumttmom14(3,ik)-giot*csumttmom14(4,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=1, Pr=-, q=0
+    !     j=1, pr=-, q=0
     !**********************************************************************
-        ALINE107(N4,ID)=(CSUMTT14(1)+GIOT*CSUMTT14(2)-CSUMTT14(3)&
-        -GIOT*CSUMTT14(4)-(CSUMTT14(6)+GIOT*CSUMTT14(7)-CSUMTT14(8)&
-        -GIOT*CSUMTT14(5)))*ADIV2
+        lines(time_slice, id, 107)=(csumtt14(1)+giot*csumtt14(2)-csumtt14(3)&
+        -giot*csumtt14(4)-(csumtt14(6)+giot*csumtt14(7)-csumtt14(8)&
+        -giot*csumtt14(5)))*adiv2
     !**********************************************************************
-    !     J=1, q=1,2,3,4
+    !     j=1, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM107(N4,ID,IK)=(CSUMTTMOM14(6,IK)+GIOT*CSUMTTMOM14(7,IK)&
-        -CSUMTTMOM14(8,IK)-GIOT*CSUMTTMOM14(5,IK))*ADIV1
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 107)=(csumttmom14(6,ik)+giot*csumttmom14(7,ik)&
+        -csumttmom14(8,ik)-giot*csumttmom14(5,ik))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
+    !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        ALINE108(N4,ID)=(CSUMTT14(1)-CSUMTT14(2)+CSUMTT14(3)-CSUMTT14(4)+&
-        (CSUMTT14(7)-CSUMTT14(6)+CSUMTT14(5)-CSUMTT14(8)))*ADIV2
+        lines(time_slice, id, 108)=(csumtt14(1)-csumtt14(2)+csumtt14(3)-csumtt14(4)+&
+        (csumtt14(7)-csumtt14(6)+csumtt14(5)-csumtt14(8)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2,3,4
+    !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2
-            ALINEMOM108(N4,ID,IK)=(CSUMTTMOM14(1,IK)-CSUMTTMOM14(2,IK)&
-        +CSUMTTMOM14(3,IK)-CSUMTTMOM14(4,IK)+(CSUMTTMOM14(7,IK)&
-        -CSUMTTMOM14(6,IK)+CSUMTTMOM14(5,IK)-CSUMTTMOM14(8,IK)))*ADIV2
+        do ik=1,2
+            momentum_lines(time_slice, id, ik, 108)=(csumttmom14(1,ik)-csumttmom14(2,ik)&
+        +csumttmom14(3,ik)-csumttmom14(4,ik)+(csumttmom14(7,ik)&
+        -csumttmom14(6,ik)+csumttmom14(5,ik)-csumttmom14(8,ik)))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
+    !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        ALINE109(N4,ID)=(CSUMTT14(1)-CSUMTT14(2)+CSUMTT14(3)-CSUMTT14(4)-&
-        (CSUMTT14(7)-CSUMTT14(6)+CSUMTT14(5)-CSUMTT14(8)))*ADIV2
+        lines(time_slice, id, 109)=(csumtt14(1)-csumtt14(2)+csumtt14(3)-csumtt14(4)-&
+        (csumtt14(7)-csumtt14(6)+csumtt14(5)-csumtt14(8)))*adiv2
     !**********************************************************************
-    !     J=2, Pp=-, q=1,2,3,4
+    !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
-        do IK=1,2 
-        ALINEMOM109(N4,ID,IK)=(CSUMTTMOM14(1,IK)-CSUMTTMOM14(2,IK)&
-        +CSUMTTMOM14(3,IK)-CSUMTTMOM14(4,IK)-(CSUMTTMOM14(7,IK)&
-        -CSUMTTMOM14(6,IK)+CSUMTTMOM14(5,IK)-CSUMTTMOM14(8,IK)))*ADIV2
+        do ik=1,2
+        momentum_lines(time_slice, id, ik, 109)=(csumttmom14(1,ik)-csumttmom14(2,ik)&
+        +csumttmom14(3,ik)-csumttmom14(4,ik)-(csumttmom14(7,ik)&
+        -csumttmom14(6,ik)+csumttmom14(5,ik)-csumttmom14(8,ik)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATOR 1
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operator 1
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
+    !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        ALINE110(N4,ID)=(CSUMPLQ(1)+CSUMPLQ(2)+CSUMPLQ(3)+CSUMPLQ(4)&
-        +CSUMPLQ(5)+CSUMPLQ(6)+CSUMPLQ(7)+CSUMPLQ(8))*ADIV2
+        lines(time_slice, id, 110)=sum(csumplq8(:,1))*adiv2
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2
+    !     j=0, pp=+, q=1,2
     !**********************************************************************
-        do IK=1, 2
-            ALINEMOM110(N4,ID,IK)=(CSUMPLQMOM(1,IK)+CSUMPLQMOM(2,IK)&
-        +CSUMPLQMOM(3,IK)+CSUMPLQMOM(4,IK)+CSUMPLQMOM(5,IK)&
-        +CSUMPLQMOM(6,IK)+CSUMPLQMOM(7,IK)+CSUMPLQMOM(8,IK))*ADIV2
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 110)=(csumplqmom8(1,ik,1)+csumplqmom8(2,ik,1)&
+        +csumplqmom8(3,ik,1)+csumplqmom8(4,ik,1)+csumplqmom8(5,ik,1)&
+        +csumplqmom8(6,ik,1)+csumplqmom8(7,ik,1)+csumplqmom8(8,ik,1))*adiv2
         enddo
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************      
-        ALINE111(N4,ID)=(CSUMPLQ(1)+CSUMPLQ(2)+CSUMPLQ(3)+CSUMPLQ(4)&
-        -CSUMPLQ(5)-CSUMPLQ(6)-CSUMPLQ(7)-CSUMPLQ(8))*ADIV2
+    !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2
+        lines(time_slice, id, 111)=(csumplq8(1,1)+csumplq8(2,1)+csumplq8(3,1)+csumplq8(4,1)&
+        -csumplq8(5,1)-csumplq8(6,1)-csumplq8(7,1)-csumplq8(8,1))*adiv2
     !**********************************************************************
-        do IK=1, 2
-            ALINEMOM111(N4,ID,IK)=(CSUMPLQMOM(1,IK)+CSUMPLQMOM(2,IK)&
-        +CSUMPLQMOM(3,IK)+CSUMPLQMOM(4,IK)-CSUMPLQMOM(5,IK)&
-        -CSUMPLQMOM(6,IK)-CSUMPLQMOM(7,IK)-CSUMPLQMOM(8,IK))*ADIV2
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 111)=(csumplqmom8(1,ik,1)+csumplqmom8(2,ik,1)&
+        +csumplqmom8(3,ik,1)+csumplqmom8(4,ik,1)-csumplqmom8(5,ik,1)&
+        -csumplqmom8(6,ik,1)-csumplqmom8(7,ik,1)-csumplqmom8(8,ik,1))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 112)=(csumplq8(1,1)+giot*csumplq8(2,1)-csumplq8(3,1)&
+        -giot*csumplq8(4,1)&
+        +(csumplq8(6,1)+giot*csumplq8(5,1)-csumplq8(8,1)-giot*csumplq8(7,1)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 112)=(csumplqmom8(1,ik,1)+giot*csumplqmom8(2,ik,1)&
+        -csumplqmom8(3,ik,1)-giot*csumplqmom8(4,ik,1))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 113)=(csumplq8(1,1)+giot*csumplq8(2,1)-csumplq8(3,1)&
+        -giot*csumplq8(4,1)&
+        -(csumplq8(6,1)+giot*csumplq8(5,1)-csumplq8(8,1)-giot*csumplq8(7,1)))*adiv2
+    !**********************************************************************
+    !     j=1, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 113)=(csumplqmom8(6,ik,1)+giot*csumplqmom8(5,ik,1)&
+        -csumplqmom8(8,ik,1)-giot*csumplqmom8(7,ik,1))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 114)=(csumplq8(1,1)-csumplq8(2,1)+csumplq8(3,1)-csumplq8(4,1)&
+        +csumplq8(5,1)-csumplq8(6,1)+csumplq8(7,1)-csumplq8(8,1))*adiv2
+    !**********************************************************************
+    !     j=2, pr=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 114)=(csumplqmom8(1,ik,1)-csumplqmom8(2,ik,1)&
+        +csumplqmom8(3,ik,1)-csumplqmom8(4,ik,1)+csumplqmom8(5,ik,1)&
+        -csumplqmom8(6,ik,1)+csumplqmom8(7,ik,1)-csumplqmom8(8,ik,1))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 115)=(csumplq8(1,1)-csumplq8(2,1)+csumplq8(3,1)-csumplq8(4,1)&
+        -(csumplq8(5,1)-csumplq8(6,1)+csumplq8(7,1)-csumplq8(8,1)))*adiv2
+    !**********************************************************************
+    !     j=2, pr=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 115)=(csumplqmom8(1,ik,1)-csumplqmom8(2,ik,1)&
+        +csumplqmom8(3,ik,1)-csumplqmom8(4,ik,1)-(csumplqmom8(5,ik,1)&
+        -csumplqmom8(6,ik,1)+csumplqmom8(7,ik,1)-csumplqmom8(8,ik,1)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operator 2
+    !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 116)=(csumplq8(1,2)+csumplq8(2,2)+csumplq8(3,2)+csumplq8(4,2)&
+        +csumplq8(5,2)+csumplq8(6,2)+csumplq8(7,2)+csumplq8(8,2))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 116)=(csumplqmom8(1,ik,2)+csumplqmom8(2,ik,2)&
+        +csumplqmom8(3,ik,2)+csumplqmom8(4,ik,2)+csumplqmom8(5,ik,2)&
+        +csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)+csumplqmom8(8,ik,2))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 117)=(csumplq8(1,2)+csumplq8(2,2)+csumplq8(3,2)+csumplq8(4,2)&
+        -(csumplq8(5,2)+csumplq8(6,2)+csumplq8(7,2)+csumplq8(8,2)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 117)=(csumplqmom8(1,ik,2)+csumplqmom8(2,ik,2)&
+        +csumplqmom8(3,ik,2)+csumplqmom8(4,ik,2)-(csumplqmom8(5,ik,2)&
+        +csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)+csumplqmom8(8,ik,2)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 118)=(csumplq8(1,2)+giot*csumplq8(2,2)-csumplq8(3,2)&
+        -giot*csumplq8(4,2)&
+        +csumplq8(6,2)+giot*csumplq8(5,2)-csumplq8(8,2)-giot*csumplq8(7,2))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 118)=(csumplqmom8(1,ik,2)+giot*csumplqmom8(2,ik,2)&
+        -csumplqmom8(3,ik,2)-giot*csumplqmom8(4,ik,2))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 119)=(csumplq8(1,2)+giot*csumplq8(2,2)-csumplq8(3,2)&
+        -giot*csumplq8(4,2)&
+        -(csumplq8(6,2)+giot*csumplq8(5,2)-csumplq8(8,2)-giot*csumplq8(7,2)))&
+        *adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 119)=(csumplqmom8(6,ik,2)+giot*csumplqmom8(5,ik,2)&
+        -csumplqmom8(8,ik,2)-giot*csumplqmom8(7,ik,2))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 120)=(csumplq8(1,2)-csumplq8(2,2)+csumplq8(3,2)-csumplq8(4,2)&
+        +csumplq8(5,2)-csumplq8(6,2)+csumplq8(7,2)-csumplq8(8,2))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 120)=(csumplqmom8(1,ik,2)-csumplqmom8(2,ik,2)&
+        +csumplqmom8(3,ik,2)-csumplqmom8(4,ik,2)+csumplqmom8(5,ik,2)&
+        -csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)-csumplqmom8(8,ik,2))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 121)=(csumplq8(1,2)-csumplq8(2,2)+csumplq8(3,2)-csumplq8(4,2)&
+        -(csumplq8(5,2)-csumplq8(6,2)+csumplq8(7,2)-csumplq8(8,2)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 121)=(csumplqmom8(1,ik,2)-csumplqmom8(2,ik,2)&
+        +csumplqmom8(3,ik,2)-csumplqmom8(4,ik,2)-(csumplqmom8(5,ik,2)&
+        -csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)-csumplqmom8(8,ik,2)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    ! plaquette operators 3
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 122)=(csumplq8(1,3)+csumplq8(2,3)+csumplq8(3,3)&
+        +csumplq8(4,3)+(csumplq8(5,3)+csumplq8(6,3)+csumplq8(7,3)&
+        +csumplq8(8,3)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 122)=(csumplqmom8(1,ik,3)+csumplqmom8(2,ik,3)&
+        +csumplqmom8(3,ik,3)+csumplqmom8(4,ik,3)&
+        +(csumplqmom8(5,ik,3)+csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
+        +csumplqmom8(8,ik,3)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 123)=(csumplq8(1,3)+csumplq8(2,3)+csumplq8(3,3)&
+        +csumplq8(4,3)-(csumplq8(5,3)+csumplq8(6,3)+csumplq8(7,3)&
+        +csumplq8(8,3)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 123)=(csumplqmom8(1,ik,3)+csumplqmom8(2,ik,3)&
+        +csumplqmom8(3,ik,3)+csumplqmom8(4,ik,3)&
+        -(csumplqmom8(5,ik,3)+csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
+        +csumplqmom8(8,ik,3)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 124)=(csumplq8(1,3)+giot*csumplq8(2,3)-csumplq8(3,3)&
+        -giot*csumplq8(4,3))*adiv1
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 124)=(csumplqmom8(1,ik,3)+giot*csumplqmom8(2,ik,3)&
+        -csumplqmom8(3,ik,3)-giot*csumplqmom8(4,ik,3))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 125)=(csumplq8(7,3)+giot*csumplq8(6,3)-csumplq8(5,3)&
+        -giot*csumplq8(8,3))*adiv1
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 125)=(csumplqmom8(7,ik,3)+giot*csumplqmom8(6,ik,3)&
+        -csumplqmom8(5,ik,3)-giot*csumplqmom8(8,ik,3))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 126)=(csumplq8(1,3)-csumplq8(2,3)+csumplq8(3,3)&
+        -csumplq8(4,3)+(csumplq8(5,3)-csumplq8(6,3)+csumplq8(7,3)&
+        -csumplq8(8,3)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 126)=(csumplqmom8(1,ik,3)-csumplqmom8(2,ik,3)&
+        +csumplqmom8(3,ik,3)-csumplqmom8(4,ik,3)&
+        +(csumplqmom8(5,ik,3)-csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
+        -csumplqmom8(8,ik,3)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 127)=(csumplq8(1,3)-csumplq8(2,3)+csumplq8(3,3)&
+        -csumplq8(4,3)-(csumplq8(5,3)-csumplq8(6,3)+csumplq8(7,3)&
+        -csumplq8(8,3)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 127)=(csumplqmom8(1,ik,3)-csumplqmom8(2,ik,3)&
+        +csumplqmom8(3,ik,3)-csumplqmom8(4,ik,3)&
+        -(csumplqmom8(5,ik,3)-csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
+        -csumplqmom8(8,ik,3)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 4
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 128)=(csumplq8(1,4)+csumplq8(2,4)+csumplq8(3,4)&
+        +csumplq8(4,4)+(csumplq8(5,4)+csumplq8(6,4)+csumplq8(7,4)&
+        +csumplq8(8,4)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 128)=(csumplqmom8(1,ik,4)+csumplqmom8(2,ik,4)&
+        +csumplqmom8(3,ik,4)+csumplqmom8(4,ik,4)&
+        +(csumplqmom8(5,ik,4)+csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
+        +csumplqmom8(8,ik,4)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 129)=(csumplq8(1,4)+csumplq8(2,4)+csumplq8(3,4)&
+        +csumplq8(4,4)-(csumplq8(5,4)+csumplq8(6,4)+csumplq8(7,4)&
+        +csumplq8(8,4)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 129)=(csumplqmom8(1,ik,4)+csumplqmom8(2,ik,4)&
+        +csumplqmom8(3,ik,4)+csumplqmom8(4,ik,4)&
+        -(csumplqmom8(5,ik,4)+csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
+        +csumplqmom8(8,ik,4)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 130)=(csumplq8(1,4)+giot*csumplq8(2,4)-csumplq8(3,4)&
+        -giot*csumplq8(4,4))*adiv1
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 130)=(csumplqmom8(1,ik,4)+giot*csumplqmom8(2,ik,4)&
+        -csumplqmom8(3,ik,4)-giot*csumplqmom8(4,ik,4))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 131)=(csumplq8(7,4)+giot*csumplq8(6,4)-csumplq8(5,4)&
+        -giot*csumplq8(8,4))*adiv1
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 131)=(csumplqmom8(7,ik,4)+giot*csumplqmom8(6,ik,4)&
+        -csumplqmom8(5,ik,4)-giot*csumplqmom8(8,ik,4))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 132)=(csumplq8(1,4)-csumplq8(2,4)+csumplq8(3,4)&
+        -csumplq8(4,4)+(csumplq8(5,4)-csumplq8(6,4)+csumplq8(7,4)&
+        -csumplq8(8,4)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 132)=(csumplqmom8(1,ik,4)-csumplqmom8(2,ik,4)&
+        +csumplqmom8(3,ik,4)-csumplqmom8(4,ik,4)&
+        +(csumplqmom8(5,ik,4)-csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
+        -csumplqmom8(8,ik,4)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 133)=(csumplq8(1,4)-csumplq8(2,4)+csumplq8(3,4)&
+        -csumplq8(4,4)-(csumplq8(5,4)-csumplq8(6,4)+csumplq8(7,4)&
+        -csumplq8(8,4)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 133)=(csumplqmom8(1,ik,4)-csumplqmom8(2,ik,4)&
+        +csumplqmom8(3,ik,4)-csumplqmom8(4,ik,4)&
+        -(csumplqmom8(5,ik,4)-csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
+        -csumplqmom8(8,ik,4)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    ! plaquette operator 5
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 134)=(csumplq8(1,5)+csumplq8(2,5)+csumplq8(3,5)&
+        +csumplq8(4,5)+(csumplq8(5,5)+csumplq8(6,5)+csumplq8(7,5)&
+        +csumplq8(8,5)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 134)=(csumplqmom8(1,ik,5)+csumplqmom8(2,ik,5)&
+        +csumplqmom8(3,ik,5)+csumplqmom8(4,ik,5)&
+        +(csumplqmom8(5,ik,5)+csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
+        +csumplqmom8(8,ik,5)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 135)=(csumplq8(1,5)+csumplq8(2,5)+csumplq8(3,5)&
+        +csumplq8(4,5)-(csumplq8(5,5)+csumplq8(6,5)+csumplq8(7,5)&
+        +csumplq8(8,5)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 135)=(csumplqmom8(1,ik,5)+csumplqmom8(2,ik,5)&
+        +csumplqmom8(3,ik,5)+csumplqmom8(4,ik,5)&
+        -(csumplqmom8(5,ik,5)+csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
+        +csumplqmom8(8,ik,5)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 136)=(csumplq8(1,5)+giot*csumplq8(2,5)-csumplq8(3,5)&
+        -giot*csumplq8(4,5))*adiv1
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 136)=(csumplqmom8(1,ik,5)+giot*csumplqmom8(2,ik,5)&
+        -csumplqmom8(3,ik,5)-giot*csumplqmom8(4,ik,5))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 137)=(csumplq8(7,5)+giot*csumplq8(6,5)-csumplq8(5,5)&
+        -giot*csumplq8(8,5))*adiv1
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 137)=(csumplqmom8(7,ik,5)+giot*csumplqmom8(6,ik,5)&
+        -csumplqmom8(5,ik,5)-giot*csumplqmom8(8,ik,5))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 138)=(csumplq8(1,5)-csumplq8(2,5)+csumplq8(3,5)&
+        -csumplq8(4,5)+(csumplq8(5,5)-csumplq8(6,5)+csumplq8(7,5)&
+        -csumplq8(8,5)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 138)=(csumplqmom8(1,ik,5)-csumplqmom8(2,ik,5)&
+        +csumplqmom8(3,ik,5)-csumplqmom8(4,ik,5)&
+        +(csumplqmom8(5,ik,5)-csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
+        -csumplqmom8(8,ik,5)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 139)=(csumplq8(1,5)-csumplq8(2,5)+csumplq8(3,5)&
+        -csumplq8(4,5)-(csumplq8(5,5)-csumplq8(6,5)+csumplq8(7,5)&
+        -csumplq8(8,5)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 139)=(csumplqmom8(1,ik,5)-csumplqmom8(2,ik,5)&
+        +csumplqmom8(3,ik,5)-csumplqmom8(4,ik,5)&
+        -(csumplqmom8(5,ik,5)-csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
+        -csumplqmom8(8,ik,5)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 6
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 140)=(csumplq8(1,6)+csumplq8(2,6)+csumplq8(3,6)&
+        +csumplq8(4,6)+(csumplq8(5,6)+csumplq8(6,6)+csumplq8(7,6)&
+        +csumplq8(8,6)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 140)=(csumplqmom8(1,ik,6)+csumplqmom8(2,ik,6)&
+        +csumplqmom8(3,ik,6)+csumplqmom8(4,ik,6)&
+        +(csumplqmom8(5,ik,6)+csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
+        +csumplqmom8(8,ik,6)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 141)=(csumplq8(1,6)+csumplq8(2,6)+csumplq8(3,6)&
+        +csumplq8(4,6)-(csumplq8(5,6)+csumplq8(6,6)+csumplq8(7,6)&
+            +csumplq8(8,6)))*adiv2
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 141)=(csumplqmom8(1,ik,6)+csumplqmom8(2,ik,6)&
+        +csumplqmom8(3,ik,6)+csumplqmom8(4,ik,6)&
+        -(csumplqmom8(5,ik,6)+csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
+        +csumplqmom8(8,ik,6)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 142)=(csumplq8(1,6)+giot*csumplq8(2,6)-csumplq8(3,6)&
+        -giot*csumplq8(4,6)+(csumplq8(8,6)+giot*csumplq8(7,6)-csumplq8(6,6)&
+        -giot*csumplq8(5,6)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 142)=(csumplqmom8(1,ik,6)+giot*csumplqmom8(2,ik,6)&
+        -csumplqmom8(3,ik,6)-giot*csumplqmom8(4,ik,6))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 143)=(csumplq8(1,6)+giot*csumplq8(2,6)-csumplq8(3,6)&
+        -giot*csumplq8(4,6)-(csumplq8(8,6)+giot*csumplq8(7,6)-csumplq8(6,6)&
+        -giot*csumplq8(5,6)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 143)=(csumplqmom8(8,ik,6)+giot*csumplqmom8(7,ik,6)&
+        -csumplqmom8(6,ik,6)-giot*csumplqmom8(5,ik,6))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 144)=(csumplq8(1,6)-csumplq8(2,6)+csumplq8(3,6)&
+        -csumplq8(4,6)+(csumplq8(5,6)-csumplq8(6,6)+csumplq8(7,6)&
+        -csumplq8(8,6)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 144)=(csumplqmom8(1,ik,6)-csumplqmom8(2,ik,6)&
+        +csumplqmom8(3,ik,6)-csumplqmom8(4,ik,6)&
+        +(csumplqmom8(5,ik,6)-csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
+        -csumplqmom8(8,ik,6)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 145)=(csumplq8(1,6)-csumplq8(2,6)+csumplq8(3,6)&
+        -csumplq8(4,6)-(csumplq8(5,6)-csumplq8(6,6)+csumplq8(7,6)&
+        -csumplq8(8,6)))*adiv2
+    !**********************************************************************
+    !     j=2, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 145)=(csumplqmom8(1,ik,6)-csumplqmom8(2,ik,6)&
+        +csumplqmom8(3,ik,6)-csumplqmom8(4,ik,6)&
+        -(csumplqmom8(5,ik,6)-csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
+        -csumplqmom8(8,ik,6)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 7
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 146)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        +csumplq16(4,7)&
+        +(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
+        +(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
+        +(csumplq16(13,7)+csumplq16(14,7)+csumplq16(15,7)+csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 146)=(csumplqmom16(1,ik,7)+csumplqmom16(2,ik,7)&
+        +csumplqmom16(3,ik,7)+csumplqmom16(4,ik,7)&
+        +(csumplqmom16(9,ik,7)+csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
+        +csumplqmom16(12,ik,7)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 147)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        +csumplq16(4,7)&
+        -(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
+        +(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
+        -(csumplq16(13,7)+csumplq16(14,7)+csumplq16(15,7)+csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 147)=(csumplqmom16(5,ik,7)+csumplqmom16(6,ik,7)&
+        +csumplqmom16(7,ik,7)+csumplqmom16(8,ik,7)&
+        +(csumplqmom16(13,ik,7)+csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
+        +csumplqmom16(16,ik,7)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 148)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        +csumplq16(4,7)&
+        +(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
+        -(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
+        -(csumplq16(13,7)+csumplq16(14,7)+csumplq16(15,7)+csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 148)=(csumplqmom16(1,ik,7)+csumplqmom16(2,ik,7)&
+        +csumplqmom16(3,ik,7)+csumplqmom16(4,ik,7)&
+        -(csumplqmom16(9,ik,7)+csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
+        +csumplqmom16(12,ik,7)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 149)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        +csumplq16(4,7)&
+        -(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
+        -(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
+        +(csumplq16(13,7)+csumplq16(14,7)+csumplq16(15,7)+csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 149)=(csumplqmom16(5,ik,7)+csumplqmom16(6,ik,7)&
+        +csumplqmom16(7,ik,7)+csumplqmom16(8,ik,7)&
+        -(csumplqmom16(13,ik,7)+csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
+        +csumplqmom16(16,ik,7)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 150)=(csumplq16(1,7)+giot*csumplq16(2,7)-csumplq16(3,7)&
+        -giot*csumplq16(4,7)+(csumplq16(5,7)+giot*csumplq16(6,7)-csumplq16(7,7)&
+        -giot*csumplq16(8,7)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 150)=(csumplqmom16(1,ik,7)+giot*csumplqmom16(2,ik,7)&
+        -csumplqmom16(3,ik,7)-giot*csumplqmom16(4,ik,7))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 151)=(csumplq16(1,7)+giot*csumplq16(2,7)-csumplq16(3,7)&
+        -giot*csumplq16(4,7)-(csumplq16(5,7)+giot*csumplq16(6,7)-csumplq16(7,7)&
+        -giot*csumplq16(8,7)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 151)=(csumplqmom16(5,ik,7)+giot*csumplqmom16(6,ik,7)&
+        -csumplqmom16(7,ik,7)-giot*csumplqmom16(8,ik,7))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 152)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        -csumplq16(4,7)&
+        +(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
+        +(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
+        +(csumplq16(13,7)-csumplq16(14,7)+csumplq16(15,7)-csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 152)=(csumplqmom16(1,ik,7)-csumplqmom16(2,ik,7)&
+        +csumplqmom16(3,ik,7)-csumplqmom16(4,ik,7)&
+        +(csumplqmom16(9,ik,7)-csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
+        -csumplqmom16(12,ik,7)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 153)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        -csumplq16(4,7)&
+        -(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
+        +(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
+        -(csumplq16(13,7)-csumplq16(14,7)+csumplq16(15,7)-csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 153)=(csumplqmom16(5,ik,7)-csumplqmom16(6,ik,7)&
+        +csumplqmom16(7,ik,7)-csumplqmom16(8,ik,7)&
+        +(csumplqmom16(13,ik,7)-csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
+        -csumplqmom16(16,ik,7)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 154)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        -csumplq16(4,7)&
+        +(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
+        -(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
+        -(csumplq16(13,7)-csumplq16(14,7)+csumplq16(15,7)-csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 154)=(csumplqmom16(1,ik,7)-csumplqmom16(2,ik,7)&
+        +csumplqmom16(3,ik,7)-csumplqmom16(4,ik,7)&
+        -(csumplqmom16(9,ik,7)-csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
+        -csumplqmom16(12,ik,7)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 155)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        -csumplq16(4,7)&
+        -(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
+        -(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
+        +(csumplq16(13,7)-csumplq16(14,7)+csumplq16(15,7)-csumplq16(16,7)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 155)=(csumplqmom16(5,ik,7)-csumplqmom16(6,ik,7)&
+        +csumplqmom16(7,ik,7)-csumplqmom16(8,ik,7)&
+        -(csumplqmom16(13,ik,7)-csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
+        -csumplqmom16(16,ik,7)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 8
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 156)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        +csumplq16(4,8)&
+        +(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
+        +(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
+        +(csumplq16(13,8)+csumplq16(14,8)+csumplq16(15,8)+csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 156)=(csumplqmom16(1,ik,8)+csumplqmom16(2,ik,8)&
+        +csumplqmom16(3,ik,8)+csumplqmom16(4,ik,8)&
+        +(csumplqmom16(9,ik,8)+csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
+        +csumplqmom16(12,ik,8)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 157)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        +csumplq16(4,8)&
+        -(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
+        +(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
+        -(csumplq16(13,8)+csumplq16(14,8)+csumplq16(15,8)+csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 157)=(csumplqmom16(5,ik,8)+csumplqmom16(6,ik,8)&
+        +csumplqmom16(7,ik,8)+csumplqmom16(8,ik,8)&
+        +(csumplqmom16(13,ik,8)+csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
+        +csumplqmom16(16,ik,8)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 158)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        +csumplq16(4,8)&
+        +(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
+        -(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
+        -(csumplq16(13,8)+csumplq16(14,8)+csumplq16(15,8)+csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 158)=(csumplqmom16(1,ik,8)+csumplqmom16(2,ik,8)&
+        +csumplqmom16(3,ik,8)+csumplqmom16(4,ik,8)&
+        -(csumplqmom16(9,ik,8)+csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
+        +csumplqmom16(12,ik,8)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 159)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        +csumplq16(4,8)&
+        -(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
+        -(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
+        +(csumplq16(13,8)+csumplq16(14,8)+csumplq16(15,8)+csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 159)=(csumplqmom16(5,ik,8)+csumplqmom16(6,ik,8)&
+        +csumplqmom16(7,ik,8)+csumplqmom16(8,ik,8)&
+        -(csumplqmom16(13,ik,8)+csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
+        +csumplqmom16(16,ik,8)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 160)=(csumplq16(1,8)+giot*csumplq16(2,8)-csumplq16(3,8)&
+        -giot*csumplq16(4,8)+(csumplq16(5,8)+giot*csumplq16(6,8)-csumplq16(7,8)&
+        -giot*csumplq16(8,8)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 160)=(csumplqmom16(1,ik,8)+giot*csumplqmom16(2,ik,8)&
+        -csumplqmom16(3,ik,8)-giot*csumplqmom16(4,ik,8))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 161)=(csumplq16(1,8)+giot*csumplq16(2,8)-csumplq16(3,8)&
+        -giot*csumplq16(4,8)-(csumplq16(5,8)+giot*csumplq16(6,8)-csumplq16(7,8)&
+        -giot*csumplq16(8,8)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 161)=(csumplqmom16(5,ik,8)+giot*csumplqmom16(6,ik,8)&
+        -csumplqmom16(7,ik,8)-giot*csumplqmom16(8,ik,8))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 162)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        -csumplq16(4,8)&
+        +(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
+        +(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
+        +(csumplq16(13,8)-csumplq16(14,8)+csumplq16(15,8)-csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 162)=(csumplqmom16(1,ik,8)-csumplqmom16(2,ik,8)&
+        +csumplqmom16(3,ik,8)-csumplqmom16(4,ik,8)&
+        +(csumplqmom16(9,ik,8)-csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
+        -csumplqmom16(12,ik,8)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 163)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        -csumplq16(4,8)&
+        -(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
+        +(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
+        -(csumplq16(13,8)-csumplq16(14,8)+csumplq16(15,8)-csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 163)=(csumplqmom16(5,ik,8)-csumplqmom16(6,ik,8)&
+        +csumplqmom16(7,ik,8)-csumplqmom16(8,ik,8)&
+        +(csumplqmom16(13,ik,8)-csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
+        -csumplqmom16(16,ik,8)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 164)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        -csumplq16(4,8)&
+        +(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
+        -(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
+        -(csumplq16(13,8)-csumplq16(14,8)+csumplq16(15,8)-csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 164)=(csumplqmom16(1,ik,8)-csumplqmom16(2,ik,8)&
+        +csumplqmom16(3,ik,8)-csumplqmom16(4,ik,8)&
+        -(csumplqmom16(9,ik,8)-csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
+        -csumplqmom16(12,ik,8)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 165)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        -csumplq16(4,8)&
+        -(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
+        -(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
+        +(csumplq16(13,8)-csumplq16(14,8)+csumplq16(15,8)-csumplq16(16,8)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 165)=(csumplqmom16(5,ik,8)-csumplqmom16(6,ik,8)&
+        +csumplqmom16(7,ik,8)-csumplqmom16(8,ik,8)&
+        -(csumplqmom16(13,ik,8)-csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
+        -csumplqmom16(16,ik,8)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 9
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 166)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        +csumplq16(4,9)&
+        +(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
+        +(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
+        +(csumplq16(13,9)+csumplq16(14,9)+csumplq16(15,9)+csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 166)=(csumplqmom16(1,ik,9)+csumplqmom16(2,ik,9)&
+        +csumplqmom16(3,ik,9)+csumplqmom16(4,ik,9)&
+        +(csumplqmom16(9,ik,9)+csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
+        +csumplqmom16(12,ik,9)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 167)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        +csumplq16(4,9)&
+        -(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
+        +(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
+        -(csumplq16(13,9)+csumplq16(14,9)+csumplq16(15,9)+csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 167)=(csumplqmom16(5,ik,9)+csumplqmom16(6,ik,9)&
+        +csumplqmom16(7,ik,9)+csumplqmom16(8,ik,9)&
+        +(csumplqmom16(13,ik,9)+csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
+        +csumplqmom16(16,ik,9)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 168)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        +csumplq16(4,9)&
+        +(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
+        -(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
+        -(csumplq16(13,9)+csumplq16(14,9)+csumplq16(15,9)+csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 168)=(csumplqmom16(1,ik,9)+csumplqmom16(2,ik,9)&
+        +csumplqmom16(3,ik,9)+csumplqmom16(4,ik,9)&
+        -(csumplqmom16(9,ik,9)+csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
+        +csumplqmom16(12,ik,9)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 169)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        +csumplq16(4,9)&
+        -(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
+        -(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
+        +(csumplq16(13,9)+csumplq16(14,9)+csumplq16(15,9)+csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 169)=(csumplqmom16(5,ik,9)+csumplqmom16(6,ik,9)&
+        +csumplqmom16(7,ik,9)+csumplqmom16(8,ik,9)&
+        -(csumplqmom16(13,ik,9)+csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
+        +csumplqmom16(16,ik,9)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 170)=(csumplq16(1,9)+giot*csumplq16(2,9)-csumplq16(3,9)&
+        -giot*csumplq16(4,9)+(csumplq16(5,9)+giot*csumplq16(6,9)-csumplq16(7,9)&
+        -giot*csumplq16(8,9)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 170)=(csumplqmom16(1,ik,9)+giot*csumplqmom16(2,ik,9)&
+        -csumplqmom16(3,ik,9)-giot*csumplqmom16(4,ik,9))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 171)=(csumplq16(1,9)+giot*csumplq16(2,9)-csumplq16(3,9)&
+        -giot*csumplq16(4,9)-(csumplq16(5,9)+giot*csumplq16(6,9)-csumplq16(7,9)&
+        -giot*csumplq16(8,9)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 171)=(csumplqmom16(5,ik,9)+giot*csumplqmom16(6,ik,9)&
+        -csumplqmom16(7,ik,9)-giot*csumplqmom16(8,ik,9))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 172)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        -csumplq16(4,9)&
+        +(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
+        +(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
+        +(csumplq16(13,9)-csumplq16(14,9)+csumplq16(15,9)-csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 172)=(csumplqmom16(1,ik,9)-csumplqmom16(2,ik,9)&
+        +csumplqmom16(3,ik,9)-csumplqmom16(4,ik,9)&
+        +(csumplqmom16(9,ik,9)-csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
+        -csumplqmom16(12,ik,9)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 173)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        -csumplq16(4,9)&
+        -(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
+        +(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
+        -(csumplq16(13,9)-csumplq16(14,9)+csumplq16(15,9)-csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 173)=(csumplqmom16(5,ik,9)-csumplqmom16(6,ik,9)&
+        +csumplqmom16(7,ik,9)-csumplqmom16(8,ik,9)&
+        +(csumplqmom16(13,ik,9)-csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
+        -csumplqmom16(16,ik,9)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 174)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        -csumplq16(4,9)&
+        +(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
+        -(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
+        -(csumplq16(13,9)-csumplq16(14,9)+csumplq16(15,9)-csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 174)=(csumplqmom16(1,ik,9)-csumplqmom16(2,ik,9)&
+        +csumplqmom16(3,ik,9)-csumplqmom16(4,ik,9)&
+        -(csumplqmom16(9,ik,9)-csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
+        -csumplqmom16(12,ik,9)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 175)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        -csumplq16(4,9)&
+        -(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
+        -(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
+        +(csumplq16(13,9)-csumplq16(14,9)+csumplq16(15,9)-csumplq16(16,9)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 175)=(csumplqmom16(5,ik,9)-csumplqmom16(6,ik,9)&
+        +csumplqmom16(7,ik,9)-csumplqmom16(8,ik,9)&
+        -(csumplqmom16(13,ik,9)-csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
+        -csumplqmom16(16,ik,9)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 10
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 176)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        +csumplq16(4,10)&
+        +(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
+        +(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
+        +(csumplq16(13,10)+csumplq16(14,10)+csumplq16(15,10)+csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 176)=(csumplqmom16(1,ik,10)+csumplqmom16(2,ik,10)&
+        +csumplqmom16(3,ik,10)+csumplqmom16(4,ik,10)&
+        +(csumplqmom16(9,ik,10)+csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
+        +csumplqmom16(12,ik,10)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 177)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        +csumplq16(4,10)&
+        -(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
+        +(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
+        -(csumplq16(13,10)+csumplq16(14,10)+csumplq16(15,10)+csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 177)=(csumplqmom16(5,ik,10)+csumplqmom16(6,ik,10)&
+        +csumplqmom16(7,ik,10)+csumplqmom16(8,ik,10)&
+        +(csumplqmom16(13,ik,10)+csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
+        +csumplqmom16(16,ik,10)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 178)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        +csumplq16(4,10)&
+        +(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
+        -(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
+        -(csumplq16(13,10)+csumplq16(14,10)+csumplq16(15,10)+csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 178)=(csumplqmom16(1,ik,10)+csumplqmom16(2,ik,10)&
+        +csumplqmom16(3,ik,10)+csumplqmom16(4,ik,10)&
+        -(csumplqmom16(9,ik,10)+csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
+        +csumplqmom16(12,ik,10)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 179)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        +csumplq16(4,10)&
+        -(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
+        -(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
+        +(csumplq16(13,10)+csumplq16(14,10)+csumplq16(15,10)+csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 179)=(csumplqmom16(5,ik,10)+csumplqmom16(6,ik,10)&
+        +csumplqmom16(7,ik,10)+csumplqmom16(8,ik,10)&
+        -(csumplqmom16(13,ik,10)+csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
+        +csumplqmom16(16,ik,10)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************      
-        ALINE112(N4,ID)=(CSUMPLQ(1)+GIOT*CSUMPLQ(2)-CSUMPLQ(3)&
-        -GIOT*CSUMPLQ(4)&
-        +(CSUMPLQ(6)+GIOT*CSUMPLQ(5)-CSUMPLQ(8)-GIOT*CSUMPLQ(7)))*ADIV2
+    !     j=1, pr=+, q=0
     !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************      
-        do IK=1, 2
-            ALINEMOM112(N4,ID,IK)=(CSUMPLQMOM(1,IK)+GIOT*CSUMPLQMOM(2,IK)&
-        -CSUMPLQMOM(3,IK)-GIOT*CSUMPLQMOM(4,IK))*ADIV1
-        enddo   
+        lines(time_slice, id, 180)=(csumplq16(1,10)+giot*csumplq16(2,10)-csumplq16(3,10)&
+        -giot*csumplq16(4,10)+(csumplq16(5,10)+giot*csumplq16(6,10)-csumplq16(7,10)&
+        -giot*csumplq16(8,10)))*adiv2
     !**********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************      
-        ALINE113(N4,ID)=(CSUMPLQ(1)+GIOT*CSUMPLQ(2)-CSUMPLQ(3)&
-        -GIOT*CSUMPLQ(4)&
-        -(CSUMPLQ(6)+GIOT*CSUMPLQ(5)-CSUMPLQ(8)-GIOT*CSUMPLQ(7)))*ADIV2
+    !     j=1, q=1,2
     !**********************************************************************
-    !     J=1, q=0
-    !**********************************************************************      
-        do IK=1, 2
-            ALINEMOM113(N4,ID,IK)=(CSUMPLQMOM(6,IK)+GIOT*CSUMPLQMOM(5,IK)&
-        -CSUMPLQMOM(8,IK)-GIOT*CSUMPLQMOM(7,IK))*ADIV1
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 180)=(csumplqmom16(1,ik,10)&
+        +giot*csumplqmom16(2,ik,10)&
+        -csumplqmom16(3,ik,10)-giot*csumplqmom16(4,ik,10))*adiv1
         enddo
     !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************      
-        ALINE114(N4,ID)=(CSUMPLQ(1)-CSUMPLQ(2)+CSUMPLQ(3)-CSUMPLQ(4)&
-        +CSUMPLQ(5)-CSUMPLQ(6)+CSUMPLQ(7)-CSUMPLQ(8))*ADIV2
+    !     j=1, pr=-, q=0
     !**********************************************************************
-    !     J=2, Pr=+, q=0
-    !**********************************************************************      
-        do IK=1, 2
-            ALINEMOM114(N4,ID,IK)=(CSUMPLQMOM(1,IK)-CSUMPLQMOM(2,IK)&
-        +CSUMPLQMOM(3,IK)-CSUMPLQMOM(4,IK)+CSUMPLQMOM(5,IK)&
-        -CSUMPLQMOM(6,IK)+CSUMPLQMOM(7,IK)-CSUMPLQMOM(8,IK))*ADIV2
+        lines(time_slice, id, 181)=(csumplq16(1,10)+giot*csumplq16(2,10)-csumplq16(3,10)&
+        -giot*csumplq16(4,10)-(csumplq16(5,10)+giot*csumplq16(6,10)-csumplq16(7,10)&
+        -giot*csumplq16(8,10)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 181)=(csumplqmom16(5,ik,10)&
+        +giot*csumplqmom16(6,ik,10)&
+        -csumplqmom16(7,ik,10)-giot*csumplqmom16(8,ik,10))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 182)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        -csumplq16(4,10)&
+        +(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
+        +(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
+        +(csumplq16(13,10)-csumplq16(14,10)+csumplq16(15,10)-csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 182)=(csumplqmom16(1,ik,10)-csumplqmom16(2,ik,10)&
+        +csumplqmom16(3,ik,10)-csumplqmom16(4,ik,10)&
+        +(csumplqmom16(9,ik,10)-csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
+        -csumplqmom16(12,ik,10)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 183)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        -csumplq16(4,10)&
+        -(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
+        +(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
+        -(csumplq16(13,10)-csumplq16(14,10)+csumplq16(15,10)-csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 183)=(csumplqmom16(5,ik,10)-csumplqmom16(6,ik,10)&
+        +csumplqmom16(7,ik,10)-csumplqmom16(8,ik,10)&
+        +(csumplqmom16(13,ik,10)-csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
+        -csumplqmom16(16,ik,10)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 184)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        -csumplq16(4,10)&
+        +(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
+        -(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
+        -(csumplq16(13,10)-csumplq16(14,10)+csumplq16(15,10)-csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 184)=(csumplqmom16(1,ik,10)-csumplqmom16(2,ik,10)&
+        +csumplqmom16(3,ik,10)-csumplqmom16(4,ik,10)&
+        -(csumplqmom16(9,ik,10)-csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
+        -csumplqmom16(12,ik,10)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 185)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        -csumplq16(4,10)&
+        -(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
+        -(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
+        +(csumplq16(13,10)-csumplq16(14,10)+csumplq16(15,10)-csumplq16(16,10)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 185)=(csumplqmom16(5,ik,10)-csumplqmom16(6,ik,10)&
+        +csumplqmom16(7,ik,10)-csumplqmom16(8,ik,10)&
+        -(csumplqmom16(13,ik,10)-csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
+        -csumplqmom16(16,ik,10)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 11
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 186)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        +csumplq16(4,11)&
+        +(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
+        +(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
+        +(csumplq16(13,11)+csumplq16(14,11)+csumplq16(15,11)+csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 186)=(csumplqmom16(1,ik,11)+csumplqmom16(2,ik,11)&
+        +csumplqmom16(3,ik,11)+csumplqmom16(4,ik,11)&
+        +(csumplqmom16(9,ik,11)+csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
+        +csumplqmom16(12,ik,11)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 187)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        +csumplq16(4,11)&
+        -(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
+        +(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
+        -(csumplq16(13,11)+csumplq16(14,11)+csumplq16(15,11)+csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 187)=(csumplqmom16(5,ik,11)+csumplqmom16(6,ik,11)&
+        +csumplqmom16(7,ik,11)+csumplqmom16(8,ik,11)&
+        +(csumplqmom16(13,ik,11)+csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
+        +csumplqmom16(16,ik,11)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 188)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        +csumplq16(4,11)&
+        +(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
+        -(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
+        -(csumplq16(13,11)+csumplq16(14,11)+csumplq16(15,11)+csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 188)=(csumplqmom16(1,ik,11)+csumplqmom16(2,ik,11)&
+        +csumplqmom16(3,ik,11)+csumplqmom16(4,ik,11)&
+        -(csumplqmom16(9,ik,11)+csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
+        +csumplqmom16(12,ik,11)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 189)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        +csumplq16(4,11)&
+        -(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
+        -(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
+        +(csumplq16(13,11)+csumplq16(14,11)+csumplq16(15,11)+csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 189)=(csumplqmom16(5,ik,11)+csumplqmom16(6,ik,11)&
+        +csumplqmom16(7,ik,11)+csumplqmom16(8,ik,11)&
+        -(csumplqmom16(13,ik,11)+csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
+        +csumplqmom16(16,ik,11)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 190)=(csumplq16(1,11)+giot*csumplq16(2,11)-csumplq16(3,11)&
+        -giot*csumplq16(4,11)+(csumplq16(5,11)+giot*csumplq16(6,11)-csumplq16(7,11)&
+        -giot*csumplq16(8,11)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 190)=(csumplqmom16(1,ik,11)&
+        +giot*csumplqmom16(2,ik,11)&
+        -csumplqmom16(3,ik,11)-giot*csumplqmom16(4,ik,11))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 191)=(csumplq16(1,11)+giot*csumplq16(2,11)-csumplq16(3,11)&
+        -giot*csumplq16(4,11)-(csumplq16(5,11)+giot*csumplq16(6,11)-csumplq16(7,11)&
+        -giot*csumplq16(8,11)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 191)=(csumplqmom16(5,ik,11)&
+        +giot*csumplqmom16(6,ik,11)&
+        -csumplqmom16(7,ik,11)-giot*csumplqmom16(8,ik,11))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 192)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        -csumplq16(4,11)&
+        +(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
+        +(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
+        +(csumplq16(13,11)-csumplq16(14,11)+csumplq16(15,11)-csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 192)=(csumplqmom16(1,ik,11)-csumplqmom16(2,ik,11)&
+        +csumplqmom16(3,ik,11)-csumplqmom16(4,ik,11)&
+        +(csumplqmom16(9,ik,11)-csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
+        -csumplqmom16(12,ik,11)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 193)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        -csumplq16(4,11)&
+        -(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
+        +(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
+        -(csumplq16(13,11)-csumplq16(14,11)+csumplq16(15,11)-csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 193)=(csumplqmom16(5,ik,11)-csumplqmom16(6,ik,11)&
+        +csumplqmom16(7,ik,11)-csumplqmom16(8,ik,11)&
+        +(csumplqmom16(13,ik,11)-csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
+        -csumplqmom16(16,ik,11)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 194)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        -csumplq16(4,11)&
+        +(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
+        -(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
+        -(csumplq16(13,11)-csumplq16(14,11)+csumplq16(15,11)-csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 194)=(csumplqmom16(1,ik,11)-csumplqmom16(2,ik,11)&
+        +csumplqmom16(3,ik,11)-csumplqmom16(4,ik,11)&
+        -(csumplqmom16(9,ik,11)-csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
+        -csumplqmom16(12,ik,11)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 195)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        -csumplq16(4,11)&
+        -(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
+        -(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
+        +(csumplq16(13,11)-csumplq16(14,11)+csumplq16(15,11)-csumplq16(16,11)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 195)=(csumplqmom16(5,ik,11)-csumplqmom16(6,ik,11)&
+        +csumplqmom16(7,ik,11)-csumplqmom16(8,ik,11)&
+        -(csumplqmom16(13,ik,11)-csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
+        -csumplqmom16(16,ik,11)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 12
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 196)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        +csumplq16(4,12)&
+        +(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
+        +(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
+        +(csumplq16(13,12)+csumplq16(14,12)+csumplq16(15,12)+csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 196)=(csumplqmom16(1,ik,12)+csumplqmom16(2,ik,12)&
+        +csumplqmom16(3,ik,12)+csumplqmom16(4,ik,12)&
+        +(csumplqmom16(9,ik,12)+csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
+        +csumplqmom16(12,ik,12)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 197)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        +csumplq16(4,12)&
+        -(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
+        +(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
+        -(csumplq16(13,12)+csumplq16(14,12)+csumplq16(15,12)+csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 197)=(csumplqmom16(5,ik,12)+csumplqmom16(6,ik,12)&
+        +csumplqmom16(7,ik,12)+csumplqmom16(8,ik,12)&
+        +(csumplqmom16(13,ik,12)+csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
+        +csumplqmom16(16,ik,12)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 198)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        +csumplq16(4,12)&
+        +(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
+        -(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
+        -(csumplq16(13,12)+csumplq16(14,12)+csumplq16(15,12)+csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 198)=(csumplqmom16(1,ik,12)+csumplqmom16(2,ik,12)&
+        +csumplqmom16(3,ik,12)+csumplqmom16(4,ik,12)&
+        -(csumplqmom16(9,ik,12)+csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
+        +csumplqmom16(12,ik,12)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 199)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        +csumplq16(4,12)&
+        -(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
+        -(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
+        +(csumplq16(13,12)+csumplq16(14,12)+csumplq16(15,12)+csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 199)=(csumplqmom16(5,ik,12)+csumplqmom16(6,ik,12)&
+        +csumplqmom16(7,ik,12)+csumplqmom16(8,ik,12)&
+        -(csumplqmom16(13,ik,12)+csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
+        +csumplqmom16(16,ik,12)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 200)=(csumplq16(1,12)+giot*csumplq16(2,12)-csumplq16(3,12)&
+        -giot*csumplq16(4,12)+(csumplq16(5,12)+giot*csumplq16(6,12)-csumplq16(7,12)&
+        -giot*csumplq16(8,12)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 200)=(csumplqmom16(1,ik,12)&
+        +giot*csumplqmom16(2,ik,12)&
+        -csumplqmom16(3,ik,12)-giot*csumplqmom16(4,ik,12))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 201)=(csumplq16(1,12)+giot*csumplq16(2,12)-csumplq16(3,12)&
+        -giot*csumplq16(4,12)-(csumplq16(5,12)+giot*csumplq16(6,12)-csumplq16(7,12)&
+        -giot*csumplq16(8,12)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 201)=(csumplqmom16(5,ik,12)&
+        +giot*csumplqmom16(6,ik,12)&
+        -csumplqmom16(7,ik,12)-giot*csumplqmom16(8,ik,12))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 202)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        -csumplq16(4,12)&
+        +(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
+        +(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
+        +(csumplq16(13,12)-csumplq16(14,12)+csumplq16(15,12)-csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 202)=(csumplqmom16(1,ik,12)-csumplqmom16(2,ik,12)&
+        +csumplqmom16(3,ik,12)-csumplqmom16(4,ik,12)&
+        +(csumplqmom16(9,ik,12)-csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
+        -csumplqmom16(12,ik,12)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 203)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        -csumplq16(4,12)&
+        -(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
+        +(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
+        -(csumplq16(13,12)-csumplq16(14,12)+csumplq16(15,12)-csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 203)=(csumplqmom16(5,ik,12)-csumplqmom16(6,ik,12)&
+        +csumplqmom16(7,ik,12)-csumplqmom16(8,ik,12)&
+        +(csumplqmom16(13,ik,12)-csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
+        -csumplqmom16(16,ik,12)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 204)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        -csumplq16(4,12)&
+        +(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
+        -(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
+        -(csumplq16(13,12)-csumplq16(14,12)+csumplq16(15,12)-csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 204)=(csumplqmom16(1,ik,12)-csumplqmom16(2,ik,12)&
+        +csumplqmom16(3,ik,12)-csumplqmom16(4,ik,12)&
+        -(csumplqmom16(9,ik,12)-csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
+        -csumplqmom16(12,ik,12)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 205)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        -csumplq16(4,12)&
+        -(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
+        -(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
+        +(csumplq16(13,12)-csumplq16(14,12)+csumplq16(15,12)-csumplq16(16,12)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 205)=(csumplqmom16(5,ik,12)-csumplqmom16(6,ik,12)&
+        +csumplqmom16(7,ik,12)-csumplqmom16(8,ik,12)&
+        -(csumplqmom16(13,ik,12)-csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
+        -csumplqmom16(16,ik,12)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 13
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 206)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        +csumplq16(4,13)&
+        +(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
+        +(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
+        +(csumplq16(13,13)+csumplq16(14,13)+csumplq16(15,13)+csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 206)=(csumplqmom16(1,ik,13)+csumplqmom16(2,ik,13)&
+        +csumplqmom16(3,ik,13)+csumplqmom16(4,ik,13)&
+        +(csumplqmom16(9,ik,13)+csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
+        +csumplqmom16(12,ik,13)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 207)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        +csumplq16(4,13)&
+        -(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
+        +(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
+        -(csumplq16(13,13)+csumplq16(14,13)+csumplq16(15,13)+csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 207)=(csumplqmom16(5,ik,13)+csumplqmom16(6,ik,13)&
+        +csumplqmom16(7,ik,13)+csumplqmom16(8,ik,13)&
+        +(csumplqmom16(13,ik,13)+csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
+        +csumplqmom16(16,ik,13)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 208)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        +csumplq16(4,13)&
+        +(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
+        -(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
+        -(csumplq16(13,13)+csumplq16(14,13)+csumplq16(15,13)+csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 208)=(csumplqmom16(1,ik,13)+csumplqmom16(2,ik,13)&
+        +csumplqmom16(3,ik,13)+csumplqmom16(4,ik,13)&
+        -(csumplqmom16(9,ik,13)+csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
+        +csumplqmom16(12,ik,13)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 209)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        +csumplq16(4,13)&
+        -(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
+        -(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
+        +(csumplq16(13,13)+csumplq16(14,13)+csumplq16(15,13)+csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 209)=(csumplqmom16(5,ik,13)+csumplqmom16(6,ik,13)&
+        +csumplqmom16(7,ik,13)+csumplqmom16(8,ik,13)&
+        -(csumplqmom16(13,ik,13)+csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
+        +csumplqmom16(16,ik,13)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 210)=(csumplq16(1,13)+giot*csumplq16(2,13)-csumplq16(3,13)&
+        -giot*csumplq16(4,13)+(csumplq16(5,13)+giot*csumplq16(6,13)-csumplq16(7,13)&
+        -giot*csumplq16(8,13)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 210)=(csumplqmom16(1,ik,13)&
+        +giot*csumplqmom16(2,ik,13)&
+        -csumplqmom16(3,ik,13)-giot*csumplqmom16(4,ik,13))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 211)=(csumplq16(1,13)+giot*csumplq16(2,13)-csumplq16(3,13)&
+        -giot*csumplq16(4,13)-(csumplq16(5,13)+giot*csumplq16(6,13)-csumplq16(7,13)&
+        -giot*csumplq16(8,13)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 211)=(csumplqmom16(5,ik,13)&
+        +giot*csumplqmom16(6,ik,13)&
+        -csumplqmom16(7,ik,13)-giot*csumplqmom16(8,ik,13))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 212)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        -csumplq16(4,13)&
+        +(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
+        +(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
+        +(csumplq16(13,13)-csumplq16(14,13)+csumplq16(15,13)-csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 212)=(csumplqmom16(1,ik,13)-csumplqmom16(2,ik,13)&
+        +csumplqmom16(3,ik,13)-csumplqmom16(4,ik,13)&
+        +(csumplqmom16(9,ik,13)-csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
+        -csumplqmom16(12,ik,13)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 213)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        -csumplq16(4,13)&
+        -(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
+        +(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
+        -(csumplq16(13,13)-csumplq16(14,13)+csumplq16(15,13)-csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 213)=(csumplqmom16(5,ik,13)-csumplqmom16(6,ik,13)&
+        +csumplqmom16(7,ik,13)-csumplqmom16(8,ik,13)&
+        +(csumplqmom16(13,ik,13)-csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
+        -csumplqmom16(16,ik,13)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 214)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        -csumplq16(4,13)&
+        +(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
+        -(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
+        -(csumplq16(13,13)-csumplq16(14,13)+csumplq16(15,13)-csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 214)=(csumplqmom16(1,ik,13)-csumplqmom16(2,ik,13)&
+        +csumplqmom16(3,ik,13)-csumplqmom16(4,ik,13)&
+        -(csumplqmom16(9,ik,13)-csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
+        -csumplqmom16(12,ik,13)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 215)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        -csumplq16(4,13)&
+        -(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
+        -(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
+        +(csumplq16(13,13)-csumplq16(14,13)+csumplq16(15,13)-csumplq16(16,13)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 215)=(csumplqmom16(5,ik,13)-csumplqmom16(6,ik,13)&
+        +csumplqmom16(7,ik,13)-csumplqmom16(8,ik,13)&
+        -(csumplqmom16(13,ik,13)-csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
+        -csumplqmom16(16,ik,13)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 14
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 216)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        +csumplq16(4,14)&
+        +(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
+        +(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
+        +(csumplq16(13,14)+csumplq16(14,14)+csumplq16(15,14)+csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 216)=(csumplqmom16(1,ik,14)+csumplqmom16(2,ik,14)&
+        +csumplqmom16(3,ik,14)+csumplqmom16(4,ik,14)&
+        +(csumplqmom16(9,ik,14)+csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
+        +csumplqmom16(12,ik,14)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 217)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        +csumplq16(4,14)&
+        -(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
+        +(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
+        -(csumplq16(13,14)+csumplq16(14,14)+csumplq16(15,14)+csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 217)=(csumplqmom16(5,ik,14)+csumplqmom16(6,ik,14)&
+        +csumplqmom16(7,ik,14)+csumplqmom16(8,ik,14)&
+        +(csumplqmom16(13,ik,14)+csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
+        +csumplqmom16(16,ik,14)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 218)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        +csumplq16(4,14)&
+        +(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
+        -(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
+        -(csumplq16(13,14)+csumplq16(14,14)+csumplq16(15,14)+csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 218)=(csumplqmom16(1,ik,14)+csumplqmom16(2,ik,14)&
+        +csumplqmom16(3,ik,14)+csumplqmom16(4,ik,14)&
+        -(csumplqmom16(9,ik,14)+csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
+        +csumplqmom16(12,ik,14)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 219)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        +csumplq16(4,14)&
+        -(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
+        -(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
+        +(csumplq16(13,14)+csumplq16(14,14)+csumplq16(15,14)+csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 219)=(csumplqmom16(5,ik,14)+csumplqmom16(6,ik,14)&
+        +csumplqmom16(7,ik,14)+csumplqmom16(8,ik,14)&
+        -(csumplqmom16(13,ik,14)+csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
+        +csumplqmom16(16,ik,14)))*adiv2
         enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************            
-        ALINE115(N4,ID)=(CSUMPLQ(1)-CSUMPLQ(2)+CSUMPLQ(3)-CSUMPLQ(4)&
-        -(CSUMPLQ(5)-CSUMPLQ(6)+CSUMPLQ(7)-CSUMPLQ(8)))*ADIV2
+    !     j=1, pr=+, q=0
     !**********************************************************************
-    !     J=2, Pr=-, q=0
-    !**********************************************************************            
-        do IK=1, 2
-            ALINEMOM115(N4,ID,IK)=(CSUMPLQMOM(1,IK)-CSUMPLQMOM(2,IK)&
-        +CSUMPLQMOM(3,IK)-CSUMPLQMOM(4,IK)-(CSUMPLQMOM(5,IK)&
-        -CSUMPLQMOM(6,IK)+CSUMPLQMOM(7,IK)-CSUMPLQMOM(8,IK)))*ADIV2
+        lines(time_slice, id, 220)=(csumplq16(1,14)+giot*csumplq16(2,14)-csumplq16(3,14)&
+        -giot*csumplq16(4,14)+(csumplq16(5,14)+giot*csumplq16(6,14)-csumplq16(7,14)&
+        -giot*csumplq16(8,14)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 220)=(csumplqmom16(1,ik,14)&
+        +giot*csumplqmom16(2,ik,14)&
+        -csumplqmom16(3,ik,14)-giot*csumplqmom16(4,ik,14))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 221)=(csumplq16(1,14)+giot*csumplq16(2,14)-csumplq16(3,14)&
+        -giot*csumplq16(4,14)-(csumplq16(5,14)+giot*csumplq16(6,14)-csumplq16(7,14)&
+        -giot*csumplq16(8,14)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 221)=(csumplqmom16(5,ik,14)&
+        +giot*csumplqmom16(6,ik,14)&
+        -csumplqmom16(7,ik,14)-giot*csumplqmom16(8,ik,14))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 222)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        -csumplq16(4,14)&
+        +(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
+        +(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
+        +(csumplq16(13,14)-csumplq16(14,14)+csumplq16(15,14)-csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 222)=(csumplqmom16(1,ik,14)-csumplqmom16(2,ik,14)&
+        +csumplqmom16(3,ik,14)-csumplqmom16(4,ik,14)&
+        +(csumplqmom16(9,ik,14)-csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
+        -csumplqmom16(12,ik,14)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 223)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        -csumplq16(4,14)&
+        -(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
+        +(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
+        -(csumplq16(13,14)-csumplq16(14,14)+csumplq16(15,14)-csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 223)=(csumplqmom16(5,ik,14)-csumplqmom16(6,ik,14)&
+        +csumplqmom16(7,ik,14)-csumplqmom16(8,ik,14)&
+        +(csumplqmom16(13,ik,14)-csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
+        -csumplqmom16(16,ik,14)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 224)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        -csumplq16(4,14)&
+        +(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
+        -(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
+        -(csumplq16(13,14)-csumplq16(14,14)+csumplq16(15,14)-csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 224)=(csumplqmom16(1,ik,14)-csumplqmom16(2,ik,14)&
+        +csumplqmom16(3,ik,14)-csumplqmom16(4,ik,14)&
+        -(csumplqmom16(9,ik,14)-csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
+        -csumplqmom16(12,ik,14)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 225)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        -csumplq16(4,14)&
+        -(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
+        -(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
+        +(csumplq16(13,14)-csumplq16(14,14)+csumplq16(15,14)-csumplq16(16,14)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 225)=(csumplqmom16(5,ik,14)-csumplqmom16(6,ik,14)&
+        +csumplqmom16(7,ik,14)-csumplqmom16(8,ik,14)&
+        -(csumplqmom16(13,ik,14)-csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
+        -csumplqmom16(16,ik,14)))*adiv2
+        enddo
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    !     plaquette operators 15
+    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    !**********************************************************************
+    !     j=0, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 226)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        +csumplq16(4,15)&
+        +(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
+        +(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
+        +(csumplq16(13,15)+csumplq16(14,15)+csumplq16(15,15)+csumplq16(16,15)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=+, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 226)=(csumplqmom16(1,ik,15)+csumplqmom16(2,ik,15)&
+        +csumplqmom16(3,ik,15)+csumplqmom16(4,ik,15)&
+        +(csumplqmom16(9,ik,15)+csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
+        +csumplqmom16(12,ik,15)))*adiv2
         enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATOR 2
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
     !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************                  
-        ALINE116(N4,ID)=(CSUMPLQ2(1)+CSUMPLQ2(2)+CSUMPLQ2(3)+CSUMPLQ2(4)&
-        +CSUMPLQ2(5)+CSUMPLQ2(6)+CSUMPLQ2(7)+CSUMPLQ2(8))*ADIV2
+    !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM116(N4,ID,IK)=(CSUMPLQMOM2(1,IK)+CSUMPLQMOM2(2,IK)&
-        +CSUMPLQMOM2(3,IK)+CSUMPLQMOM2(4,IK)+CSUMPLQMOM2(5,IK)&
-        +CSUMPLQMOM2(6,IK)+CSUMPLQMOM2(7,IK)+CSUMPLQMOM2(8,IK))*ADIV2
-        enddo   
+        lines(time_slice, id, 227)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        +csumplq16(4,15)&
+        -(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
+        +(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
+        -(csumplq16(13,15)+csumplq16(14,15)+csumplq16(15,15)+csumplq16(16,15)))*adiv3
     !**********************************************************************
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE117(N4,ID)=(CSUMPLQ2(1)+CSUMPLQ2(2)+CSUMPLQ2(3)+CSUMPLQ2(4)&
-        -(CSUMPLQ2(5)+CSUMPLQ2(6)+CSUMPLQ2(7)+CSUMPLQ2(8)))*ADIV2
+    !     j=0, pp=+, q=1,2
     !**********************************************************************
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM117(N4,ID,IK)=(CSUMPLQMOM2(1,IK)+CSUMPLQMOM2(2,IK)&
-        +CSUMPLQMOM2(3,IK)+CSUMPLQMOM2(4,IK)-(CSUMPLQMOM2(5,IK)&
-        +CSUMPLQMOM2(6,IK)+CSUMPLQMOM2(7,IK)+CSUMPLQMOM2(8,IK)))*ADIV2
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 227)=(csumplqmom16(5,ik,15)+csumplqmom16(6,ik,15)&
+        +csumplqmom16(7,ik,15)+csumplqmom16(8,ik,15)&
+        +(csumplqmom16(13,ik,15)+csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
+        +csumplqmom16(16,ik,15)))*adiv2
         enddo
     !**********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************                        
-        ALINE118(N4,ID)=(CSUMPLQ2(1)+GIOT*CSUMPLQ2(2)-CSUMPLQ2(3)&
-        -GIOT*CSUMPLQ2(4)&
-        +CSUMPLQ2(6)+GIOT*CSUMPLQ2(5)-CSUMPLQ2(8)-GIOT*CSUMPLQ2(7))*ADIV2
+    !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM118(N4,ID,IK)=(CSUMPLQMOM2(1,IK)+GIOT*CSUMPLQMOM2(2,IK)&
-        -CSUMPLQMOM2(3,IK)-GIOT*CSUMPLQMOM2(4,IK))*ADIV1
+        lines(time_slice, id, 228)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        +csumplq16(4,15)&
+        +(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
+        -(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
+        -(csumplq16(13,15)+csumplq16(14,15)+csumplq16(15,15)+csumplq16(16,15)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 228)=(csumplqmom16(1,ik,15)+csumplqmom16(2,ik,15)&
+        +csumplqmom16(3,ik,15)+csumplqmom16(4,ik,15)&
+        -(csumplqmom16(9,ik,15)+csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
+        +csumplqmom16(12,ik,15)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=0, pp=-, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 229)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        +csumplq16(4,15)&
+        -(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
+        -(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
+        +(csumplq16(13,15)+csumplq16(14,15)+csumplq16(15,15)+csumplq16(16,15)))*adiv3
+    !**********************************************************************
+    !     j=0, pp=-, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 229)=(csumplqmom16(5,ik,15)+csumplqmom16(6,ik,15)&
+        +csumplqmom16(7,ik,15)+csumplqmom16(8,ik,15)&
+        -(csumplqmom16(13,ik,15)+csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
+        +csumplqmom16(16,ik,15)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=1, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 230)=(csumplq16(1,15)+giot*csumplq16(2,15)-csumplq16(3,15)&
+        -giot*csumplq16(4,15)+(csumplq16(5,15)+giot*csumplq16(6,15)-csumplq16(7,15)&
+        -giot*csumplq16(8,15)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 230)=(csumplqmom16(1,ik,15)&
+        +giot*csumplqmom16(2,ik,15)&
+        -csumplqmom16(3,ik,15)-giot*csumplqmom16(4,ik,15))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=1, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 231)=(csumplq16(1,15)+giot*csumplq16(2,15)-csumplq16(3,15)&
+        -giot*csumplq16(4,15)-(csumplq16(5,15)+giot*csumplq16(6,15)-csumplq16(7,15)&
+        -giot*csumplq16(8,15)))*adiv2
+    !**********************************************************************
+    !     j=1, q=1,2  here!
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 231)=(csumplqmom16(5,ik,15)&
+        +giot*csumplqmom16(6,ik,15)&
+        -csumplqmom16(7,ik,15)-giot*csumplqmom16(8,ik,15))*adiv1
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=+, q=0
+    !**********************************************************************
+        lines(time_slice, id, 232)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        -csumplq16(4,15)&
+        +(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
+        +(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
+        +(csumplq16(13,15)-csumplq16(14,15)+csumplq16(15,15)-csumplq16(16,15)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 232)=(csumplqmom16(1,ik,15)-csumplqmom16(2,ik,15)&
+        +csumplqmom16(3,ik,15)-csumplqmom16(4,ik,15)&
+        +(csumplqmom16(9,ik,15)-csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
+        -csumplqmom16(12,ik,15)))*adiv2
+        enddo
+    !**********************************************************************
+    !     j=2, pp=+, pr=-, q=0
+    !**********************************************************************
+        lines(time_slice, id, 233)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        -csumplq16(4,15)&
+        -(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
+        +(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
+        -(csumplq16(13,15)-csumplq16(14,15)+csumplq16(15,15)-csumplq16(16,15)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=+, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 233)=(csumplqmom16(5,ik,15)-csumplqmom16(6,ik,15)&
+        +csumplqmom16(7,ik,15)-csumplqmom16(8,ik,15)&
+        +(csumplqmom16(13,ik,15)-csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
+        -csumplqmom16(16,ik,15)))*adiv2
         enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                            
-        ALINE119(N4,ID)=(CSUMPLQ2(1)+GIOT*CSUMPLQ2(2)-CSUMPLQ2(3)&
-        -GIOT*CSUMPLQ2(4)&
-        -(CSUMPLQ2(6)+GIOT*CSUMPLQ2(5)-CSUMPLQ2(8)-GIOT*CSUMPLQ2(7)))&
-        *ADIV2
+        lines(time_slice, id, 234)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        -csumplq16(4,15)&
+        +(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
+        -(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
+        -(csumplq16(13,15)-csumplq16(14,15)+csumplq16(15,15)-csumplq16(16,15)))*adiv3
     !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM119(N4,ID,IK)=(CSUMPLQMOM2(6,IK)+GIOT*CSUMPLQMOM2(5,IK)&
-        -CSUMPLQMOM2(8,IK)-GIOT*CSUMPLQMOM2(7,IK))*ADIV1
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 234)=(csumplqmom16(1,ik,15)-csumplqmom16(2,ik,15)&
+        +csumplqmom16(3,ik,15)-csumplqmom16(4,ik,15)&
+        -(csumplqmom16(9,ik,15)-csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
+        -csumplqmom16(12,ik,15)))*adiv2
         enddo
+    !**********************************************************************
+    !     j=2, pp=-, pr=-, q=0  test
     !**********************************************************************
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE120(N4,ID)=(CSUMPLQ2(1)-CSUMPLQ2(2)+CSUMPLQ2(3)-CSUMPLQ2(4)&
-        +CSUMPLQ2(5)-CSUMPLQ2(6)+CSUMPLQ2(7)-CSUMPLQ2(8))*ADIV2
+        lines(time_slice, id, 235)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        -csumplq16(4,15)&
+        -(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
+        -(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
+        +(csumplq16(13,15)-csumplq16(14,15)+csumplq16(15,15)-csumplq16(16,15)))*adiv3
+    !**********************************************************************
+    !     j=2, pp=-, q=0
+    !**********************************************************************
+        do ik=1, 2
+            momentum_lines(time_slice, id, ik, 235)=(csumplqmom16(5,ik,15)-csumplqmom16(6,ik,15)&
+        +csumplqmom16(7,ik,15)-csumplqmom16(8,ik,15)&
+        -(csumplqmom16(13,ik,15)-csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
+        -csumplqmom16(16,ik,15)))*adiv2
+        enddo
     !**********************************************************************
-    !     J=2, Pp=+, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM120(N4,ID,IK)=(CSUMPLQMOM2(1,IK)-CSUMPLQMOM2(2,IK)&
-        +CSUMPLQMOM2(3,IK)-CSUMPLQMOM2(4,IK)+CSUMPLQMOM2(5,IK)&
-        -CSUMPLQMOM2(6,IK)+CSUMPLQMOM2(7,IK)-CSUMPLQMOM2(8,IK))*ADIV2
-        enddo
     !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************                        
-        ALINE121(N4,ID)=(CSUMPLQ2(1)-CSUMPLQ2(2)+CSUMPLQ2(3)-CSUMPLQ2(4)&
-        -(CSUMPLQ2(5)-CSUMPLQ2(6)+CSUMPLQ2(7)-CSUMPLQ2(8)))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM121(N4,ID,IK)=(CSUMPLQMOM2(1,IK)-CSUMPLQMOM2(2,IK)&
-        +CSUMPLQMOM2(3,IK)-CSUMPLQMOM2(4,IK)-(CSUMPLQMOM2(5,IK)&
-        -CSUMPLQMOM2(6,IK)+CSUMPLQMOM2(7,IK)-CSUMPLQMOM2(8,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    ! PLAQUETTE OPERATORS 3
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !**********************************************************************
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************                        
-        ALINE122(N4,ID)=(CSUMPLQ3(1)+CSUMPLQ3(2)+CSUMPLQ3(3)&
-        +CSUMPLQ3(4)+(CSUMPLQ3(5)+CSUMPLQ3(6)+CSUMPLQ3(7)&
-        +CSUMPLQ3(8)))*ADIV2
-    !**********************************************************************
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM122(N4,ID,IK)=(CSUMPLQMOM3(1,IK)+CSUMPLQMOM3(2,IK)&
-        +CSUMPLQMOM3(3,IK)+CSUMPLQMOM3(4,IK)&
-        +(CSUMPLQMOM3(5,IK)+CSUMPLQMOM3(6,IK)+CSUMPLQMOM3(7,IK)&
-        +CSUMPLQMOM3(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************                        
-        ALINE123(N4,ID)=(CSUMPLQ3(1)+CSUMPLQ3(2)+CSUMPLQ3(3)&
-        +CSUMPLQ3(4)-(CSUMPLQ3(5)+CSUMPLQ3(6)+CSUMPLQ3(7)&
-        +CSUMPLQ3(8)))*ADIV2
-    !**********************************************************************
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM123(N4,ID,IK)=(CSUMPLQMOM3(1,IK)+CSUMPLQMOM3(2,IK)&
-        +CSUMPLQMOM3(3,IK)+CSUMPLQMOM3(4,IK)&
-        -(CSUMPLQMOM3(5,IK)+CSUMPLQMOM3(6,IK)+CSUMPLQMOM3(7,IK)&
-        +CSUMPLQMOM3(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE124(N4,ID)=(CSUMPLQ3(1)+GIOT*CSUMPLQ3(2)-CSUMPLQ3(3)&
-        -GIOT*CSUMPLQ3(4))*ADIV1
-    !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************                            
-        do IK=1, 2
-            ALINEMOM124(N4,ID,IK)=(CSUMPLQMOM3(1,IK)+GIOT*CSUMPLQMOM3(2,IK)&
-        -CSUMPLQMOM3(3,IK)-GIOT*CSUMPLQMOM3(4,IK))*ADIV1
-        enddo
-    !**********************************************************************
-    !     J=1, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE125(N4,ID)=(CSUMPLQ3(7)+GIOT*CSUMPLQ3(6)-CSUMPLQ3(5)&
-        -GIOT*CSUMPLQ3(8))*ADIV1
-    !**********************************************************************
-    !     J=1, q=1,2
-    !**********************************************************************                            
-        do IK=1, 2
-            ALINEMOM125(N4,ID,IK)=(CSUMPLQMOM3(7,IK)+GIOT*CSUMPLQMOM3(6,IK)&
-        -CSUMPLQMOM3(5,IK)-GIOT*CSUMPLQMOM3(8,IK))*ADIV1
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE126(N4,ID)=(CSUMPLQ3(1)-CSUMPLQ3(2)+CSUMPLQ3(3)&
-        -CSUMPLQ3(4)+(CSUMPLQ3(5)-CSUMPLQ3(6)+CSUMPLQ3(7)&
-        -CSUMPLQ3(8)))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=+, q=1,2
-    !**********************************************************************                            
-        do IK=1, 2
-            ALINEMOM126(N4,ID,IK)=(CSUMPLQMOM3(1,IK)-CSUMPLQMOM3(2,IK)&
-        +CSUMPLQMOM3(3,IK)-CSUMPLQMOM3(4,IK)&
-        +(CSUMPLQMOM3(5,IK)-CSUMPLQMOM3(6,IK)+CSUMPLQMOM3(7,IK)&
-        -CSUMPLQMOM3(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE127(N4,ID)=(CSUMPLQ3(1)-CSUMPLQ3(2)+CSUMPLQ3(3)&
-        -CSUMPLQ3(4)-(CSUMPLQ3(5)-CSUMPLQ3(6)+CSUMPLQ3(7)&
-        -CSUMPLQ3(8)))*ADIV2
-    !**********************************************************************
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************                            
-        do IK=1, 2
-            ALINEMOM127(N4,ID,IK)=(CSUMPLQMOM3(1,IK)-CSUMPLQMOM3(2,IK)&
-        +CSUMPLQMOM3(3,IK)-CSUMPLQMOM3(4,IK)&
-        -(CSUMPLQMOM3(5,IK)-CSUMPLQMOM3(6,IK)+CSUMPLQMOM3(7,IK)&
-        -CSUMPLQMOM3(8,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 4
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************            
-        ALINE128(N4,ID)=(CSUMPLQ4(1)+CSUMPLQ4(2)+CSUMPLQ4(3)&
-        +CSUMPLQ4(4)+(CSUMPLQ4(5)+CSUMPLQ4(6)+CSUMPLQ4(7)&
-        +CSUMPLQ4(8)))*ADIV2
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM128(N4,ID,IK)=(CSUMPLQMOM4(1,IK)+CSUMPLQMOM4(2,IK)&
-        +CSUMPLQMOM4(3,IK)+CSUMPLQMOM4(4,IK)&
-        +(CSUMPLQMOM4(5,IK)+CSUMPLQMOM4(6,IK)+CSUMPLQMOM4(7,IK)&
-        +CSUMPLQMOM4(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************                  
-        ALINE129(N4,ID)=(CSUMPLQ4(1)+CSUMPLQ4(2)+CSUMPLQ4(3)&
-        +CSUMPLQ4(4)-(CSUMPLQ4(5)+CSUMPLQ4(6)+CSUMPLQ4(7)&
-        +CSUMPLQ4(8)))*ADIV2
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM129(N4,ID,IK)=(CSUMPLQMOM4(1,IK)+CSUMPLQMOM4(2,IK)&
-        +CSUMPLQMOM4(3,IK)+CSUMPLQMOM4(4,IK)&
-        -(CSUMPLQMOM4(5,IK)+CSUMPLQMOM4(6,IK)+CSUMPLQMOM4(7,IK)&
-        +CSUMPLQMOM4(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE130(N4,ID)=(CSUMPLQ4(1)+GIOT*CSUMPLQ4(2)-CSUMPLQ4(3)&
-        -GIOT*CSUMPLQ4(4))*ADIV1
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                            
-        do IK=1, 2
-            ALINEMOM130(N4,ID,IK)=(CSUMPLQMOM4(1,IK)+GIOT*CSUMPLQMOM4(2,IK)&
-        -CSUMPLQMOM4(3,IK)-GIOT*CSUMPLQMOM4(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE131(N4,ID)=(CSUMPLQ4(7)+GIOT*CSUMPLQ4(6)-CSUMPLQ4(5)&
-        -GIOT*CSUMPLQ4(8))*ADIV1
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                            
-        do IK=1, 2
-            ALINEMOM131(N4,ID,IK)=(CSUMPLQMOM4(7,IK)+GIOT*CSUMPLQMOM4(6,IK)&
-        -CSUMPLQMOM4(5,IK)-GIOT*CSUMPLQMOM4(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************            
-        ALINE132(N4,ID)=(CSUMPLQ4(1)-CSUMPLQ4(2)+CSUMPLQ4(3)&
-        -CSUMPLQ4(4)+(CSUMPLQ4(5)-CSUMPLQ4(6)+CSUMPLQ4(7)&
-        -CSUMPLQ4(8)))*ADIV2
-    !**********************************************************************      
-    !     J=2, Pp=+, q=1,2
-    !**********************************************************************            
-        do IK=1, 2
-            ALINEMOM132(N4,ID,IK)=(CSUMPLQMOM4(1,IK)-CSUMPLQMOM4(2,IK)&
-        +CSUMPLQMOM4(3,IK)-CSUMPLQMOM4(4,IK)&
-        +(CSUMPLQMOM4(5,IK)-CSUMPLQMOM4(6,IK)+CSUMPLQMOM4(7,IK)&
-        -CSUMPLQMOM4(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************                  
-        ALINE133(N4,ID)=(CSUMPLQ4(1)-CSUMPLQ4(2)+CSUMPLQ4(3)&
-        -CSUMPLQ4(4)-(CSUMPLQ4(5)-CSUMPLQ4(6)+CSUMPLQ4(7)&
-        -CSUMPLQ4(8)))*ADIV2
-    !**********************************************************************      
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM133(N4,ID,IK)=(CSUMPLQMOM4(1,IK)-CSUMPLQMOM4(2,IK)&
-        +CSUMPLQMOM4(3,IK)-CSUMPLQMOM4(4,IK)&
-        -(CSUMPLQMOM4(5,IK)-CSUMPLQMOM4(6,IK)+CSUMPLQMOM4(7,IK)&
-        -CSUMPLQMOM4(8,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    ! PLAQUETTE OPERATOR 5  
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************                        
-        ALINE134(N4,ID)=(CSUMPLQ5(1)+CSUMPLQ5(2)+CSUMPLQ5(3)&
-        +CSUMPLQ5(4)+(CSUMPLQ5(5)+CSUMPLQ5(6)+CSUMPLQ5(7)&
-        +CSUMPLQ5(8)))*ADIV2
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************                            
-        do IK=1, 2
-            ALINEMOM134(N4,ID,IK)=(CSUMPLQMOM5(1,IK)+CSUMPLQMOM5(2,IK)&
-        +CSUMPLQMOM5(3,IK)+CSUMPLQMOM5(4,IK)&
-        +(CSUMPLQMOM5(5,IK)+CSUMPLQMOM5(6,IK)+CSUMPLQMOM5(7,IK)&
-        +CSUMPLQMOM5(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE135(N4,ID)=(CSUMPLQ5(1)+CSUMPLQ5(2)+CSUMPLQ5(3)&
-        +CSUMPLQ5(4)-(CSUMPLQ5(5)+CSUMPLQ5(6)+CSUMPLQ5(7)&
-        +CSUMPLQ5(8)))*ADIV2
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************      
-        do IK=1, 2
-            ALINEMOM135(N4,ID,IK)=(CSUMPLQMOM5(1,IK)+CSUMPLQMOM5(2,IK)&
-        +CSUMPLQMOM5(3,IK)+CSUMPLQMOM5(4,IK)&
-        -(CSUMPLQMOM5(5,IK)+CSUMPLQMOM5(6,IK)+CSUMPLQMOM5(7,IK)&
-        +CSUMPLQMOM5(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************            
-        ALINE136(N4,ID)=(CSUMPLQ5(1)+GIOT*CSUMPLQ5(2)-CSUMPLQ5(3)&
-        -GIOT*CSUMPLQ5(4))*ADIV1
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM136(N4,ID,IK)=(CSUMPLQMOM5(1,IK)+GIOT*CSUMPLQMOM5(2,IK)&
-        -CSUMPLQMOM5(3,IK)-GIOT*CSUMPLQMOM5(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE137(N4,ID)=(CSUMPLQ5(7)+GIOT*CSUMPLQ5(6)-CSUMPLQ5(5)&
-        -GIOT*CSUMPLQ5(8))*ADIV1
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM137(N4,ID,IK)=(CSUMPLQMOM5(7,IK)+GIOT*CSUMPLQMOM5(6,IK)&
-        -CSUMPLQMOM5(5,IK)-GIOT*CSUMPLQMOM5(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************                        
-        ALINE138(N4,ID)=(CSUMPLQ5(1)-CSUMPLQ5(2)+CSUMPLQ5(3)&
-        -CSUMPLQ5(4)+(CSUMPLQ5(5)-CSUMPLQ5(6)+CSUMPLQ5(7)&
-        -CSUMPLQ5(8)))*ADIV2
-    !**********************************************************************      
-    !     J=2, Pp=+, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM138(N4,ID,IK)=(CSUMPLQMOM5(1,IK)-CSUMPLQMOM5(2,IK)&
-        +CSUMPLQMOM5(3,IK)-CSUMPLQMOM5(4,IK)&
-        +(CSUMPLQMOM5(5,IK)-CSUMPLQMOM5(6,IK)+CSUMPLQMOM5(7,IK)&
-        -CSUMPLQMOM5(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************                            
-        ALINE139(N4,ID)=(CSUMPLQ5(1)-CSUMPLQ5(2)+CSUMPLQ5(3)&
-        -CSUMPLQ5(4)-(CSUMPLQ5(5)-CSUMPLQ5(6)+CSUMPLQ5(7)&
-        -CSUMPLQ5(8)))*ADIV2
-    !**********************************************************************      
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM139(N4,ID,IK)=(CSUMPLQMOM5(1,IK)-CSUMPLQMOM5(2,IK)&
-        +CSUMPLQMOM5(3,IK)-CSUMPLQMOM5(4,IK)&
-        -(CSUMPLQMOM5(5,IK)-CSUMPLQMOM5(6,IK)+CSUMPLQMOM5(7,IK)&
-        -CSUMPLQMOM5(8,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 6
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE140(N4,ID)=(CSUMPLQ6(1)+CSUMPLQ6(2)+CSUMPLQ6(3)&
-        +CSUMPLQ6(4)+(CSUMPLQ6(5)+CSUMPLQ6(6)+CSUMPLQ6(7)&
-        +CSUMPLQ6(8)))*ADIV2
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM140(N4,ID,IK)=(CSUMPLQMOM6(1,IK)+CSUMPLQMOM6(2,IK)&
-        +CSUMPLQMOM6(3,IK)+CSUMPLQMOM6(4,IK)&
-        +(CSUMPLQMOM6(5,IK)+CSUMPLQMOM6(6,IK)+CSUMPLQMOM6(7,IK)&
-        +CSUMPLQMOM6(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************      
-        ALINE141(N4,ID)=(CSUMPLQ6(1)+CSUMPLQ6(2)+CSUMPLQ6(3)&
-        +CSUMPLQ6(4)-(CSUMPLQ6(5)+CSUMPLQ6(6)+CSUMPLQ6(7)&
-            +CSUMPLQ6(8)))*ADIV2
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************            
-        do IK=1, 2
-            ALINEMOM141(N4,ID,IK)=(CSUMPLQMOM6(1,IK)+CSUMPLQMOM6(2,IK)&
-        +CSUMPLQMOM6(3,IK)+CSUMPLQMOM6(4,IK)&
-        -(CSUMPLQMOM6(5,IK)+CSUMPLQMOM6(6,IK)+CSUMPLQMOM6(7,IK)&
-        +CSUMPLQMOM6(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE142(N4,ID)=(CSUMPLQ6(1)+GIOT*CSUMPLQ6(2)-CSUMPLQ6(3)&
-        -GIOT*CSUMPLQ6(4)+(CSUMPLQ6(8)+GIOT*CSUMPLQ6(7)-CSUMPLQ6(6)&
-        -GIOT*CSUMPLQ6(5)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM142(N4,ID,IK)=(CSUMPLQMOM6(1,IK)+GIOT*CSUMPLQMOM6(2,IK)&
-        -CSUMPLQMOM6(3,IK)-GIOT*CSUMPLQMOM6(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE143(N4,ID)=(CSUMPLQ6(1)+GIOT*CSUMPLQ6(2)-CSUMPLQ6(3)&
-        -GIOT*CSUMPLQ6(4)-(CSUMPLQ6(8)+GIOT*CSUMPLQ6(7)-CSUMPLQ6(6)&
-        -GIOT*CSUMPLQ6(5)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM143(N4,ID,IK)=(CSUMPLQMOM6(8,IK)+GIOT*CSUMPLQMOM6(7,IK)&
-        -CSUMPLQMOM6(6,IK)-GIOT*CSUMPLQMOM6(5,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************                        
-        ALINE144(N4,ID)=(CSUMPLQ6(1)-CSUMPLQ6(2)+CSUMPLQ6(3)&
-        -CSUMPLQ6(4)+(CSUMPLQ6(5)-CSUMPLQ6(6)+CSUMPLQ6(7)&
-        -CSUMPLQ6(8)))*ADIV2
-    !**********************************************************************      
-    !     J=2, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM144(N4,ID,IK)=(CSUMPLQMOM6(1,IK)-CSUMPLQMOM6(2,IK)&
-        +CSUMPLQMOM6(3,IK)-CSUMPLQMOM6(4,IK)&
-        +(CSUMPLQMOM6(5,IK)-CSUMPLQMOM6(6,IK)+CSUMPLQMOM6(7,IK)&
-        -CSUMPLQMOM6(8,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE145(N4,ID)=(CSUMPLQ6(1)-CSUMPLQ6(2)+CSUMPLQ6(3)&
-        -CSUMPLQ6(4)-(CSUMPLQ6(5)-CSUMPLQ6(6)+CSUMPLQ6(7)&
-        -CSUMPLQ6(8)))*ADIV2
-    !**********************************************************************      
-    !     J=2, Pp=-, q=1,2
-    !**********************************************************************      
-        do IK=1, 2
-            ALINEMOM145(N4,ID,IK)=(CSUMPLQMOM6(1,IK)-CSUMPLQMOM6(2,IK)&
-        +CSUMPLQMOM6(3,IK)-CSUMPLQMOM6(4,IK)&
-        -(CSUMPLQMOM6(5,IK)-CSUMPLQMOM6(6,IK)+CSUMPLQMOM6(7,IK)&
-        -CSUMPLQMOM6(8,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 7
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE146(N4,ID)=(CSUMPLQ7(1)+CSUMPLQ7(2)+CSUMPLQ7(3)&
-        +CSUMPLQ7(4)&
-        +(CSUMPLQ7(5)+CSUMPLQ7(6)+CSUMPLQ7(7)+CSUMPLQ7(8))&
-        +(CSUMPLQ7(9)+CSUMPLQ7(10)+CSUMPLQ7(11)+CSUMPLQ7(12))&
-        +(CSUMPLQ7(13)+CSUMPLQ7(14)+CSUMPLQ7(15)+CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM146(N4,ID,IK)=(CSUMPLQMOM7(1,IK)+CSUMPLQMOM7(2,IK)&
-        +CSUMPLQMOM7(3,IK)+CSUMPLQMOM7(4,IK)&
-        +(CSUMPLQMOM7(9,IK)+CSUMPLQMOM7(10,IK)+CSUMPLQMOM7(11,IK)&
-        +CSUMPLQMOM7(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE147(N4,ID)=(CSUMPLQ7(1)+CSUMPLQ7(2)+CSUMPLQ7(3)&
-        +CSUMPLQ7(4)&
-        -(CSUMPLQ7(5)+CSUMPLQ7(6)+CSUMPLQ7(7)+CSUMPLQ7(8))&
-        +(CSUMPLQ7(9)+CSUMPLQ7(10)+CSUMPLQ7(11)+CSUMPLQ7(12))&
-        -(CSUMPLQ7(13)+CSUMPLQ7(14)+CSUMPLQ7(15)+CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM147(N4,ID,IK)=(CSUMPLQMOM7(5,IK)+CSUMPLQMOM7(6,IK)&
-        +CSUMPLQMOM7(7,IK)+CSUMPLQMOM7(8,IK)&
-        +(CSUMPLQMOM7(13,IK)+CSUMPLQMOM7(14,IK)+CSUMPLQMOM7(15,IK)&
-        +CSUMPLQMOM7(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE148(N4,ID)=(CSUMPLQ7(1)+CSUMPLQ7(2)+CSUMPLQ7(3)&
-        +CSUMPLQ7(4)&
-        +(CSUMPLQ7(5)+CSUMPLQ7(6)+CSUMPLQ7(7)+CSUMPLQ7(8))&
-        -(CSUMPLQ7(9)+CSUMPLQ7(10)+CSUMPLQ7(11)+CSUMPLQ7(12))&
-        -(CSUMPLQ7(13)+CSUMPLQ7(14)+CSUMPLQ7(15)+CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM148(N4,ID,IK)=(CSUMPLQMOM7(1,IK)+CSUMPLQMOM7(2,IK)&
-        +CSUMPLQMOM7(3,IK)+CSUMPLQMOM7(4,IK)&
-        -(CSUMPLQMOM7(9,IK)+CSUMPLQMOM7(10,IK)+CSUMPLQMOM7(11,IK)&
-        +CSUMPLQMOM7(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE149(N4,ID)=(CSUMPLQ7(1)+CSUMPLQ7(2)+CSUMPLQ7(3)&
-        +CSUMPLQ7(4)&
-        -(CSUMPLQ7(5)+CSUMPLQ7(6)+CSUMPLQ7(7)+CSUMPLQ7(8))&
-        -(CSUMPLQ7(9)+CSUMPLQ7(10)+CSUMPLQ7(11)+CSUMPLQ7(12))&
-        +(CSUMPLQ7(13)+CSUMPLQ7(14)+CSUMPLQ7(15)+CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM149(N4,ID,IK)=(CSUMPLQMOM7(5,IK)+CSUMPLQMOM7(6,IK)&
-        +CSUMPLQMOM7(7,IK)+CSUMPLQMOM7(8,IK)&
-        -(CSUMPLQMOM7(13,IK)+CSUMPLQMOM7(14,IK)+CSUMPLQMOM7(15,IK)&
-        +CSUMPLQMOM7(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE150(N4,ID)=(CSUMPLQ7(1)+GIOT*CSUMPLQ7(2)-CSUMPLQ7(3)&
-        -GIOT*CSUMPLQ7(4)+(CSUMPLQ7(5)+GIOT*CSUMPLQ7(6)-CSUMPLQ7(7)&
-        -GIOT*CSUMPLQ7(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM150(N4,ID,IK)=(CSUMPLQMOM7(1,IK)+GIOT*CSUMPLQMOM7(2,IK)&
-        -CSUMPLQMOM7(3,IK)-GIOT*CSUMPLQMOM7(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE151(N4,ID)=(CSUMPLQ7(1)+GIOT*CSUMPLQ7(2)-CSUMPLQ7(3)&
-        -GIOT*CSUMPLQ7(4)-(CSUMPLQ7(5)+GIOT*CSUMPLQ7(6)-CSUMPLQ7(7)&
-        -GIOT*CSUMPLQ7(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM151(N4,ID,IK)=(CSUMPLQMOM7(5,IK)+GIOT*CSUMPLQMOM7(6,IK)&
-        -CSUMPLQMOM7(7,IK)-GIOT*CSUMPLQMOM7(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE152(N4,ID)=(CSUMPLQ7(1)-CSUMPLQ7(2)+CSUMPLQ7(3)&
-        -CSUMPLQ7(4)&
-        +(CSUMPLQ7(5)-CSUMPLQ7(6)+CSUMPLQ7(7)-CSUMPLQ7(8))&
-        +(CSUMPLQ7(9)-CSUMPLQ7(10)+CSUMPLQ7(11)-CSUMPLQ7(12))&
-        +(CSUMPLQ7(13)-CSUMPLQ7(14)+CSUMPLQ7(15)-CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM152(N4,ID,IK)=(CSUMPLQMOM7(1,IK)-CSUMPLQMOM7(2,IK)&
-        +CSUMPLQMOM7(3,IK)-CSUMPLQMOM7(4,IK)&
-        +(CSUMPLQMOM7(9,IK)-CSUMPLQMOM7(10,IK)+CSUMPLQMOM7(11,IK)&
-        -CSUMPLQMOM7(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE153(N4,ID)=(CSUMPLQ7(1)-CSUMPLQ7(2)+CSUMPLQ7(3)&
-        -CSUMPLQ7(4)&
-        -(CSUMPLQ7(5)-CSUMPLQ7(6)+CSUMPLQ7(7)-CSUMPLQ7(8))&
-        +(CSUMPLQ7(9)-CSUMPLQ7(10)+CSUMPLQ7(11)-CSUMPLQ7(12))&
-        -(CSUMPLQ7(13)-CSUMPLQ7(14)+CSUMPLQ7(15)-CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM153(N4,ID,IK)=(CSUMPLQMOM7(5,IK)-CSUMPLQMOM7(6,IK)&
-        +CSUMPLQMOM7(7,IK)-CSUMPLQMOM7(8,IK)&
-        +(CSUMPLQMOM7(13,IK)-CSUMPLQMOM7(14,IK)+CSUMPLQMOM7(15,IK)&
-        -CSUMPLQMOM7(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE154(N4,ID)=(CSUMPLQ7(1)-CSUMPLQ7(2)+CSUMPLQ7(3)&
-        -CSUMPLQ7(4)&
-        +(CSUMPLQ7(5)-CSUMPLQ7(6)+CSUMPLQ7(7)-CSUMPLQ7(8))&
-        -(CSUMPLQ7(9)-CSUMPLQ7(10)+CSUMPLQ7(11)-CSUMPLQ7(12))&
-        -(CSUMPLQ7(13)-CSUMPLQ7(14)+CSUMPLQ7(15)-CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM154(N4,ID,IK)=(CSUMPLQMOM7(1,IK)-CSUMPLQMOM7(2,IK)&
-        +CSUMPLQMOM7(3,IK)-CSUMPLQMOM7(4,IK)&
-        -(CSUMPLQMOM7(9,IK)-CSUMPLQMOM7(10,IK)+CSUMPLQMOM7(11,IK)&
-        -CSUMPLQMOM7(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE155(N4,ID)=(CSUMPLQ7(1)-CSUMPLQ7(2)+CSUMPLQ7(3)&
-        -CSUMPLQ7(4)&
-        -(CSUMPLQ7(5)-CSUMPLQ7(6)+CSUMPLQ7(7)-CSUMPLQ7(8))&
-        -(CSUMPLQ7(9)-CSUMPLQ7(10)+CSUMPLQ7(11)-CSUMPLQ7(12))&
-        +(CSUMPLQ7(13)-CSUMPLQ7(14)+CSUMPLQ7(15)-CSUMPLQ7(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM155(N4,ID,IK)=(CSUMPLQMOM7(5,IK)-CSUMPLQMOM7(6,IK)&
-        +CSUMPLQMOM7(7,IK)-CSUMPLQMOM7(8,IK)&
-        -(CSUMPLQMOM7(13,IK)-CSUMPLQMOM7(14,IK)+CSUMPLQMOM7(15,IK)&
-        -CSUMPLQMOM7(16,IK)))*ADIV2
-        enddo      
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 8
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE156(N4,ID)=(CSUMPLQ8(1)+CSUMPLQ8(2)+CSUMPLQ8(3)&
-        +CSUMPLQ8(4)&
-        +(CSUMPLQ8(5)+CSUMPLQ8(6)+CSUMPLQ8(7)+CSUMPLQ8(8))&
-        +(CSUMPLQ8(9)+CSUMPLQ8(10)+CSUMPLQ8(11)+CSUMPLQ8(12))&
-        +(CSUMPLQ8(13)+CSUMPLQ8(14)+CSUMPLQ8(15)+CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM156(N4,ID,IK)=(CSUMPLQMOM8(1,IK)+CSUMPLQMOM8(2,IK)&
-        +CSUMPLQMOM8(3,IK)+CSUMPLQMOM8(4,IK)&
-        +(CSUMPLQMOM8(9,IK)+CSUMPLQMOM8(10,IK)+CSUMPLQMOM8(11,IK)&
-        +CSUMPLQMOM8(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE157(N4,ID)=(CSUMPLQ8(1)+CSUMPLQ8(2)+CSUMPLQ8(3)&
-        +CSUMPLQ8(4)&
-        -(CSUMPLQ8(5)+CSUMPLQ8(6)+CSUMPLQ8(7)+CSUMPLQ8(8))&
-        +(CSUMPLQ8(9)+CSUMPLQ8(10)+CSUMPLQ8(11)+CSUMPLQ8(12))&
-        -(CSUMPLQ8(13)+CSUMPLQ8(14)+CSUMPLQ8(15)+CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM157(N4,ID,IK)=(CSUMPLQMOM8(5,IK)+CSUMPLQMOM8(6,IK)&
-        +CSUMPLQMOM8(7,IK)+CSUMPLQMOM8(8,IK)&
-        +(CSUMPLQMOM8(13,IK)+CSUMPLQMOM8(14,IK)+CSUMPLQMOM8(15,IK)&
-        +CSUMPLQMOM8(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE158(N4,ID)=(CSUMPLQ8(1)+CSUMPLQ8(2)+CSUMPLQ8(3)&
-        +CSUMPLQ8(4)&
-        +(CSUMPLQ8(5)+CSUMPLQ8(6)+CSUMPLQ8(7)+CSUMPLQ8(8))&
-        -(CSUMPLQ8(9)+CSUMPLQ8(10)+CSUMPLQ8(11)+CSUMPLQ8(12))&
-        -(CSUMPLQ8(13)+CSUMPLQ8(14)+CSUMPLQ8(15)+CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM158(N4,ID,IK)=(CSUMPLQMOM8(1,IK)+CSUMPLQMOM8(2,IK)&
-        +CSUMPLQMOM8(3,IK)+CSUMPLQMOM8(4,IK)&
-        -(CSUMPLQMOM8(9,IK)+CSUMPLQMOM8(10,IK)+CSUMPLQMOM8(11,IK)&
-        +CSUMPLQMOM8(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE159(N4,ID)=(CSUMPLQ8(1)+CSUMPLQ8(2)+CSUMPLQ8(3)&
-        +CSUMPLQ8(4)&
-        -(CSUMPLQ8(5)+CSUMPLQ8(6)+CSUMPLQ8(7)+CSUMPLQ8(8))&
-        -(CSUMPLQ8(9)+CSUMPLQ8(10)+CSUMPLQ8(11)+CSUMPLQ8(12))&
-        +(CSUMPLQ8(13)+CSUMPLQ8(14)+CSUMPLQ8(15)+CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM159(N4,ID,IK)=(CSUMPLQMOM8(5,IK)+CSUMPLQMOM8(6,IK)&
-        +CSUMPLQMOM8(7,IK)+CSUMPLQMOM8(8,IK)&
-        -(CSUMPLQMOM8(13,IK)+CSUMPLQMOM8(14,IK)+CSUMPLQMOM8(15,IK)&
-        +CSUMPLQMOM8(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE160(N4,ID)=(CSUMPLQ8(1)+GIOT*CSUMPLQ8(2)-CSUMPLQ8(3)&
-        -GIOT*CSUMPLQ8(4)+(CSUMPLQ8(5)+GIOT*CSUMPLQ8(6)-CSUMPLQ8(7)&
-        -GIOT*CSUMPLQ8(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM160(N4,ID,IK)=(CSUMPLQMOM8(1,IK)+GIOT*CSUMPLQMOM8(2,IK)&
-        -CSUMPLQMOM8(3,IK)-GIOT*CSUMPLQMOM8(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE161(N4,ID)=(CSUMPLQ8(1)+GIOT*CSUMPLQ8(2)-CSUMPLQ8(3)&
-        -GIOT*CSUMPLQ8(4)-(CSUMPLQ8(5)+GIOT*CSUMPLQ8(6)-CSUMPLQ8(7)&
-        -GIOT*CSUMPLQ8(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM161(N4,ID,IK)=(CSUMPLQMOM8(5,IK)+GIOT*CSUMPLQMOM8(6,IK)&
-        -CSUMPLQMOM8(7,IK)-GIOT*CSUMPLQMOM8(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE162(N4,ID)=(CSUMPLQ8(1)-CSUMPLQ8(2)+CSUMPLQ8(3)&
-        -CSUMPLQ8(4)&
-        +(CSUMPLQ8(5)-CSUMPLQ8(6)+CSUMPLQ8(7)-CSUMPLQ8(8))&
-        +(CSUMPLQ8(9)-CSUMPLQ8(10)+CSUMPLQ8(11)-CSUMPLQ8(12))&
-        +(CSUMPLQ8(13)-CSUMPLQ8(14)+CSUMPLQ8(15)-CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM162(N4,ID,IK)=(CSUMPLQMOM8(1,IK)-CSUMPLQMOM8(2,IK)&
-        +CSUMPLQMOM8(3,IK)-CSUMPLQMOM8(4,IK)&
-        +(CSUMPLQMOM8(9,IK)-CSUMPLQMOM8(10,IK)+CSUMPLQMOM8(11,IK)&
-        -CSUMPLQMOM8(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE163(N4,ID)=(CSUMPLQ8(1)-CSUMPLQ8(2)+CSUMPLQ8(3)&
-        -CSUMPLQ8(4)&
-        -(CSUMPLQ8(5)-CSUMPLQ8(6)+CSUMPLQ8(7)-CSUMPLQ8(8))&
-        +(CSUMPLQ8(9)-CSUMPLQ8(10)+CSUMPLQ8(11)-CSUMPLQ8(12))&
-        -(CSUMPLQ8(13)-CSUMPLQ8(14)+CSUMPLQ8(15)-CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM163(N4,ID,IK)=(CSUMPLQMOM8(5,IK)-CSUMPLQMOM8(6,IK)&
-        +CSUMPLQMOM8(7,IK)-CSUMPLQMOM8(8,IK)&
-        +(CSUMPLQMOM8(13,IK)-CSUMPLQMOM8(14,IK)+CSUMPLQMOM8(15,IK)&
-        -CSUMPLQMOM8(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE164(N4,ID)=(CSUMPLQ8(1)-CSUMPLQ8(2)+CSUMPLQ8(3)&
-        -CSUMPLQ8(4)&
-        +(CSUMPLQ8(5)-CSUMPLQ8(6)+CSUMPLQ8(7)-CSUMPLQ8(8))&
-        -(CSUMPLQ8(9)-CSUMPLQ8(10)+CSUMPLQ8(11)-CSUMPLQ8(12))&
-        -(CSUMPLQ8(13)-CSUMPLQ8(14)+CSUMPLQ8(15)-CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM164(N4,ID,IK)=(CSUMPLQMOM8(1,IK)-CSUMPLQMOM8(2,IK)&
-        +CSUMPLQMOM8(3,IK)-CSUMPLQMOM8(4,IK)&
-        -(CSUMPLQMOM8(9,IK)-CSUMPLQMOM8(10,IK)+CSUMPLQMOM8(11,IK)&
-        -CSUMPLQMOM8(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE165(N4,ID)=(CSUMPLQ8(1)-CSUMPLQ8(2)+CSUMPLQ8(3)&
-        -CSUMPLQ8(4)&
-        -(CSUMPLQ8(5)-CSUMPLQ8(6)+CSUMPLQ8(7)-CSUMPLQ8(8))&
-        -(CSUMPLQ8(9)-CSUMPLQ8(10)+CSUMPLQ8(11)-CSUMPLQ8(12))&
-        +(CSUMPLQ8(13)-CSUMPLQ8(14)+CSUMPLQ8(15)-CSUMPLQ8(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM165(N4,ID,IK)=(CSUMPLQMOM8(5,IK)-CSUMPLQMOM8(6,IK)&
-        +CSUMPLQMOM8(7,IK)-CSUMPLQMOM8(8,IK)&
-        -(CSUMPLQMOM8(13,IK)-CSUMPLQMOM8(14,IK)+CSUMPLQMOM8(15,IK)&
-        -CSUMPLQMOM8(16,IK)))*ADIV2
-        enddo      
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 9
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE166(N4,ID)=(CSUMPLQ9(1)+CSUMPLQ9(2)+CSUMPLQ9(3)&
-        +CSUMPLQ9(4)&
-        +(CSUMPLQ9(5)+CSUMPLQ9(6)+CSUMPLQ9(7)+CSUMPLQ9(8))&
-        +(CSUMPLQ9(9)+CSUMPLQ9(10)+CSUMPLQ9(11)+CSUMPLQ9(12))&
-        +(CSUMPLQ9(13)+CSUMPLQ9(14)+CSUMPLQ9(15)+CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM166(N4,ID,IK)=(CSUMPLQMOM9(1,IK)+CSUMPLQMOM9(2,IK)&
-        +CSUMPLQMOM9(3,IK)+CSUMPLQMOM9(4,IK)&
-        +(CSUMPLQMOM9(9,IK)+CSUMPLQMOM9(10,IK)+CSUMPLQMOM9(11,IK)&
-        +CSUMPLQMOM9(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE167(N4,ID)=(CSUMPLQ9(1)+CSUMPLQ9(2)+CSUMPLQ9(3)&
-        +CSUMPLQ9(4)&
-        -(CSUMPLQ9(5)+CSUMPLQ9(6)+CSUMPLQ9(7)+CSUMPLQ9(8))&
-        +(CSUMPLQ9(9)+CSUMPLQ9(10)+CSUMPLQ9(11)+CSUMPLQ9(12))&
-        -(CSUMPLQ9(13)+CSUMPLQ9(14)+CSUMPLQ9(15)+CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM167(N4,ID,IK)=(CSUMPLQMOM9(5,IK)+CSUMPLQMOM9(6,IK)&
-        +CSUMPLQMOM9(7,IK)+CSUMPLQMOM9(8,IK)&
-        +(CSUMPLQMOM9(13,IK)+CSUMPLQMOM9(14,IK)+CSUMPLQMOM9(15,IK)&
-        +CSUMPLQMOM9(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE168(N4,ID)=(CSUMPLQ9(1)+CSUMPLQ9(2)+CSUMPLQ9(3)&
-        +CSUMPLQ9(4)&
-        +(CSUMPLQ9(5)+CSUMPLQ9(6)+CSUMPLQ9(7)+CSUMPLQ9(8))&
-        -(CSUMPLQ9(9)+CSUMPLQ9(10)+CSUMPLQ9(11)+CSUMPLQ9(12))&
-        -(CSUMPLQ9(13)+CSUMPLQ9(14)+CSUMPLQ9(15)+CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM168(N4,ID,IK)=(CSUMPLQMOM9(1,IK)+CSUMPLQMOM9(2,IK)&
-        +CSUMPLQMOM9(3,IK)+CSUMPLQMOM9(4,IK)&
-        -(CSUMPLQMOM9(9,IK)+CSUMPLQMOM9(10,IK)+CSUMPLQMOM9(11,IK)&
-        +CSUMPLQMOM9(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE169(N4,ID)=(CSUMPLQ9(1)+CSUMPLQ9(2)+CSUMPLQ9(3)&
-        +CSUMPLQ9(4)&
-        -(CSUMPLQ9(5)+CSUMPLQ9(6)+CSUMPLQ9(7)+CSUMPLQ9(8))&
-        -(CSUMPLQ9(9)+CSUMPLQ9(10)+CSUMPLQ9(11)+CSUMPLQ9(12))&
-        +(CSUMPLQ9(13)+CSUMPLQ9(14)+CSUMPLQ9(15)+CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM169(N4,ID,IK)=(CSUMPLQMOM9(5,IK)+CSUMPLQMOM9(6,IK)&
-        +CSUMPLQMOM9(7,IK)+CSUMPLQMOM9(8,IK)&
-        -(CSUMPLQMOM9(13,IK)+CSUMPLQMOM9(14,IK)+CSUMPLQMOM9(15,IK)&
-        +CSUMPLQMOM9(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE170(N4,ID)=(CSUMPLQ9(1)+GIOT*CSUMPLQ9(2)-CSUMPLQ9(3)&
-        -GIOT*CSUMPLQ9(4)+(CSUMPLQ9(5)+GIOT*CSUMPLQ9(6)-CSUMPLQ9(7)&
-        -GIOT*CSUMPLQ9(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM170(N4,ID,IK)=(CSUMPLQMOM9(1,IK)+GIOT*CSUMPLQMOM9(2,IK)&
-        -CSUMPLQMOM9(3,IK)-GIOT*CSUMPLQMOM9(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE171(N4,ID)=(CSUMPLQ9(1)+GIOT*CSUMPLQ9(2)-CSUMPLQ9(3)&
-        -GIOT*CSUMPLQ9(4)-(CSUMPLQ9(5)+GIOT*CSUMPLQ9(6)-CSUMPLQ9(7)&
-        -GIOT*CSUMPLQ9(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM171(N4,ID,IK)=(CSUMPLQMOM9(5,IK)+GIOT*CSUMPLQMOM9(6,IK)&
-        -CSUMPLQMOM9(7,IK)-GIOT*CSUMPLQMOM9(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE172(N4,ID)=(CSUMPLQ9(1)-CSUMPLQ9(2)+CSUMPLQ9(3)&
-        -CSUMPLQ9(4)&
-        +(CSUMPLQ9(5)-CSUMPLQ9(6)+CSUMPLQ9(7)-CSUMPLQ9(8))&
-        +(CSUMPLQ9(9)-CSUMPLQ9(10)+CSUMPLQ9(11)-CSUMPLQ9(12))&
-        +(CSUMPLQ9(13)-CSUMPLQ9(14)+CSUMPLQ9(15)-CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM172(N4,ID,IK)=(CSUMPLQMOM9(1,IK)-CSUMPLQMOM9(2,IK)&
-        +CSUMPLQMOM9(3,IK)-CSUMPLQMOM9(4,IK)&
-        +(CSUMPLQMOM9(9,IK)-CSUMPLQMOM9(10,IK)+CSUMPLQMOM9(11,IK)&
-        -CSUMPLQMOM9(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE173(N4,ID)=(CSUMPLQ9(1)-CSUMPLQ9(2)+CSUMPLQ9(3)&
-        -CSUMPLQ9(4)&
-        -(CSUMPLQ9(5)-CSUMPLQ9(6)+CSUMPLQ9(7)-CSUMPLQ9(8))&
-        +(CSUMPLQ9(9)-CSUMPLQ9(10)+CSUMPLQ9(11)-CSUMPLQ9(12))&
-        -(CSUMPLQ9(13)-CSUMPLQ9(14)+CSUMPLQ9(15)-CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM173(N4,ID,IK)=(CSUMPLQMOM9(5,IK)-CSUMPLQMOM9(6,IK)&
-        +CSUMPLQMOM9(7,IK)-CSUMPLQMOM9(8,IK)&
-        +(CSUMPLQMOM9(13,IK)-CSUMPLQMOM9(14,IK)+CSUMPLQMOM9(15,IK)&
-        -CSUMPLQMOM9(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE174(N4,ID)=(CSUMPLQ9(1)-CSUMPLQ9(2)+CSUMPLQ9(3)&
-        -CSUMPLQ9(4)&
-        +(CSUMPLQ9(5)-CSUMPLQ9(6)+CSUMPLQ9(7)-CSUMPLQ9(8))&
-        -(CSUMPLQ9(9)-CSUMPLQ9(10)+CSUMPLQ9(11)-CSUMPLQ9(12))&
-        -(CSUMPLQ9(13)-CSUMPLQ9(14)+CSUMPLQ9(15)-CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM174(N4,ID,IK)=(CSUMPLQMOM9(1,IK)-CSUMPLQMOM9(2,IK)&
-        +CSUMPLQMOM9(3,IK)-CSUMPLQMOM9(4,IK)&
-        -(CSUMPLQMOM9(9,IK)-CSUMPLQMOM9(10,IK)+CSUMPLQMOM9(11,IK)&
-        -CSUMPLQMOM9(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE175(N4,ID)=(CSUMPLQ9(1)-CSUMPLQ9(2)+CSUMPLQ9(3)&
-        -CSUMPLQ9(4)&
-        -(CSUMPLQ9(5)-CSUMPLQ9(6)+CSUMPLQ9(7)-CSUMPLQ9(8))&
-        -(CSUMPLQ9(9)-CSUMPLQ9(10)+CSUMPLQ9(11)-CSUMPLQ9(12))&
-        +(CSUMPLQ9(13)-CSUMPLQ9(14)+CSUMPLQ9(15)-CSUMPLQ9(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM175(N4,ID,IK)=(CSUMPLQMOM9(5,IK)-CSUMPLQMOM9(6,IK)&
-        +CSUMPLQMOM9(7,IK)-CSUMPLQMOM9(8,IK)&
-        -(CSUMPLQMOM9(13,IK)-CSUMPLQMOM9(14,IK)+CSUMPLQMOM9(15,IK)&
-        -CSUMPLQMOM9(16,IK)))*ADIV2
-        enddo      
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 10
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE176(N4,ID)=(CSUMPLQ10(1)+CSUMPLQ10(2)+CSUMPLQ10(3)&
-        +CSUMPLQ10(4)&
-        +(CSUMPLQ10(5)+CSUMPLQ10(6)+CSUMPLQ10(7)+CSUMPLQ10(8))&
-        +(CSUMPLQ10(9)+CSUMPLQ10(10)+CSUMPLQ10(11)+CSUMPLQ10(12))&
-        +(CSUMPLQ10(13)+CSUMPLQ10(14)+CSUMPLQ10(15)+CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM176(N4,ID,IK)=(CSUMPLQMOM10(1,IK)+CSUMPLQMOM10(2,IK)&
-        +CSUMPLQMOM10(3,IK)+CSUMPLQMOM10(4,IK)&
-        +(CSUMPLQMOM10(9,IK)+CSUMPLQMOM10(10,IK)+CSUMPLQMOM10(11,IK)&
-        +CSUMPLQMOM10(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE177(N4,ID)=(CSUMPLQ10(1)+CSUMPLQ10(2)+CSUMPLQ10(3)&
-        +CSUMPLQ10(4)&
-        -(CSUMPLQ10(5)+CSUMPLQ10(6)+CSUMPLQ10(7)+CSUMPLQ10(8))&
-        +(CSUMPLQ10(9)+CSUMPLQ10(10)+CSUMPLQ10(11)+CSUMPLQ10(12))&
-        -(CSUMPLQ10(13)+CSUMPLQ10(14)+CSUMPLQ10(15)+CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM177(N4,ID,IK)=(CSUMPLQMOM10(5,IK)+CSUMPLQMOM10(6,IK)&
-        +CSUMPLQMOM10(7,IK)+CSUMPLQMOM10(8,IK)&
-        +(CSUMPLQMOM10(13,IK)+CSUMPLQMOM10(14,IK)+CSUMPLQMOM10(15,IK)&
-        +CSUMPLQMOM10(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE178(N4,ID)=(CSUMPLQ10(1)+CSUMPLQ10(2)+CSUMPLQ10(3)&
-        +CSUMPLQ10(4)&
-        +(CSUMPLQ10(5)+CSUMPLQ10(6)+CSUMPLQ10(7)+CSUMPLQ10(8))&
-        -(CSUMPLQ10(9)+CSUMPLQ10(10)+CSUMPLQ10(11)+CSUMPLQ10(12))&
-        -(CSUMPLQ10(13)+CSUMPLQ10(14)+CSUMPLQ10(15)+CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM178(N4,ID,IK)=(CSUMPLQMOM10(1,IK)+CSUMPLQMOM10(2,IK)&
-        +CSUMPLQMOM10(3,IK)+CSUMPLQMOM10(4,IK)&
-        -(CSUMPLQMOM10(9,IK)+CSUMPLQMOM10(10,IK)+CSUMPLQMOM10(11,IK)&
-        +CSUMPLQMOM10(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE179(N4,ID)=(CSUMPLQ10(1)+CSUMPLQ10(2)+CSUMPLQ10(3)&
-        +CSUMPLQ10(4)&
-        -(CSUMPLQ10(5)+CSUMPLQ10(6)+CSUMPLQ10(7)+CSUMPLQ10(8))&
-        -(CSUMPLQ10(9)+CSUMPLQ10(10)+CSUMPLQ10(11)+CSUMPLQ10(12))&
-        +(CSUMPLQ10(13)+CSUMPLQ10(14)+CSUMPLQ10(15)+CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM179(N4,ID,IK)=(CSUMPLQMOM10(5,IK)+CSUMPLQMOM10(6,IK)&
-        +CSUMPLQMOM10(7,IK)+CSUMPLQMOM10(8,IK)&
-        -(CSUMPLQMOM10(13,IK)+CSUMPLQMOM10(14,IK)+CSUMPLQMOM10(15,IK)&
-        +CSUMPLQMOM10(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE180(N4,ID)=(CSUMPLQ10(1)+GIOT*CSUMPLQ10(2)-CSUMPLQ10(3)&
-        -GIOT*CSUMPLQ10(4)+(CSUMPLQ10(5)+GIOT*CSUMPLQ10(6)-CSUMPLQ10(7)&
-        -GIOT*CSUMPLQ10(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM180(N4,ID,IK)=(CSUMPLQMOM10(1,IK)&
-        +GIOT*CSUMPLQMOM10(2,IK)&
-        -CSUMPLQMOM10(3,IK)-GIOT*CSUMPLQMOM10(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE181(N4,ID)=(CSUMPLQ10(1)+GIOT*CSUMPLQ10(2)-CSUMPLQ10(3)&
-        -GIOT*CSUMPLQ10(4)-(CSUMPLQ10(5)+GIOT*CSUMPLQ10(6)-CSUMPLQ10(7)&
-        -GIOT*CSUMPLQ10(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM181(N4,ID,IK)=(CSUMPLQMOM10(5,IK)&
-        +GIOT*CSUMPLQMOM10(6,IK)&
-        -CSUMPLQMOM10(7,IK)-GIOT*CSUMPLQMOM10(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE182(N4,ID)=(CSUMPLQ10(1)-CSUMPLQ10(2)+CSUMPLQ10(3)&
-        -CSUMPLQ10(4)&
-        +(CSUMPLQ10(5)-CSUMPLQ10(6)+CSUMPLQ10(7)-CSUMPLQ10(8))&
-        +(CSUMPLQ10(9)-CSUMPLQ10(10)+CSUMPLQ10(11)-CSUMPLQ10(12))&
-        +(CSUMPLQ10(13)-CSUMPLQ10(14)+CSUMPLQ10(15)-CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM182(N4,ID,IK)=(CSUMPLQMOM10(1,IK)-CSUMPLQMOM10(2,IK)&
-        +CSUMPLQMOM10(3,IK)-CSUMPLQMOM10(4,IK)&
-        +(CSUMPLQMOM10(9,IK)-CSUMPLQMOM10(10,IK)+CSUMPLQMOM10(11,IK)&
-        -CSUMPLQMOM10(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE183(N4,ID)=(CSUMPLQ10(1)-CSUMPLQ10(2)+CSUMPLQ10(3)&
-        -CSUMPLQ10(4)&
-        -(CSUMPLQ10(5)-CSUMPLQ10(6)+CSUMPLQ10(7)-CSUMPLQ10(8))&
-        +(CSUMPLQ10(9)-CSUMPLQ10(10)+CSUMPLQ10(11)-CSUMPLQ10(12))&
-        -(CSUMPLQ10(13)-CSUMPLQ10(14)+CSUMPLQ10(15)-CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM183(N4,ID,IK)=(CSUMPLQMOM10(5,IK)-CSUMPLQMOM10(6,IK)&
-        +CSUMPLQMOM10(7,IK)-CSUMPLQMOM10(8,IK)&
-        +(CSUMPLQMOM10(13,IK)-CSUMPLQMOM10(14,IK)+CSUMPLQMOM10(15,IK)&
-        -CSUMPLQMOM10(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE184(N4,ID)=(CSUMPLQ10(1)-CSUMPLQ10(2)+CSUMPLQ10(3)&
-        -CSUMPLQ10(4)&
-        +(CSUMPLQ10(5)-CSUMPLQ10(6)+CSUMPLQ10(7)-CSUMPLQ10(8))&
-        -(CSUMPLQ10(9)-CSUMPLQ10(10)+CSUMPLQ10(11)-CSUMPLQ10(12))&
-        -(CSUMPLQ10(13)-CSUMPLQ10(14)+CSUMPLQ10(15)-CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM184(N4,ID,IK)=(CSUMPLQMOM10(1,IK)-CSUMPLQMOM10(2,IK)&
-        +CSUMPLQMOM10(3,IK)-CSUMPLQMOM10(4,IK)&
-        -(CSUMPLQMOM10(9,IK)-CSUMPLQMOM10(10,IK)+CSUMPLQMOM10(11,IK)&
-        -CSUMPLQMOM10(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE185(N4,ID)=(CSUMPLQ10(1)-CSUMPLQ10(2)+CSUMPLQ10(3)&
-        -CSUMPLQ10(4)&
-        -(CSUMPLQ10(5)-CSUMPLQ10(6)+CSUMPLQ10(7)-CSUMPLQ10(8))&
-        -(CSUMPLQ10(9)-CSUMPLQ10(10)+CSUMPLQ10(11)-CSUMPLQ10(12))&
-        +(CSUMPLQ10(13)-CSUMPLQ10(14)+CSUMPLQ10(15)-CSUMPLQ10(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM185(N4,ID,IK)=(CSUMPLQMOM10(5,IK)-CSUMPLQMOM10(6,IK)&
-        +CSUMPLQMOM10(7,IK)-CSUMPLQMOM10(8,IK)&
-        -(CSUMPLQMOM10(13,IK)-CSUMPLQMOM10(14,IK)+CSUMPLQMOM10(15,IK)&
-        -CSUMPLQMOM10(16,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 11
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE186(N4,ID)=(CSUMPLQ11(1)+CSUMPLQ11(2)+CSUMPLQ11(3)&
-        +CSUMPLQ11(4)&
-        +(CSUMPLQ11(5)+CSUMPLQ11(6)+CSUMPLQ11(7)+CSUMPLQ11(8))&
-        +(CSUMPLQ11(9)+CSUMPLQ11(10)+CSUMPLQ11(11)+CSUMPLQ11(12))&
-        +(CSUMPLQ11(13)+CSUMPLQ11(14)+CSUMPLQ11(15)+CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM186(N4,ID,IK)=(CSUMPLQMOM11(1,IK)+CSUMPLQMOM11(2,IK)&
-        +CSUMPLQMOM11(3,IK)+CSUMPLQMOM11(4,IK)&
-        +(CSUMPLQMOM11(9,IK)+CSUMPLQMOM11(10,IK)+CSUMPLQMOM11(11,IK)&
-        +CSUMPLQMOM11(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE187(N4,ID)=(CSUMPLQ11(1)+CSUMPLQ11(2)+CSUMPLQ11(3)&
-        +CSUMPLQ11(4)&
-        -(CSUMPLQ11(5)+CSUMPLQ11(6)+CSUMPLQ11(7)+CSUMPLQ11(8))&
-        +(CSUMPLQ11(9)+CSUMPLQ11(10)+CSUMPLQ11(11)+CSUMPLQ11(12))&
-        -(CSUMPLQ11(13)+CSUMPLQ11(14)+CSUMPLQ11(15)+CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM187(N4,ID,IK)=(CSUMPLQMOM11(5,IK)+CSUMPLQMOM11(6,IK)&
-        +CSUMPLQMOM11(7,IK)+CSUMPLQMOM11(8,IK)&
-        +(CSUMPLQMOM11(13,IK)+CSUMPLQMOM11(14,IK)+CSUMPLQMOM11(15,IK)&
-        +CSUMPLQMOM11(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE188(N4,ID)=(CSUMPLQ11(1)+CSUMPLQ11(2)+CSUMPLQ11(3)&
-        +CSUMPLQ11(4)&
-        +(CSUMPLQ11(5)+CSUMPLQ11(6)+CSUMPLQ11(7)+CSUMPLQ11(8))&
-        -(CSUMPLQ11(9)+CSUMPLQ11(10)+CSUMPLQ11(11)+CSUMPLQ11(12))&
-        -(CSUMPLQ11(13)+CSUMPLQ11(14)+CSUMPLQ11(15)+CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM188(N4,ID,IK)=(CSUMPLQMOM11(1,IK)+CSUMPLQMOM11(2,IK)&
-        +CSUMPLQMOM11(3,IK)+CSUMPLQMOM11(4,IK)&
-        -(CSUMPLQMOM11(9,IK)+CSUMPLQMOM11(10,IK)+CSUMPLQMOM11(11,IK)&
-        +CSUMPLQMOM11(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE189(N4,ID)=(CSUMPLQ11(1)+CSUMPLQ11(2)+CSUMPLQ11(3)&
-        +CSUMPLQ11(4)&
-        -(CSUMPLQ11(5)+CSUMPLQ11(6)+CSUMPLQ11(7)+CSUMPLQ11(8))&
-        -(CSUMPLQ11(9)+CSUMPLQ11(10)+CSUMPLQ11(11)+CSUMPLQ11(12))&
-        +(CSUMPLQ11(13)+CSUMPLQ11(14)+CSUMPLQ11(15)+CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM189(N4,ID,IK)=(CSUMPLQMOM11(5,IK)+CSUMPLQMOM11(6,IK)&
-        +CSUMPLQMOM11(7,IK)+CSUMPLQMOM11(8,IK)&
-        -(CSUMPLQMOM11(13,IK)+CSUMPLQMOM11(14,IK)+CSUMPLQMOM11(15,IK)&
-        +CSUMPLQMOM11(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE190(N4,ID)=(CSUMPLQ11(1)+GIOT*CSUMPLQ11(2)-CSUMPLQ11(3)&
-        -GIOT*CSUMPLQ11(4)+(CSUMPLQ11(5)+GIOT*CSUMPLQ11(6)-CSUMPLQ11(7)&
-        -GIOT*CSUMPLQ11(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM190(N4,ID,IK)=(CSUMPLQMOM11(1,IK)&
-        +GIOT*CSUMPLQMOM11(2,IK)&
-        -CSUMPLQMOM11(3,IK)-GIOT*CSUMPLQMOM11(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE191(N4,ID)=(CSUMPLQ11(1)+GIOT*CSUMPLQ11(2)-CSUMPLQ11(3)&
-        -GIOT*CSUMPLQ11(4)-(CSUMPLQ11(5)+GIOT*CSUMPLQ11(6)-CSUMPLQ11(7)&
-        -GIOT*CSUMPLQ11(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM191(N4,ID,IK)=(CSUMPLQMOM11(5,IK)&
-        +GIOT*CSUMPLQMOM11(6,IK)&
-        -CSUMPLQMOM11(7,IK)-GIOT*CSUMPLQMOM11(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE192(N4,ID)=(CSUMPLQ11(1)-CSUMPLQ11(2)+CSUMPLQ11(3)&
-        -CSUMPLQ11(4)&
-        +(CSUMPLQ11(5)-CSUMPLQ11(6)+CSUMPLQ11(7)-CSUMPLQ11(8))&
-        +(CSUMPLQ11(9)-CSUMPLQ11(10)+CSUMPLQ11(11)-CSUMPLQ11(12))&
-        +(CSUMPLQ11(13)-CSUMPLQ11(14)+CSUMPLQ11(15)-CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM192(N4,ID,IK)=(CSUMPLQMOM11(1,IK)-CSUMPLQMOM11(2,IK)&
-        +CSUMPLQMOM11(3,IK)-CSUMPLQMOM11(4,IK)&
-        +(CSUMPLQMOM11(9,IK)-CSUMPLQMOM11(10,IK)+CSUMPLQMOM11(11,IK)&
-        -CSUMPLQMOM11(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE193(N4,ID)=(CSUMPLQ11(1)-CSUMPLQ11(2)+CSUMPLQ11(3)&
-        -CSUMPLQ11(4)&
-        -(CSUMPLQ11(5)-CSUMPLQ11(6)+CSUMPLQ11(7)-CSUMPLQ11(8))&
-        +(CSUMPLQ11(9)-CSUMPLQ11(10)+CSUMPLQ11(11)-CSUMPLQ11(12))&
-        -(CSUMPLQ11(13)-CSUMPLQ11(14)+CSUMPLQ11(15)-CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM193(N4,ID,IK)=(CSUMPLQMOM11(5,IK)-CSUMPLQMOM11(6,IK)&
-        +CSUMPLQMOM11(7,IK)-CSUMPLQMOM11(8,IK)&
-        +(CSUMPLQMOM11(13,IK)-CSUMPLQMOM11(14,IK)+CSUMPLQMOM11(15,IK)&
-        -CSUMPLQMOM11(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE194(N4,ID)=(CSUMPLQ11(1)-CSUMPLQ11(2)+CSUMPLQ11(3)&
-        -CSUMPLQ11(4)&
-        +(CSUMPLQ11(5)-CSUMPLQ11(6)+CSUMPLQ11(7)-CSUMPLQ11(8))&
-        -(CSUMPLQ11(9)-CSUMPLQ11(10)+CSUMPLQ11(11)-CSUMPLQ11(12))&
-        -(CSUMPLQ11(13)-CSUMPLQ11(14)+CSUMPLQ11(15)-CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM194(N4,ID,IK)=(CSUMPLQMOM11(1,IK)-CSUMPLQMOM11(2,IK)&
-        +CSUMPLQMOM11(3,IK)-CSUMPLQMOM11(4,IK)&
-        -(CSUMPLQMOM11(9,IK)-CSUMPLQMOM11(10,IK)+CSUMPLQMOM11(11,IK)&
-        -CSUMPLQMOM11(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE195(N4,ID)=(CSUMPLQ11(1)-CSUMPLQ11(2)+CSUMPLQ11(3)&
-        -CSUMPLQ11(4)&
-        -(CSUMPLQ11(5)-CSUMPLQ11(6)+CSUMPLQ11(7)-CSUMPLQ11(8))&
-        -(CSUMPLQ11(9)-CSUMPLQ11(10)+CSUMPLQ11(11)-CSUMPLQ11(12))&
-        +(CSUMPLQ11(13)-CSUMPLQ11(14)+CSUMPLQ11(15)-CSUMPLQ11(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM195(N4,ID,IK)=(CSUMPLQMOM11(5,IK)-CSUMPLQMOM11(6,IK)&
-        +CSUMPLQMOM11(7,IK)-CSUMPLQMOM11(8,IK)&
-        -(CSUMPLQMOM11(13,IK)-CSUMPLQMOM11(14,IK)+CSUMPLQMOM11(15,IK)&
-        -CSUMPLQMOM11(16,IK)))*ADIV2
-        enddo      
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 12
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE196(N4,ID)=(CSUMPLQ12(1)+CSUMPLQ12(2)+CSUMPLQ12(3)&
-        +CSUMPLQ12(4)&
-        +(CSUMPLQ12(5)+CSUMPLQ12(6)+CSUMPLQ12(7)+CSUMPLQ12(8))&
-        +(CSUMPLQ12(9)+CSUMPLQ12(10)+CSUMPLQ12(11)+CSUMPLQ12(12))&
-        +(CSUMPLQ12(13)+CSUMPLQ12(14)+CSUMPLQ12(15)+CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM196(N4,ID,IK)=(CSUMPLQMOM12(1,IK)+CSUMPLQMOM12(2,IK)&
-        +CSUMPLQMOM12(3,IK)+CSUMPLQMOM12(4,IK)&
-        +(CSUMPLQMOM12(9,IK)+CSUMPLQMOM12(10,IK)+CSUMPLQMOM12(11,IK)&
-        +CSUMPLQMOM12(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE197(N4,ID)=(CSUMPLQ12(1)+CSUMPLQ12(2)+CSUMPLQ12(3)&
-        +CSUMPLQ12(4)&
-        -(CSUMPLQ12(5)+CSUMPLQ12(6)+CSUMPLQ12(7)+CSUMPLQ12(8))&
-        +(CSUMPLQ12(9)+CSUMPLQ12(10)+CSUMPLQ12(11)+CSUMPLQ12(12))&
-        -(CSUMPLQ12(13)+CSUMPLQ12(14)+CSUMPLQ12(15)+CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM197(N4,ID,IK)=(CSUMPLQMOM12(5,IK)+CSUMPLQMOM12(6,IK)&
-        +CSUMPLQMOM12(7,IK)+CSUMPLQMOM12(8,IK)&
-        +(CSUMPLQMOM12(13,IK)+CSUMPLQMOM12(14,IK)+CSUMPLQMOM12(15,IK)&
-        +CSUMPLQMOM12(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE198(N4,ID)=(CSUMPLQ12(1)+CSUMPLQ12(2)+CSUMPLQ12(3)&
-        +CSUMPLQ12(4)&
-        +(CSUMPLQ12(5)+CSUMPLQ12(6)+CSUMPLQ12(7)+CSUMPLQ12(8))&
-        -(CSUMPLQ12(9)+CSUMPLQ12(10)+CSUMPLQ12(11)+CSUMPLQ12(12))&
-        -(CSUMPLQ12(13)+CSUMPLQ12(14)+CSUMPLQ12(15)+CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM198(N4,ID,IK)=(CSUMPLQMOM12(1,IK)+CSUMPLQMOM12(2,IK)&
-        +CSUMPLQMOM12(3,IK)+CSUMPLQMOM12(4,IK)&
-        -(CSUMPLQMOM12(9,IK)+CSUMPLQMOM12(10,IK)+CSUMPLQMOM12(11,IK)&
-        +CSUMPLQMOM12(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE199(N4,ID)=(CSUMPLQ12(1)+CSUMPLQ12(2)+CSUMPLQ12(3)&
-        +CSUMPLQ12(4)&
-        -(CSUMPLQ12(5)+CSUMPLQ12(6)+CSUMPLQ12(7)+CSUMPLQ12(8))&
-        -(CSUMPLQ12(9)+CSUMPLQ12(10)+CSUMPLQ12(11)+CSUMPLQ12(12))&
-        +(CSUMPLQ12(13)+CSUMPLQ12(14)+CSUMPLQ12(15)+CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM199(N4,ID,IK)=(CSUMPLQMOM12(5,IK)+CSUMPLQMOM12(6,IK)&
-        +CSUMPLQMOM12(7,IK)+CSUMPLQMOM12(8,IK)&
-        -(CSUMPLQMOM12(13,IK)+CSUMPLQMOM12(14,IK)+CSUMPLQMOM12(15,IK)&
-        +CSUMPLQMOM12(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE200(N4,ID)=(CSUMPLQ12(1)+GIOT*CSUMPLQ12(2)-CSUMPLQ12(3)&
-        -GIOT*CSUMPLQ12(4)+(CSUMPLQ12(5)+GIOT*CSUMPLQ12(6)-CSUMPLQ12(7)&
-        -GIOT*CSUMPLQ12(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM200(N4,ID,IK)=(CSUMPLQMOM12(1,IK)&
-        +GIOT*CSUMPLQMOM12(2,IK)&
-        -CSUMPLQMOM12(3,IK)-GIOT*CSUMPLQMOM12(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE201(N4,ID)=(CSUMPLQ12(1)+GIOT*CSUMPLQ12(2)-CSUMPLQ12(3)&
-        -GIOT*CSUMPLQ12(4)-(CSUMPLQ12(5)+GIOT*CSUMPLQ12(6)-CSUMPLQ12(7)&
-        -GIOT*CSUMPLQ12(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM201(N4,ID,IK)=(CSUMPLQMOM12(5,IK)&
-        +GIOT*CSUMPLQMOM12(6,IK)&
-        -CSUMPLQMOM12(7,IK)-GIOT*CSUMPLQMOM12(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE202(N4,ID)=(CSUMPLQ12(1)-CSUMPLQ12(2)+CSUMPLQ12(3)&
-        -CSUMPLQ12(4)&
-        +(CSUMPLQ12(5)-CSUMPLQ12(6)+CSUMPLQ12(7)-CSUMPLQ12(8))&
-        +(CSUMPLQ12(9)-CSUMPLQ12(10)+CSUMPLQ12(11)-CSUMPLQ12(12))&
-        +(CSUMPLQ12(13)-CSUMPLQ12(14)+CSUMPLQ12(15)-CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM202(N4,ID,IK)=(CSUMPLQMOM12(1,IK)-CSUMPLQMOM12(2,IK)&
-        +CSUMPLQMOM12(3,IK)-CSUMPLQMOM12(4,IK)&
-        +(CSUMPLQMOM12(9,IK)-CSUMPLQMOM12(10,IK)+CSUMPLQMOM12(11,IK)&
-        -CSUMPLQMOM12(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE203(N4,ID)=(CSUMPLQ12(1)-CSUMPLQ12(2)+CSUMPLQ12(3)&
-        -CSUMPLQ12(4)&
-        -(CSUMPLQ12(5)-CSUMPLQ12(6)+CSUMPLQ12(7)-CSUMPLQ12(8))&
-        +(CSUMPLQ12(9)-CSUMPLQ12(10)+CSUMPLQ12(11)-CSUMPLQ12(12))&
-        -(CSUMPLQ12(13)-CSUMPLQ12(14)+CSUMPLQ12(15)-CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM203(N4,ID,IK)=(CSUMPLQMOM12(5,IK)-CSUMPLQMOM12(6,IK)&
-        +CSUMPLQMOM12(7,IK)-CSUMPLQMOM12(8,IK)&
-        +(CSUMPLQMOM12(13,IK)-CSUMPLQMOM12(14,IK)+CSUMPLQMOM12(15,IK)&
-        -CSUMPLQMOM12(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE204(N4,ID)=(CSUMPLQ12(1)-CSUMPLQ12(2)+CSUMPLQ12(3)&
-        -CSUMPLQ12(4)&
-        +(CSUMPLQ12(5)-CSUMPLQ12(6)+CSUMPLQ12(7)-CSUMPLQ12(8))&
-        -(CSUMPLQ12(9)-CSUMPLQ12(10)+CSUMPLQ12(11)-CSUMPLQ12(12))&
-        -(CSUMPLQ12(13)-CSUMPLQ12(14)+CSUMPLQ12(15)-CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM204(N4,ID,IK)=(CSUMPLQMOM12(1,IK)-CSUMPLQMOM12(2,IK)&
-        +CSUMPLQMOM12(3,IK)-CSUMPLQMOM12(4,IK)&
-        -(CSUMPLQMOM12(9,IK)-CSUMPLQMOM12(10,IK)+CSUMPLQMOM12(11,IK)&
-        -CSUMPLQMOM12(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE205(N4,ID)=(CSUMPLQ12(1)-CSUMPLQ12(2)+CSUMPLQ12(3)&
-        -CSUMPLQ12(4)&
-        -(CSUMPLQ12(5)-CSUMPLQ12(6)+CSUMPLQ12(7)-CSUMPLQ12(8))&
-        -(CSUMPLQ12(9)-CSUMPLQ12(10)+CSUMPLQ12(11)-CSUMPLQ12(12))&
-        +(CSUMPLQ12(13)-CSUMPLQ12(14)+CSUMPLQ12(15)-CSUMPLQ12(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM205(N4,ID,IK)=(CSUMPLQMOM12(5,IK)-CSUMPLQMOM12(6,IK)&
-        +CSUMPLQMOM12(7,IK)-CSUMPLQMOM12(8,IK)&
-        -(CSUMPLQMOM12(13,IK)-CSUMPLQMOM12(14,IK)+CSUMPLQMOM12(15,IK)&
-        -CSUMPLQMOM12(16,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 13
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE206(N4,ID)=(CSUMPLQ13(1)+CSUMPLQ13(2)+CSUMPLQ13(3)&
-        +CSUMPLQ13(4)&
-        +(CSUMPLQ13(5)+CSUMPLQ13(6)+CSUMPLQ13(7)+CSUMPLQ13(8))&
-        +(CSUMPLQ13(9)+CSUMPLQ13(10)+CSUMPLQ13(11)+CSUMPLQ13(12))&
-        +(CSUMPLQ13(13)+CSUMPLQ13(14)+CSUMPLQ13(15)+CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM206(N4,ID,IK)=(CSUMPLQMOM13(1,IK)+CSUMPLQMOM13(2,IK)&
-        +CSUMPLQMOM13(3,IK)+CSUMPLQMOM13(4,IK)&
-        +(CSUMPLQMOM13(9,IK)+CSUMPLQMOM13(10,IK)+CSUMPLQMOM13(11,IK)&
-        +CSUMPLQMOM13(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE207(N4,ID)=(CSUMPLQ13(1)+CSUMPLQ13(2)+CSUMPLQ13(3)&
-        +CSUMPLQ13(4)&
-        -(CSUMPLQ13(5)+CSUMPLQ13(6)+CSUMPLQ13(7)+CSUMPLQ13(8))&
-        +(CSUMPLQ13(9)+CSUMPLQ13(10)+CSUMPLQ13(11)+CSUMPLQ13(12))&
-        -(CSUMPLQ13(13)+CSUMPLQ13(14)+CSUMPLQ13(15)+CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM207(N4,ID,IK)=(CSUMPLQMOM13(5,IK)+CSUMPLQMOM13(6,IK)&
-        +CSUMPLQMOM13(7,IK)+CSUMPLQMOM13(8,IK)&
-        +(CSUMPLQMOM13(13,IK)+CSUMPLQMOM13(14,IK)+CSUMPLQMOM13(15,IK)&
-        +CSUMPLQMOM13(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE208(N4,ID)=(CSUMPLQ13(1)+CSUMPLQ13(2)+CSUMPLQ13(3)&
-        +CSUMPLQ13(4)&
-        +(CSUMPLQ13(5)+CSUMPLQ13(6)+CSUMPLQ13(7)+CSUMPLQ13(8))&
-        -(CSUMPLQ13(9)+CSUMPLQ13(10)+CSUMPLQ13(11)+CSUMPLQ13(12))&
-        -(CSUMPLQ13(13)+CSUMPLQ13(14)+CSUMPLQ13(15)+CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM208(N4,ID,IK)=(CSUMPLQMOM13(1,IK)+CSUMPLQMOM13(2,IK)&
-        +CSUMPLQMOM13(3,IK)+CSUMPLQMOM13(4,IK)&
-        -(CSUMPLQMOM13(9,IK)+CSUMPLQMOM13(10,IK)+CSUMPLQMOM13(11,IK)&
-        +CSUMPLQMOM13(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE209(N4,ID)=(CSUMPLQ13(1)+CSUMPLQ13(2)+CSUMPLQ13(3)&
-        +CSUMPLQ13(4)&
-        -(CSUMPLQ13(5)+CSUMPLQ13(6)+CSUMPLQ13(7)+CSUMPLQ13(8))&
-        -(CSUMPLQ13(9)+CSUMPLQ13(10)+CSUMPLQ13(11)+CSUMPLQ13(12))&
-        +(CSUMPLQ13(13)+CSUMPLQ13(14)+CSUMPLQ13(15)+CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM209(N4,ID,IK)=(CSUMPLQMOM13(5,IK)+CSUMPLQMOM13(6,IK)&
-        +CSUMPLQMOM13(7,IK)+CSUMPLQMOM13(8,IK)&
-        -(CSUMPLQMOM13(13,IK)+CSUMPLQMOM13(14,IK)+CSUMPLQMOM13(15,IK)&
-        +CSUMPLQMOM13(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE210(N4,ID)=(CSUMPLQ13(1)+GIOT*CSUMPLQ13(2)-CSUMPLQ13(3)&
-        -GIOT*CSUMPLQ13(4)+(CSUMPLQ13(5)+GIOT*CSUMPLQ13(6)-CSUMPLQ13(7)&
-        -GIOT*CSUMPLQ13(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM210(N4,ID,IK)=(CSUMPLQMOM13(1,IK)&
-        +GIOT*CSUMPLQMOM13(2,IK)&
-        -CSUMPLQMOM13(3,IK)-GIOT*CSUMPLQMOM13(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE211(N4,ID)=(CSUMPLQ13(1)+GIOT*CSUMPLQ13(2)-CSUMPLQ13(3)&
-        -GIOT*CSUMPLQ13(4)-(CSUMPLQ13(5)+GIOT*CSUMPLQ13(6)-CSUMPLQ13(7)&
-        -GIOT*CSUMPLQ13(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM211(N4,ID,IK)=(CSUMPLQMOM13(5,IK)&
-        +GIOT*CSUMPLQMOM13(6,IK)&
-        -CSUMPLQMOM13(7,IK)-GIOT*CSUMPLQMOM13(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE212(N4,ID)=(CSUMPLQ13(1)-CSUMPLQ13(2)+CSUMPLQ13(3)&
-        -CSUMPLQ13(4)&
-        +(CSUMPLQ13(5)-CSUMPLQ13(6)+CSUMPLQ13(7)-CSUMPLQ13(8))&
-        +(CSUMPLQ13(9)-CSUMPLQ13(10)+CSUMPLQ13(11)-CSUMPLQ13(12))&
-        +(CSUMPLQ13(13)-CSUMPLQ13(14)+CSUMPLQ13(15)-CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM212(N4,ID,IK)=(CSUMPLQMOM13(1,IK)-CSUMPLQMOM13(2,IK)&
-        +CSUMPLQMOM13(3,IK)-CSUMPLQMOM13(4,IK)&
-        +(CSUMPLQMOM13(9,IK)-CSUMPLQMOM13(10,IK)+CSUMPLQMOM13(11,IK)&
-        -CSUMPLQMOM13(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE213(N4,ID)=(CSUMPLQ13(1)-CSUMPLQ13(2)+CSUMPLQ13(3)&
-        -CSUMPLQ13(4)&
-        -(CSUMPLQ13(5)-CSUMPLQ13(6)+CSUMPLQ13(7)-CSUMPLQ13(8))&
-        +(CSUMPLQ13(9)-CSUMPLQ13(10)+CSUMPLQ13(11)-CSUMPLQ13(12))&
-        -(CSUMPLQ13(13)-CSUMPLQ13(14)+CSUMPLQ13(15)-CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM213(N4,ID,IK)=(CSUMPLQMOM13(5,IK)-CSUMPLQMOM13(6,IK)&
-        +CSUMPLQMOM13(7,IK)-CSUMPLQMOM13(8,IK)&
-        +(CSUMPLQMOM13(13,IK)-CSUMPLQMOM13(14,IK)+CSUMPLQMOM13(15,IK)&
-        -CSUMPLQMOM13(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE214(N4,ID)=(CSUMPLQ13(1)-CSUMPLQ13(2)+CSUMPLQ13(3)&
-        -CSUMPLQ13(4)&
-        +(CSUMPLQ13(5)-CSUMPLQ13(6)+CSUMPLQ13(7)-CSUMPLQ13(8))&
-        -(CSUMPLQ13(9)-CSUMPLQ13(10)+CSUMPLQ13(11)-CSUMPLQ13(12))&
-        -(CSUMPLQ13(13)-CSUMPLQ13(14)+CSUMPLQ13(15)-CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM214(N4,ID,IK)=(CSUMPLQMOM13(1,IK)-CSUMPLQMOM13(2,IK)&
-        +CSUMPLQMOM13(3,IK)-CSUMPLQMOM13(4,IK)&
-        -(CSUMPLQMOM13(9,IK)-CSUMPLQMOM13(10,IK)+CSUMPLQMOM13(11,IK)&
-        -CSUMPLQMOM13(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE215(N4,ID)=(CSUMPLQ13(1)-CSUMPLQ13(2)+CSUMPLQ13(3)&
-        -CSUMPLQ13(4)&
-        -(CSUMPLQ13(5)-CSUMPLQ13(6)+CSUMPLQ13(7)-CSUMPLQ13(8))&
-        -(CSUMPLQ13(9)-CSUMPLQ13(10)+CSUMPLQ13(11)-CSUMPLQ13(12))&
-        +(CSUMPLQ13(13)-CSUMPLQ13(14)+CSUMPLQ13(15)-CSUMPLQ13(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM215(N4,ID,IK)=(CSUMPLQMOM13(5,IK)-CSUMPLQMOM13(6,IK)&
-        +CSUMPLQMOM13(7,IK)-CSUMPLQMOM13(8,IK)&
-        -(CSUMPLQMOM13(13,IK)-CSUMPLQMOM13(14,IK)+CSUMPLQMOM13(15,IK)&
-        -CSUMPLQMOM13(16,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 14
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE216(N4,ID)=(CSUMPLQ14(1)+CSUMPLQ14(2)+CSUMPLQ14(3)&
-        +CSUMPLQ14(4)&
-        +(CSUMPLQ14(5)+CSUMPLQ14(6)+CSUMPLQ14(7)+CSUMPLQ14(8))&
-        +(CSUMPLQ14(9)+CSUMPLQ14(10)+CSUMPLQ14(11)+CSUMPLQ14(12))&
-        +(CSUMPLQ14(13)+CSUMPLQ14(14)+CSUMPLQ14(15)+CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM216(N4,ID,IK)=(CSUMPLQMOM14(1,IK)+CSUMPLQMOM14(2,IK)&
-        +CSUMPLQMOM14(3,IK)+CSUMPLQMOM14(4,IK)&
-        +(CSUMPLQMOM14(9,IK)+CSUMPLQMOM14(10,IK)+CSUMPLQMOM14(11,IK)&
-        +CSUMPLQMOM14(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE217(N4,ID)=(CSUMPLQ14(1)+CSUMPLQ14(2)+CSUMPLQ14(3)&
-        +CSUMPLQ14(4)&
-        -(CSUMPLQ14(5)+CSUMPLQ14(6)+CSUMPLQ14(7)+CSUMPLQ14(8))&
-        +(CSUMPLQ14(9)+CSUMPLQ14(10)+CSUMPLQ14(11)+CSUMPLQ14(12))&
-        -(CSUMPLQ14(13)+CSUMPLQ14(14)+CSUMPLQ14(15)+CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM217(N4,ID,IK)=(CSUMPLQMOM14(5,IK)+CSUMPLQMOM14(6,IK)&
-        +CSUMPLQMOM14(7,IK)+CSUMPLQMOM14(8,IK)&
-        +(CSUMPLQMOM14(13,IK)+CSUMPLQMOM14(14,IK)+CSUMPLQMOM14(15,IK)&
-        +CSUMPLQMOM14(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE218(N4,ID)=(CSUMPLQ14(1)+CSUMPLQ14(2)+CSUMPLQ14(3)&
-        +CSUMPLQ14(4)&
-        +(CSUMPLQ14(5)+CSUMPLQ14(6)+CSUMPLQ14(7)+CSUMPLQ14(8))&
-        -(CSUMPLQ14(9)+CSUMPLQ14(10)+CSUMPLQ14(11)+CSUMPLQ14(12))&
-        -(CSUMPLQ14(13)+CSUMPLQ14(14)+CSUMPLQ14(15)+CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM218(N4,ID,IK)=(CSUMPLQMOM14(1,IK)+CSUMPLQMOM14(2,IK)&
-        +CSUMPLQMOM14(3,IK)+CSUMPLQMOM14(4,IK)&
-        -(CSUMPLQMOM14(9,IK)+CSUMPLQMOM14(10,IK)+CSUMPLQMOM14(11,IK)&
-        +CSUMPLQMOM14(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE219(N4,ID)=(CSUMPLQ14(1)+CSUMPLQ14(2)+CSUMPLQ14(3)&
-        +CSUMPLQ14(4)&
-        -(CSUMPLQ14(5)+CSUMPLQ14(6)+CSUMPLQ14(7)+CSUMPLQ14(8))&
-        -(CSUMPLQ14(9)+CSUMPLQ14(10)+CSUMPLQ14(11)+CSUMPLQ14(12))&
-        +(CSUMPLQ14(13)+CSUMPLQ14(14)+CSUMPLQ14(15)+CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM219(N4,ID,IK)=(CSUMPLQMOM14(5,IK)+CSUMPLQMOM14(6,IK)&
-        +CSUMPLQMOM14(7,IK)+CSUMPLQMOM14(8,IK)&
-        -(CSUMPLQMOM14(13,IK)+CSUMPLQMOM14(14,IK)+CSUMPLQMOM14(15,IK)&
-        +CSUMPLQMOM14(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE220(N4,ID)=(CSUMPLQ14(1)+GIOT*CSUMPLQ14(2)-CSUMPLQ14(3)&
-        -GIOT*CSUMPLQ14(4)+(CSUMPLQ14(5)+GIOT*CSUMPLQ14(6)-CSUMPLQ14(7)&
-        -GIOT*CSUMPLQ14(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM220(N4,ID,IK)=(CSUMPLQMOM14(1,IK)&
-        +GIOT*CSUMPLQMOM14(2,IK)&
-        -CSUMPLQMOM14(3,IK)-GIOT*CSUMPLQMOM14(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE221(N4,ID)=(CSUMPLQ14(1)+GIOT*CSUMPLQ14(2)-CSUMPLQ14(3)&
-        -GIOT*CSUMPLQ14(4)-(CSUMPLQ14(5)+GIOT*CSUMPLQ14(6)-CSUMPLQ14(7)&
-        -GIOT*CSUMPLQ14(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM221(N4,ID,IK)=(CSUMPLQMOM14(5,IK)&
-        +GIOT*CSUMPLQMOM14(6,IK)&
-        -CSUMPLQMOM14(7,IK)-GIOT*CSUMPLQMOM14(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE222(N4,ID)=(CSUMPLQ14(1)-CSUMPLQ14(2)+CSUMPLQ14(3)&
-        -CSUMPLQ14(4)&
-        +(CSUMPLQ14(5)-CSUMPLQ14(6)+CSUMPLQ14(7)-CSUMPLQ14(8))&
-        +(CSUMPLQ14(9)-CSUMPLQ14(10)+CSUMPLQ14(11)-CSUMPLQ14(12))&
-        +(CSUMPLQ14(13)-CSUMPLQ14(14)+CSUMPLQ14(15)-CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM222(N4,ID,IK)=(CSUMPLQMOM14(1,IK)-CSUMPLQMOM14(2,IK)&
-        +CSUMPLQMOM14(3,IK)-CSUMPLQMOM14(4,IK)&
-        +(CSUMPLQMOM14(9,IK)-CSUMPLQMOM14(10,IK)+CSUMPLQMOM14(11,IK)&
-        -CSUMPLQMOM14(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE223(N4,ID)=(CSUMPLQ14(1)-CSUMPLQ14(2)+CSUMPLQ14(3)&
-        -CSUMPLQ14(4)&
-        -(CSUMPLQ14(5)-CSUMPLQ14(6)+CSUMPLQ14(7)-CSUMPLQ14(8))&
-        +(CSUMPLQ14(9)-CSUMPLQ14(10)+CSUMPLQ14(11)-CSUMPLQ14(12))&
-        -(CSUMPLQ14(13)-CSUMPLQ14(14)+CSUMPLQ14(15)-CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM223(N4,ID,IK)=(CSUMPLQMOM14(5,IK)-CSUMPLQMOM14(6,IK)&
-        +CSUMPLQMOM14(7,IK)-CSUMPLQMOM14(8,IK)&
-        +(CSUMPLQMOM14(13,IK)-CSUMPLQMOM14(14,IK)+CSUMPLQMOM14(15,IK)&
-        -CSUMPLQMOM14(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE224(N4,ID)=(CSUMPLQ14(1)-CSUMPLQ14(2)+CSUMPLQ14(3)&
-        -CSUMPLQ14(4)&
-        +(CSUMPLQ14(5)-CSUMPLQ14(6)+CSUMPLQ14(7)-CSUMPLQ14(8))&
-        -(CSUMPLQ14(9)-CSUMPLQ14(10)+CSUMPLQ14(11)-CSUMPLQ14(12))&
-        -(CSUMPLQ14(13)-CSUMPLQ14(14)+CSUMPLQ14(15)-CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM224(N4,ID,IK)=(CSUMPLQMOM14(1,IK)-CSUMPLQMOM14(2,IK)&
-        +CSUMPLQMOM14(3,IK)-CSUMPLQMOM14(4,IK)&
-        -(CSUMPLQMOM14(9,IK)-CSUMPLQMOM14(10,IK)+CSUMPLQMOM14(11,IK)&
-        -CSUMPLQMOM14(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE225(N4,ID)=(CSUMPLQ14(1)-CSUMPLQ14(2)+CSUMPLQ14(3)&
-        -CSUMPLQ14(4)&
-        -(CSUMPLQ14(5)-CSUMPLQ14(6)+CSUMPLQ14(7)-CSUMPLQ14(8))&
-        -(CSUMPLQ14(9)-CSUMPLQ14(10)+CSUMPLQ14(11)-CSUMPLQ14(12))&
-        +(CSUMPLQ14(13)-CSUMPLQ14(14)+CSUMPLQ14(15)-CSUMPLQ14(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM225(N4,ID,IK)=(CSUMPLQMOM14(5,IK)-CSUMPLQMOM14(6,IK)&
-        +CSUMPLQMOM14(7,IK)-CSUMPLQMOM14(8,IK)&
-        -(CSUMPLQMOM14(13,IK)-CSUMPLQMOM14(14,IK)+CSUMPLQMOM14(15,IK)&
-        -CSUMPLQMOM14(16,IK)))*ADIV2
-        enddo
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     PLAQUETTE OPERATORS 15
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE226(N4,ID)=(CSUMPLQ15(1)+CSUMPLQ15(2)+CSUMPLQ15(3)&
-        +CSUMPLQ15(4)&
-        +(CSUMPLQ15(5)+CSUMPLQ15(6)+CSUMPLQ15(7)+CSUMPLQ15(8))&
-        +(CSUMPLQ15(9)+CSUMPLQ15(10)+CSUMPLQ15(11)+CSUMPLQ15(12))&
-        +(CSUMPLQ15(13)+CSUMPLQ15(14)+CSUMPLQ15(15)+CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM226(N4,ID,IK)=(CSUMPLQMOM15(1,IK)+CSUMPLQMOM15(2,IK)&
-        +CSUMPLQMOM15(3,IK)+CSUMPLQMOM15(4,IK)&
-        +(CSUMPLQMOM15(9,IK)+CSUMPLQMOM15(10,IK)+CSUMPLQMOM15(11,IK)&
-        +CSUMPLQMOM15(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE227(N4,ID)=(CSUMPLQ15(1)+CSUMPLQ15(2)+CSUMPLQ15(3)&
-        +CSUMPLQ15(4)&
-        -(CSUMPLQ15(5)+CSUMPLQ15(6)+CSUMPLQ15(7)+CSUMPLQ15(8))&
-        +(CSUMPLQ15(9)+CSUMPLQ15(10)+CSUMPLQ15(11)+CSUMPLQ15(12))&
-        -(CSUMPLQ15(13)+CSUMPLQ15(14)+CSUMPLQ15(15)+CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=+, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM227(N4,ID,IK)=(CSUMPLQMOM15(5,IK)+CSUMPLQMOM15(6,IK)&
-        +CSUMPLQMOM15(7,IK)+CSUMPLQMOM15(8,IK)&
-        +(CSUMPLQMOM15(13,IK)+CSUMPLQMOM15(14,IK)+CSUMPLQMOM15(15,IK)&
-        +CSUMPLQMOM15(16,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE228(N4,ID)=(CSUMPLQ15(1)+CSUMPLQ15(2)+CSUMPLQ15(3)&
-        +CSUMPLQ15(4)&
-        +(CSUMPLQ15(5)+CSUMPLQ15(6)+CSUMPLQ15(7)+CSUMPLQ15(8))&
-        -(CSUMPLQ15(9)+CSUMPLQ15(10)+CSUMPLQ15(11)+CSUMPLQ15(12))&
-        -(CSUMPLQ15(13)+CSUMPLQ15(14)+CSUMPLQ15(15)+CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM228(N4,ID,IK)=(CSUMPLQMOM15(1,IK)+CSUMPLQMOM15(2,IK)&
-        +CSUMPLQMOM15(3,IK)+CSUMPLQMOM15(4,IK)&
-        -(CSUMPLQMOM15(9,IK)+CSUMPLQMOM15(10,IK)+CSUMPLQMOM15(11,IK)&
-        +CSUMPLQMOM15(12,IK)))*ADIV2
-        enddo
-    !**********************************************************************      
-    !     J=0, Pp=-, Pr=-, q=0
-    !**********************************************************************
-        ALINE229(N4,ID)=(CSUMPLQ15(1)+CSUMPLQ15(2)+CSUMPLQ15(3)&
-        +CSUMPLQ15(4)&
-        -(CSUMPLQ15(5)+CSUMPLQ15(6)+CSUMPLQ15(7)+CSUMPLQ15(8))&
-        -(CSUMPLQ15(9)+CSUMPLQ15(10)+CSUMPLQ15(11)+CSUMPLQ15(12))&
-        +(CSUMPLQ15(13)+CSUMPLQ15(14)+CSUMPLQ15(15)+CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=0, Pp=-, q=1,2
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM229(N4,ID,IK)=(CSUMPLQMOM15(5,IK)+CSUMPLQMOM15(6,IK)&
-        +CSUMPLQMOM15(7,IK)+CSUMPLQMOM15(8,IK)&
-        -(CSUMPLQMOM15(13,IK)+CSUMPLQMOM15(14,IK)+CSUMPLQMOM15(15,IK)&
-        +CSUMPLQMOM15(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=1, Pr=+, q=0
-    !**********************************************************************            
-        ALINE230(N4,ID)=(CSUMPLQ15(1)+GIOT*CSUMPLQ15(2)-CSUMPLQ15(3)&
-        -GIOT*CSUMPLQ15(4)+(CSUMPLQ15(5)+GIOT*CSUMPLQ15(6)-CSUMPLQ15(7)&
-        -GIOT*CSUMPLQ15(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2
-    !**********************************************************************                  
-        do IK=1, 2
-            ALINEMOM230(N4,ID,IK)=(CSUMPLQMOM15(1,IK)&
-        +GIOT*CSUMPLQMOM15(2,IK)&
-        -CSUMPLQMOM15(3,IK)-GIOT*CSUMPLQMOM15(4,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=1, Pr=-, q=0
-    !**********************************************************************                  
-        ALINE231(N4,ID)=(CSUMPLQ15(1)+GIOT*CSUMPLQ15(2)-CSUMPLQ15(3)&
-        -GIOT*CSUMPLQ15(4)-(CSUMPLQ15(5)+GIOT*CSUMPLQ15(6)-CSUMPLQ15(7)&
-        -GIOT*CSUMPLQ15(8)))*ADIV2
-    !**********************************************************************      
-    !     J=1, q=1,2  Here!
-    !**********************************************************************                        
-        do IK=1, 2
-            ALINEMOM231(N4,ID,IK)=(CSUMPLQMOM15(5,IK)&
-        +GIOT*CSUMPLQMOM15(6,IK)&
-        -CSUMPLQMOM15(7,IK)-GIOT*CSUMPLQMOM15(8,IK))*ADIV1
-        enddo
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=+, q=0
-    !**********************************************************************
-        ALINE232(N4,ID)=(CSUMPLQ15(1)-CSUMPLQ15(2)+CSUMPLQ15(3)&
-        -CSUMPLQ15(4)&
-        +(CSUMPLQ15(5)-CSUMPLQ15(6)+CSUMPLQ15(7)-CSUMPLQ15(8))&
-        +(CSUMPLQ15(9)-CSUMPLQ15(10)+CSUMPLQ15(11)-CSUMPLQ15(12))&
-        +(CSUMPLQ15(13)-CSUMPLQ15(14)+CSUMPLQ15(15)-CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM232(N4,ID,IK)=(CSUMPLQMOM15(1,IK)-CSUMPLQMOM15(2,IK)&
-        +CSUMPLQMOM15(3,IK)-CSUMPLQMOM15(4,IK)&
-        +(CSUMPLQMOM15(9,IK)-CSUMPLQMOM15(10,IK)+CSUMPLQMOM15(11,IK)&
-        -CSUMPLQMOM15(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=+, Pr=-, q=0
-    !**********************************************************************
-        ALINE233(N4,ID)=(CSUMPLQ15(1)-CSUMPLQ15(2)+CSUMPLQ15(3)&
-        -CSUMPLQ15(4)&
-        -(CSUMPLQ15(5)-CSUMPLQ15(6)+CSUMPLQ15(7)-CSUMPLQ15(8))&
-        +(CSUMPLQ15(9)-CSUMPLQ15(10)+CSUMPLQ15(11)-CSUMPLQ15(12))&
-        -(CSUMPLQ15(13)-CSUMPLQ15(14)+CSUMPLQ15(15)-CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=+, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM233(N4,ID,IK)=(CSUMPLQMOM15(5,IK)-CSUMPLQMOM15(6,IK)&
-        +CSUMPLQMOM15(7,IK)-CSUMPLQMOM15(8,IK)&
-        +(CSUMPLQMOM15(13,IK)-CSUMPLQMOM15(14,IK)+CSUMPLQMOM15(15,IK)&
-        -CSUMPLQMOM15(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=+, q=0
-    !**********************************************************************
-        ALINE234(N4,ID)=(CSUMPLQ15(1)-CSUMPLQ15(2)+CSUMPLQ15(3)&
-        -CSUMPLQ15(4)&
-        +(CSUMPLQ15(5)-CSUMPLQ15(6)+CSUMPLQ15(7)-CSUMPLQ15(8))&
-        -(CSUMPLQ15(9)-CSUMPLQ15(10)+CSUMPLQ15(11)-CSUMPLQ15(12))&
-        -(CSUMPLQ15(13)-CSUMPLQ15(14)+CSUMPLQ15(15)-CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM234(N4,ID,IK)=(CSUMPLQMOM15(1,IK)-CSUMPLQMOM15(2,IK)&
-        +CSUMPLQMOM15(3,IK)-CSUMPLQMOM15(4,IK)&
-        -(CSUMPLQMOM15(9,IK)-CSUMPLQMOM15(10,IK)+CSUMPLQMOM15(11,IK)&
-        -CSUMPLQMOM15(12,IK)))*ADIV2
-        enddo      
-    !**********************************************************************      
-    !     J=2, Pp=-, Pr=-, q=0  test
-    !**********************************************************************
-        ALINE235(N4,ID)=(CSUMPLQ15(1)-CSUMPLQ15(2)+CSUMPLQ15(3)&
-        -CSUMPLQ15(4)&
-        -(CSUMPLQ15(5)-CSUMPLQ15(6)+CSUMPLQ15(7)-CSUMPLQ15(8))&
-        -(CSUMPLQ15(9)-CSUMPLQ15(10)+CSUMPLQ15(11)-CSUMPLQ15(12))&
-        +(CSUMPLQ15(13)-CSUMPLQ15(14)+CSUMPLQ15(15)-CSUMPLQ15(16)))*ADIV3
-    !**********************************************************************      
-    !     J=2, Pp=-, q=0
-    !**********************************************************************
-        do IK=1, 2
-            ALINEMOM235(N4,ID,IK)=(CSUMPLQMOM15(5,IK)-CSUMPLQMOM15(6,IK)&
-        +CSUMPLQMOM15(7,IK)-CSUMPLQMOM15(8,IK)&
-        -(CSUMPLQMOM15(13,IK)-CSUMPLQMOM15(14,IK)+CSUMPLQMOM15(15,IK)&
-        -CSUMPLQMOM15(16,IK)))*ADIV2
-        enddo      
-    !**********************************************************************
-    !**********************************************************************
-        RETURN
+        return
         end
     !**********************************************************************
 end module
