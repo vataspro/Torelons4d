@@ -28,6 +28,9 @@ module states_class
 
         ! Update correlation matrix of this state
         procedure :: update_corr_matrix=>update_torelon_corr_matrix
+
+        ! Write results to disk
+        procedure :: output_results=>output_torelon_results
     end type
 
     type torelon_momentum_state
@@ -49,6 +52,9 @@ module states_class
 
         ! Update correlation matrix of this state
         procedure :: update_corr_matrix=>update_torelon_momentum_corr_matrix
+
+        ! Write results to disk
+        procedure :: output_results=>output_torelon_momentum_results
     end type
 
     interface time_slice_average
@@ -210,7 +216,7 @@ module states_class
 
         ! Allocate measurement variables
         allocate(torelon%vevs(torelon%NUM_OPERATORS, NUM_BINS), &
-        torelon%corr_matrix(0:MAX_DELTA_T, torelon%NUM_OPERATORS, torelon%NUM_OPERATORS, NUM_BINS))
+        torelon%corr_matrix(torelon%NUM_OPERATORS, torelon%NUM_OPERATORS, 0:MAX_DELTA_T, NUM_BINS))
 
         ! Set measurement variables to zero
         torelon%vevs = 0.0d0
@@ -291,7 +297,7 @@ module states_class
 
         ! Allocate measurement variables
         allocate(torelon%vevs(torelon%NUM_OPERATORS, NUM_BINS), &
-        torelon%corr_matrix(0:MAX_DELTA_T, torelon%NUM_OPERATORS, torelon%NUM_OPERATORS, NUM_BINS))
+        torelon%corr_matrix(torelon%NUM_OPERATORS, torelon%NUM_OPERATORS, 0:MAX_DELTA_T, NUM_BINS))
 
         ! Set measurement variables to zero
         torelon%vevs = 0.0d0
@@ -357,8 +363,8 @@ module states_class
             id2 = (line_index2 - 1) * MAX_BLOCKING_LEVEL + b2
 
             ! Update correlation matrices
-            torelon%corr_matrix(delta_t, id1, id2, bin_index) &
-            = torelon%corr_matrix(delta_t, id1, id2, bin_index) &
+            torelon%corr_matrix(id1, id2, delta_t, bin_index) &
+            = torelon%corr_matrix(id1, id2, delta_t, bin_index) &
             + time_slice_average(lines(:, b1, line_index1), lines(:, b2, line_index2), delta_t)
         enddo
     end subroutine
@@ -382,10 +388,97 @@ module states_class
             id2 = (line_index2 - 1) * MAX_BLOCKING_LEVEL + b2
 
             ! Update correlation matrices
-            torelon%corr_matrix(delta_t, id1, id2, bin_index) &
-            = torelon%corr_matrix(delta_t, id1, id2, bin_index) &
+            torelon%corr_matrix(id1, id2, delta_t, bin_index) &
+            = torelon%corr_matrix(id1, id2, delta_t, bin_index) &
             + time_slice_average(momentum_lines(:, b1, torelon%MOMENTUM, line_index1), &
             momentum_lines(:, b2, torelon%MOMENTUM, line_index2), delta_t)
         enddo
+    end subroutine
+
+    ! Write vevs and correlation matrix of torelon state to disk
+    subroutine output_torelon_results(torelon)
+        implicit none
+        class(torelon_state), intent(inout) :: torelon
+
+        character(len=15) :: file_J, file_PP, file_PR
+        character(len=255) :: file_name
+
+        ! Write spin and parities into strings
+        write(file_J, '(i0)') torelon%SPIN
+        select case(torelon%PP)
+        case(1)
+            file_PP = 'P'
+        case(-1)
+            file_PP = 'M'
+        end select
+        select case(torelon%PR)
+        case(1)
+            file_PR = 'P'
+        case(-1)
+            file_PR = 'M'
+        end select
+
+        ! Construct vevs file name
+        file_name = 'vevs_J' // trim(file_J) // trim(file_PP) // trim(file_PR) // 'q0.dat'
+
+        ! Write dimension of array and vevs to file
+        open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
+        write(11) size(torelon%vevs, dim=1, kind=int32)
+        write(11) size(torelon%vevs, dim=2, kind=int32)
+        write(11) torelon%vevs
+        close(11)
+
+        ! Construct correlation matrix file name
+        file_name = 'corr_matrix_J' // trim(file_J) // trim(file_PP) // trim(file_PR) // 'q0.dat'
+
+        ! Write dimension of array and correlation matrix to file
+        open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
+        write(11) size(torelon%corr_matrix, dim=1, kind=int32)
+        write(11) size(torelon%corr_matrix, dim=2, kind=int32)
+        write(11) size(torelon%corr_matrix, dim=3, kind=int32)
+        write(11) size(torelon%corr_matrix, dim=4, kind=int32)
+        write(11) torelon%corr_matrix
+        close(11)
+    end subroutine
+
+    ! Write vevs and correlation matrix of torelon state with momentum to disk
+    subroutine output_torelon_momentum_results(torelon)
+        implicit none
+        class(torelon_momentum_state), intent(inout) :: torelon
+
+        character(len=15) :: file_J, file_P, file_q
+        character(len=255) :: file_name
+
+        ! Write spin and parities into strings
+        write(file_J, '(i0)') torelon%SPIN
+        select case(torelon%PARITY)
+        case(1)
+            file_P = 'P'
+        case(-1)
+            file_P = 'M'
+        end select
+        write(file_q, '(i0)') torelon%MOMENTUM
+
+        ! Construct vevs file name
+        file_name = 'vevs_J' // trim(file_J) // trim(file_P) // 'q' // trim(file_q) // '.dat'
+
+        ! Write dimension of array and vevs to file
+        open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
+        write(11) size(torelon%vevs, dim=1, kind=int32)
+        write(11) size(torelon%vevs, dim=2, kind=int32)
+        write(11) torelon%vevs
+        close(11)
+
+        ! Construct correlation matrix file name
+        file_name = 'corr_matrix_J' // trim(file_J) // trim(file_P) // 'q' // trim(file_q) // '.dat'
+
+        ! Write dimension of array and correlation matrix to file
+        open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
+        write(11) size(torelon%corr_matrix, dim=1, kind=int32)
+        write(11) size(torelon%corr_matrix, dim=2, kind=int32)
+        write(11) size(torelon%corr_matrix, dim=3, kind=int32)
+        write(11) size(torelon%corr_matrix, dim=4, kind=int32)
+        write(11) torelon%corr_matrix
+        close(11)
     end subroutine
 end module
