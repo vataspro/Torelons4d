@@ -3584,7 +3584,7 @@ c********************************************
  177           CONTINUE
  176        CONTINUE
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-               DO 9 IDDD=1,144 !loop test
+               DO 9 IDDD=1,185 !loop test
 C
                   M2=MN
 C
