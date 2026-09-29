@@ -1599,4 +1599,83 @@ module thermal_lines
         
     end subroutine loop_153
 
+
+    !##############################################
+    !        DOUBLE  PLAQUETTES    
+    !
+    !             |\   |\    
+    !            x|_\__| \
+    !             \ |  \ |
+    !              \|   \|
+    !
+    !##############################################
+    ! Loop 154: double plaquette in (+,+) direction x 1 polyakov link
+    subroutine loop_154(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 1, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_size, 1, blocking_level))
+
+    end subroutine loop_154
+
+    ! Loop 155: double plaquette in (-,+) direction x 1 polyakov link
+    subroutine loop_155(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 2, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_size, 2, blocking_level))
+
+    end subroutine loop_155
+
+    ! Loop 156: double plaquette in (+,-) direction x 1 polyakov link
+    subroutine loop_156(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 3, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_size, 3, blocking_level))
+
+    end subroutine loop_156
+
+    ! Loop 157: double plaquette in (-,-) direction x 1 polyakov link
+    subroutine loop_157(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 4, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_size, 4, blocking_level))
+
+    end subroutine loop_157
+
+
 end module
