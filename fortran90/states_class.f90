@@ -38,11 +38,17 @@ module states_class
         integer, allocatable :: LINE_INDICES(:) ! Gives the indices of the line that project onto this state
 
         ! Measurment variables
-
+        complex(real64), allocatable :: vevs(:,:), corr_matrix(:,:,:,:)
         contains
 
         ! Allocate all parameters
         procedure :: init=>init_torelon_momentum_state
+
+        ! Update vacuum expectation values of operators contributing to this state
+        procedure :: update_vevs=>update_torelon_momentum_vevs
+
+        ! Update correlation matrix of this state
+        procedure :: update_corr_matrix=>update_torelon_momentum_corr_matrix
     end type
 
     interface time_slice_average
@@ -119,7 +125,7 @@ module states_class
             error stop "Invalid spin passed to init_torelon_state. Must be 0, 1 or 2."
         endif
         if (abs(transverse_parity) /= 1) then
-            error stop "Invalid parity pp passed to init_torelon_state, Must be +-1."
+            error stop "Invalid parity pp passed to init_torelon_state. Must be +-1."
         endif
         if (abs(parallel_parity) /= 1) then
             error stop "Invalid parity pr passed to init_torelon_state. Must be +-1."
@@ -205,6 +211,10 @@ module states_class
         ! Allocate measurement variables
         allocate(torelon%vevs(torelon%NUM_OPERATORS, NUM_BINS), &
         torelon%corr_matrix(0:MAX_DELTA_T, torelon%NUM_OPERATORS, torelon%NUM_OPERATORS, NUM_BINS))
+
+        ! Set measurement variables to zero
+        torelon%vevs = 0.0d0
+        torelon%corr_matrix = 0.0d0
     end subroutine
 
     ! Allocate variables for torelon state
@@ -278,6 +288,14 @@ module states_class
             "Setting number of operators to ", size(torelon%LINE_INDICES) * MAX_BLOCKING_LEVEL
             torelon%NUM_OPERATORS = size(torelon%LINE_INDICES) * MAX_BLOCKING_LEVEL
         endif
+
+        ! Allocate measurement variables
+        allocate(torelon%vevs(torelon%NUM_OPERATORS, NUM_BINS), &
+        torelon%corr_matrix(0:MAX_DELTA_T, torelon%NUM_OPERATORS, torelon%NUM_OPERATORS, NUM_BINS))
+
+        ! Set measurement variables to zero
+        torelon%vevs = 0.0d0
+        torelon%corr_matrix = 0.0d0
     end subroutine
 
     ! Update vevs of torelon operators that contribute to the state from lines calculated in THERML1
@@ -297,6 +315,26 @@ module states_class
             ! Update vevs
             torelon%vevs(id, bin_index) = torelon%vevs(id, bin_index) &
             + sum(lines(:, blocking_level, line_index))
+        enddo
+    end subroutine
+
+    ! Update vevs of torelon operators with momentum that contribute to the state from lines calculated in THERML1
+    subroutine update_torelon_momentum_vevs(torelon, momentum_lines, bin_index)
+        implicit none
+        class(torelon_momentum_state), intent(inout) :: torelon
+        complex(real64), intent(in) :: momentum_lines(LX4, MAX_BLOCKING_LEVEL, 2, 2:235)
+        integer, intent(in) :: bin_index
+
+        integer :: id, line_index, blocking_level, i
+
+        do concurrent (i = 1:size(torelon%LINE_INDICES), blocking_level = 1:MAX_BLOCKING_LEVEL)
+            ! Find index of operator being accessed
+            line_index = torelon%LINE_INDICES(i)
+            id = (line_index - 1) * MAX_BLOCKING_LEVEL + blocking_level
+            
+            ! Update vevs
+            torelon%vevs(id, bin_index) = torelon%vevs(id, bin_index) &
+            + sum(momentum_lines(:, blocking_level, torelon%MOMENTUM, line_index))
         enddo
     end subroutine
 
@@ -322,6 +360,32 @@ module states_class
             torelon%corr_matrix(delta_t, id1, id2, bin_index) &
             = torelon%corr_matrix(delta_t, id1, id2, bin_index) &
             + time_slice_average(lines(:, b1, line_index1), lines(:, b2, line_index2), delta_t)
+        enddo
+    end subroutine
+
+    ! Update correlation matrix of torelon operators with momentum that contribute to the state from lines calculated in THERML1
+    subroutine update_torelon_momentum_corr_matrix(torelon, momentum_lines, bin_index)
+        implicit none
+        class(torelon_momentum_state), intent(inout) :: torelon
+        complex(real64), intent(in) :: momentum_lines(LX4, MAX_BLOCKING_LEVEL, 2, 2:235)
+        integer, intent(in) :: bin_index
+
+        integer :: i, j, id1, id2, line_index1, line_index2, b1, b2, delta_t
+
+        do concurrent &
+            (delta_t = 0:MAX_DELTA_T, i = 1:size(torelon%LINE_INDICES), j = 1:size(torelon%LINE_INDICES), &
+            b1 = 1:MAX_BLOCKING_LEVEL, b2 = 1:MAX_BLOCKING_LEVEL)
+            ! Find id's of loops being accessed
+            line_index1 = torelon%LINE_INDICES(i)
+            line_index2 = torelon%LINE_INDICES(j)
+            id1 = (line_index1 - 1) * MAX_BLOCKING_LEVEL + b1
+            id2 = (line_index2 - 1) * MAX_BLOCKING_LEVEL + b2
+
+            ! Update correlation matrices
+            torelon%corr_matrix(delta_t, id1, id2, bin_index) &
+            = torelon%corr_matrix(delta_t, id1, id2, bin_index) &
+            + time_slice_average(momentum_lines(:, b1, torelon%MOMENTUM, line_index1), &
+            momentum_lines(:, b2, torelon%MOMENTUM, line_index2), delta_t)
         enddo
     end subroutine
 end module
