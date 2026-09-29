@@ -405,12 +405,14 @@ module states_class
 
         ! Write spin and parities into strings
         write(file_J, '(i0)') torelon%SPIN
-        select case(torelon%PP)
-        case(1)
-            file_PP = 'P'
-        case(-1)
-            file_PP = 'M'
-        end select
+        if (torelon%SPIN /= 1) then ! J=1 states have undefined transverse parity
+            select case(torelon%PP)
+            case(1)
+                file_PP = 'P'
+            case(-1)
+                file_PP = 'M'
+            end select
+        endif
         select case(torelon%PR)
         case(1)
             file_PR = 'P'
@@ -419,7 +421,11 @@ module states_class
         end select
 
         ! Construct vevs file name
-        file_name = 'vevs_J' // trim(file_J) // trim(file_PP) // trim(file_PR) // 'q0.dat'
+        if (torelon%SPIN == 1) then
+            file_name = 'vevs_J' // trim(file_J) // trim(file_PR) // 'q0.dat'
+        else
+            file_name = 'vevs_J' // trim(file_J) // trim(file_PP) // trim(file_PR) // 'q0.dat'
+        endif
 
         ! Write dimension of array and vevs to file
         open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
@@ -429,7 +435,11 @@ module states_class
         close(11)
 
         ! Construct correlation matrix file name
-        file_name = 'corr_matrix_J' // trim(file_J) // trim(file_PP) // trim(file_PR) // 'q0.dat'
+        if (torelon%SPIN == 1) then
+            file_name = 'corr_matrix_J' // trim(file_J) // trim(file_PR) // 'q0.dat'
+        else
+            file_name = 'corr_matrix_J' // trim(file_J) // trim(file_PP) // trim(file_PR) // 'q0.dat'
+        endif
 
         ! Write dimension of array and correlation matrix to file
         open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
@@ -451,16 +461,22 @@ module states_class
 
         ! Write spin and parities into strings
         write(file_J, '(i0)') torelon%SPIN
-        select case(torelon%PARITY)
-        case(1)
-            file_P = 'P'
-        case(-1)
-            file_P = 'M'
-        end select
+        if (torelon%SPIN /= 1) then ! J=1 states have undefined parity
+            select case(torelon%PARITY)
+            case(1)
+                file_P = 'P'
+            case(-1)
+                file_P = 'M'
+            end select
+        endif
         write(file_q, '(i0)') torelon%MOMENTUM
 
         ! Construct vevs file name
-        file_name = 'vevs_J' // trim(file_J) // trim(file_P) // 'q' // trim(file_q) // '.dat'
+        if (torelon%SPIN == 1) then
+            file_name = 'vevs_J' // trim(file_J) // 'q' // trim(file_q) // '.dat'
+        else
+            file_name = 'vevs_J' // trim(file_J) // trim(file_P) // 'q' // trim(file_q) // '.dat'
+        endif
 
         ! Write dimension of array and vevs to file
         open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
@@ -470,7 +486,11 @@ module states_class
         close(11)
 
         ! Construct correlation matrix file name
-        file_name = 'corr_matrix_J' // trim(file_J) // trim(file_P) // 'q' // trim(file_q) // '.dat'
+        if (torelon%SPIN == 1) then
+            file_name = 'corr_matrix_J' // trim(file_J) // 'q' // trim(file_q) // '.dat'
+        else
+            file_name = 'corr_matrix_J' // trim(file_J) // trim(file_P) // 'q' // trim(file_q) // '.dat'
+        endif
 
         ! Write dimension of array and correlation matrix to file
         open(11, file=trim(file_name), form='unformatted', access='stream', status='replace')
