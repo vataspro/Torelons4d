@@ -75,7 +75,7 @@ module thermal_lines
     !    * DPLQ8 -> plaquette(move(<site>, +1, <blocking_level>), -4, <blocking_level>)
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    complex(real64), allocatable :: squares_up(:,:,:,:,:), squares_down(:,:,:,:,:), plaquettes(:,:,:,:)
+    complex(real64), allocatable :: squares_up(:,:,:,:,:), squares_down(:,:,:,:,:), plaquettes(:,:,:,:,:)
     integer :: squares_direction_index(3), plaquette_direction_index(3)
 
     contains
@@ -234,10 +234,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         integer, intent(in) :: flux_direction
 
-        integer :: site, blocking_level
+        integer :: site, blocking_level, mu, nu, site_minus_mu, site_minus_nu, diagonal_site
+        complex(real64) :: similarity_matrix(NCOL, NCOL)
 
         ! Check if plaquette container is allocated. If not, allocate it.
-        if (.not.allocated(plaquettes)) allocate(plaquettes(NCOL, NCOL, SLICE_VOLUME, MAX_BLOCKING_LEVEL))
+        if (.not.allocated(plaquettes)) allocate(plaquettes(NCOL, NCOL, SLICE_VOLUME, 4, MAX_BLOCKING_LEVEL))
 
         ! Get orthogonal directions to the flux direction in order of cyclic permutations
         ! flux_direction|____mu|____nu|
@@ -246,15 +247,48 @@ module thermal_lines
         !              3|     1|     2|
         plaquette_direction_index(1) = flux_direction
         plaquette_direction_index(2) = mod(flux_direction, 3) + 1 ! mu
+        mu = plaquette_direction_index(2)
         plaquette_direction_index(3) = 6 - plaquette_direction_index(1) - plaquette_direction_index(2) ! nu
+        nu = plaquette_direction_index(3)
 
         ! Iterate over lattice and calculate all plaquettes in plane orthogonal to the flux direction
         do blocking_level = 1, MAX_BLOCKING_LEVEL
+            ! Calculate plaquette in (mu, nu) = (+, +) direction
             do site = 1, SLICE_VOLUME
-                ! Calculate plaquette
-                plaquettes(:, :, site, blocking_level) &
+                plaquettes(:, :, site, 1, blocking_level) &
                 = calculate_plaquette(gauge_field_blocked(:, :, :, :, blocking_level), &
                                       blocking_level, site, flux_direction)
+            enddo
+
+            ! Calculate plaquettes in other directions by applying similarity transformation to (+,+) plaquettes
+            do site = 1, SLICE_VOLUME
+                ! Get relevant sites
+                site_minus_mu = move(site, -mu, blocking_level)
+                site_minus_nu = move(site, -nu, blocking_level)
+                diagonal_site = move(site_minus_mu, -nu, blocking_level)
+
+                ! (mu, nu) = (-, +)
+                similarity_matrix = gauge_field_blocked(:, :, site_minus_mu, mu, blocking_level)
+                plaquettes(:, :, site, 2, blocking_level) = matmul(matmul(&
+                    herm(similarity_matrix), &
+                    plaquettes(:, :, site_minus_mu, 1, blocking_level)), &
+                    similarity_matrix)
+
+                ! (mu, nu) = (-, -)
+                similarity_matrix = matmul(&
+                    gauge_field_blocked(:, :, diagonal_site, nu, blocking_level), &
+                    gauge_field_blocked(:, :, site_minus_mu, mu, blocking_level))
+                plaquettes(:, :, site, 3, blocking_level) = matmul(matmul(&
+                    herm(similarity_matrix), &
+                    plaquettes(:, :, diagonal_site, 1, blocking_level)), &
+                    similarity_matrix)
+
+                ! (mu, nu) = (+, -)
+                similarity_matrix = gauge_field_blocked(:, :, site_minus_nu, nu, blocking_level)
+                plaquettes(:, :, site, 4, blocking_level) = matmul(matmul(&
+                    herm(similarity_matrix), &
+                    plaquettes(:, :, site_minus_nu, 1, blocking_level)), &
+                    similarity_matrix)
             enddo
         enddo
     end subroutine
@@ -299,69 +333,31 @@ module thermal_lines
         select case(plaquette_index)
         case(1)
             ! (mu, nu) = (+, +)
-            plaquette = plaquettes(:, :, site, blocking_level)
+            plaquette = plaquettes(:, :, site, 1, blocking_level)
         case(2)
-            ! (mu, nu) = (-, +), equivalent to plaquette at (site - mu)
-            plaquette = plaquettes(:, :, &
-                                   move(site, -mu, blocking_level), &
-                                   blocking_level)
+            ! (mu, nu) = (-, +), similar to plaquette at (site - mu)
+            plaquette = plaquettes(:, :, site, 2, blocking_level)
         case(3)
-            ! (mu, nu) = (-, -), equivalent to plaquette at (site - mu - nu)
-            plaquette = plaquettes(:, :, &
-                                   move(move(site, -mu, blocking_level), -nu, blocking_level), &
-                                   blocking_level)
+            ! (mu, nu) = (-, -), similar to plaquette at (site - mu - nu)
+            plaquette = plaquettes(:, :, site, 3, blocking_level)
         case(4)
-            ! (mu, nu) = (+, -), equivalent to plaquette at (site - nu)
-            plaquette = plaquettes(:, :, &
-                                   move(site, -nu, blocking_level), &
-                                   blocking_level)
+            ! (mu, nu) = (+, -), similar to plaquette at (site - nu)
+            plaquette = plaquettes(:, :, site, 4, blocking_level)
         case(-1)
             ! PLQ5 = herm(PLQ2)
-            plaquette = herm(plaquettes(:, :, &
-                                        move(site, -mu, blocking_level), &
-                                        blocking_level))
+            plaquette = herm(plaquettes(:, :, site, 2, blocking_level))
         case(-2)
             ! PLQ6 = herm(PLQ1)
-            plaquette = herm(plaquettes(:, :, site, blocking_level))
+            plaquette = herm(plaquettes(:, :, site, 1, blocking_level))
         case(-3)
             ! PLQ7 = herm(PLQ4)
-            plaquette = herm(plaquettes(:, :, &
-                                        move(site, -nu, blocking_level), &
-                                        blocking_level))
+            plaquette = herm(plaquettes(:, :, site, 4, blocking_level))
         case(-4)
             ! PLQ8 = herm(PLQ3)
-            plaquette = herm(plaquettes(:, :, &
-                                        move(move(site, -mu, blocking_level), -nu, blocking_level), &
-                                        blocking_level))
+            plaquette = herm(plaquettes(:, :, site, 3, blocking_level))
         case default
             ! plaquette_index is not a valid index
             error stop "Plaquette index must be +-1, +-2, +-3 or +-4"
         end select
     end function
-
-    ! Loop 1
-    subroutine loop_1(in_site, out_site, A11, blocking_level)
-        implicit none
-        integer, intent(in) :: in_site, blocking_level
-        integer, intent(out) :: out_site
-        complex(real64), intent(inout) :: A11(NCOL, NCOL)
-
-        A11 = matmul(A11, square_pulse(in_site, 2, blocking_level))
-        out_site = move(in_site, 1, blocking_level)
-    end subroutine
-
-    ! Loop 9
-    subroutine loop_9(in_site, out_site, A11, blocking_level)
-        implicit none
-        integer, intent(in) :: in_site, blocking_level
-        integer, intent(out) :: out_site
-        complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: i
-
-        A11 = matmul(square_pulse(in_site, 2, blocking_level), &
-        square_pulse(move(in_site, 1, blocking_level), -2, blocking_level))
-        do i = 1, 2
-            out_site = move(in_site, 1, blocking_level)
-        enddo
-    end subroutine
 end module
