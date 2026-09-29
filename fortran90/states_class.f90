@@ -22,6 +22,9 @@ module states_class
 
         ! Allocate all parameters
         procedure :: init=>init_torelon_state
+
+        ! Output number of operators
+        procedure :: get_num_operators=>get_num_operators_torelon
         
         ! Update vacuum expectation values of operators contributing to this state
         procedure :: update_vevs=>update_torelon_vevs
@@ -46,6 +49,9 @@ module states_class
 
         ! Allocate all parameters
         procedure :: init=>init_torelon_momentum_state
+
+        ! Output number of operators
+        procedure :: get_num_operators=>get_num_operators_torelon_momentum
 
         ! Update vacuum expectation values of operators contributing to this state
         procedure :: update_vevs=>update_torelon_momentum_vevs
@@ -323,6 +329,24 @@ module states_class
             + sum(lines(:, blocking_level, line_index))
         enddo
     end subroutine
+
+    ! Output number of operators used in torelon state
+    function get_num_operators_torelon(torelon) result(num_operators)
+        implicit none
+        class(torelon_state), intent(inout) :: torelon
+        integer :: num_operators
+
+        num_operators = torelon%NUM_OPERATORS
+    end function
+
+    ! Output number of operators used in torelon state with momentum
+    function get_num_operators_torelon_momentum(torelon) result(num_operators)
+        implicit none
+        class(torelon_momentum_state), intent(inout) :: torelon
+        integer :: num_operators
+
+        num_operators = torelon%NUM_OPERATORS
+    end function
 
     ! Update vevs of torelon operators with momentum that contribute to the state from lines calculated in THERML1
     subroutine update_torelon_momentum_vevs(torelon, momentum_lines, bin_index)
