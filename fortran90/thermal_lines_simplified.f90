@@ -339,6 +339,28 @@ module thermal_lines
         end select
     end function
 
+    ! Check if there is enough space to fit a given operator in the flux direction
+    logical function check_required_segments(pulse_start_offsets, operator_blocking_level)
+        implicit none
+        integer, intent(in) :: pulse_start_offsets(:)
+        integer, intent(in) :: operator_blocking_level
+
+        integer :: blocked_link_length
+        integer :: available_segments
+        integer :: required_segments
+
+        ! Physical size of one blocked link at this operator blocking level
+        blocked_link_length = 2**(operator_blocking_level - 1)
+        ! Number of complete blocked links fitting in the flux direction
+        available_segments = LX1 / blocked_link_length
+        ! Number of blocked flux segments spanned by this operator
+        required_segments = maxval(pulse_start_offsets) + 1
+
+        ! Allow the operator only if enough blocked flux segments are available
+        check_required_segments = available_segments >= required_segments
+    end function check_required_segments
+
+    ! Create the square-pulse operators given pulse directions and flux offsets
     function create_operator(in_site, out_site, number_of_square_pulses, pulse_directions, pulse_start_offsets, &
                              blocking_level, operator_flag, gauge_field_blocked) result(operator_matrix)
         implicit none
@@ -355,8 +377,10 @@ module thermal_lines
         integer :: number_of_flux_steps
         integer :: pulse_spacing
 
+        ! By default, build the operator at the requested blocking level
         operator_blocking_level = blocking_level
 
+        ! Wave-like operators use the previous blocking level, clipped to level 1
         if (present(operator_flag)) then
             if (trim(operator_flag) == "W") then
                 operator_blocking_level = blocking_level - 1
@@ -366,20 +390,33 @@ module thermal_lines
             endif
         endif
 
+        ! Initialise the output operator to the identity matrix
         operator_matrix = cmplx(0.0_real64, 0.0_real64, kind=real64)
         do colour_index = 1, NCOL
             operator_matrix(colour_index, colour_index) = cmplx(1.0_real64, 0.0_real64, kind=real64)
         enddo
 
+        ! If the operator cannot be built, leave the output as identity at the input site
+        out_site = in_site
+
+        if (.not. check_required_segments(pulse_start_offsets, operator_blocking_level)) return
+        ! We can have the following cases:
+        ! 2 square pulses:
+        !       - adjacent square pulses
+        !       - two links-spaced square pulses
+        ! 4 square adjacent pulses
         select case(number_of_square_pulses)
         case(2)
+            ! Decide whether the two pulses are adjacent or separated by a bridge
             pulse_spacing = pulse_start_offsets(2) - pulse_start_offsets(1)
 
             select case(pulse_spacing)
             case(1)
+                ! Multiply adjacent square pulses in the requested order
                 do pulse_index = 1, number_of_square_pulses
                     pulse_site = in_site
 
+                    ! Move to the flux-offset where this pulse starts
                     do step = 1, pulse_start_offsets(pulse_index)
                         pulse_site = move(pulse_site, 1, operator_blocking_level)
                     enddo
@@ -390,10 +427,12 @@ module thermal_lines
                     )
                 enddo
             case(3)
+                ! Multiply first square pulse, bridge link, then second square pulse
                 if (.not. present(gauge_field_blocked)) error stop &
                 "gauge_field_blocked must be passed for square-pulse bridge square-pulse operators"
 
                 pulse_site = in_site
+                ! Move to the first square-pulse starting site
                 do step = 1, pulse_start_offsets(1)
                     pulse_site = move(pulse_site, 1, operator_blocking_level)
                 enddo
@@ -404,10 +443,12 @@ module thermal_lines
                 )
 
                 bridge_site = in_site
+                ! Bridge starts immediately after the first square pulse
                 do step = 1, pulse_start_offsets(1) + 1
                     bridge_site = move(bridge_site, 1, operator_blocking_level)
                 enddo
 
+                ! At level 1, reproduce the old-code two-link bridge; otherwise use one blocked bridge
                 if (blocking_level == 1) then
                     bridge_next_site = move(bridge_site, 1, operator_blocking_level)
                     bridge = matmul( &
@@ -421,6 +462,7 @@ module thermal_lines
                 operator_matrix = matmul(operator_matrix, bridge)
 
                 pulse_site = in_site
+                ! Move to the second square-pulse starting site
                 do step = 1, pulse_start_offsets(2)
                     pulse_site = move(pulse_site, 1, operator_blocking_level)
                 enddo
@@ -433,6 +475,7 @@ module thermal_lines
                 error stop "Two square pulses must be adjacent or separated by one bridge in create_operator"
             end select
         case(4)
+            ! Multiply four adjacent square pulses in the requested order
             do pulse_index = 1, number_of_square_pulses
                 if (pulse_index < number_of_square_pulses) then
                     if (pulse_start_offsets(pulse_index + 1) - pulse_start_offsets(pulse_index) /= 1) &
@@ -441,6 +484,7 @@ module thermal_lines
 
                 pulse_site = in_site
 
+                ! Move to the flux-offset where this pulse starts
                 do step = 1, pulse_start_offsets(pulse_index)
                     pulse_site = move(pulse_site, 1, operator_blocking_level)
                 enddo
@@ -454,6 +498,7 @@ module thermal_lines
             error stop "create_operator only supports 2 square pulses, square-bridge-square, or 4 square pulses"
         end select
 
+        ! Final site is shifted by the total number of flux segments spanned
         number_of_flux_steps = maxval(pulse_start_offsets) + 1
 
         out_site = in_site
@@ -461,6 +506,7 @@ module thermal_lines
             out_site = move(out_site, 1, operator_blocking_level)
         enddo
     end function
+
 
     !##############################################
     !           SQUARE PULSES
