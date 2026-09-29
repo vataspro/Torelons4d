@@ -1622,7 +1622,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 1, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 1, blocking_level))
+                    plaquette(out_site, 1, blocking_level))
 
     end subroutine loop_154
 
@@ -1639,7 +1639,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 2, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 2, blocking_level))
+                    plaquette(out_site, 2, blocking_level))
 
     end subroutine loop_155
 
@@ -1656,7 +1656,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 3, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 3, blocking_level))
+                    plaquette(out_site, 3, blocking_level))
 
     end subroutine loop_156
 
@@ -1673,7 +1673,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 4, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 4, blocking_level))
+                    plaquette(out_site, 4, blocking_level))
 
     end subroutine loop_157
 
@@ -1690,8 +1690,9 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -1, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -1, blocking_level))
+                    plaquette(out_site, -1, blocking_level))
 
+    end subroutine loop_158
 
     ! Loop 159: double hermitian plaquette in (-,+) direction x 1 polyakov link
     subroutine loop_159(in_site, out_site, A11, blocking_level, gauge_field_blocked)
@@ -1706,7 +1707,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -2, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -2, blocking_level))
+                    plaquette(out_site, -2, blocking_level))
 
     end subroutine loop_159
 
@@ -1723,7 +1724,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -3, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -3, blocking_level))
+                    plaquette(out_site, -3, blocking_level))
 
     end subroutine loop_160
 
@@ -1740,7 +1741,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -4, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -4, blocking_level))
+                    plaquette(out_site, -4, blocking_level))
 
     end subroutine loop_161
 
@@ -1766,7 +1767,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 1, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -1, blocking_level))
+                    plaquette(out_site, -1, blocking_level))
 
 
     end subroutine loop_162   
@@ -1784,7 +1785,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 2, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -2, blocking_level))
+                    plaquette(out_site, -2, blocking_level))
 
     end subroutine loop_163
 
@@ -1801,7 +1802,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 3, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -3, blocking_level))
+                    plaquette(out_site, -3, blocking_level))
 
     end subroutine loop_164
 
@@ -1819,7 +1820,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, 4, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, -4, blocking_level))
+                    plaquette(out_site, -4, blocking_level))
 
     end subroutine loop_165
 
@@ -1836,7 +1837,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -1, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 1, blocking_level))
+                    plaquette(out_site, 1, blocking_level))
 
     end subroutine loop_166
 
@@ -1853,7 +1854,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -2, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 2, blocking_level))
+                    plaquette(out_site, 2, blocking_level))
 
     end subroutine loop_167
 
@@ -1870,7 +1871,7 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -3, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 3, blocking_level))
+                    plaquette(out_site, 3, blocking_level))
 
     end subroutine loop_168
 
@@ -1887,8 +1888,152 @@ module thermal_lines
 
         A11 = matmul(matmul(plaquette(in_site, -4, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
-                    plaquette(out_size, 4, blocking_level))
+                    plaquette(out_site, 4, blocking_level))
 
     end subroutine loop_169
 
+    !##############################################
+    !        PLAQUETTE x PULSE x HERMITIAN PLAQUETTE
+    !
+    !             |\   |\    
+    !            _| \  |_\_
+    !               |    |
+    !               |____|
+    !                
+    !##############################################
+    ! Loop 170: PQ1 x PQ-1
+    subroutine loop_170(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 1, blocking_level), &
+                    square_pulse(in_site, 3, blocking_level)), &
+                    plaquette(out_site, -1, blocking_level))
+
+    end subroutine loop_170
+
+    ! Loop 171: PQ2 x PQ-2
+    subroutine loop_171(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 2, blocking_level), &
+                    square_pulse(in_site, -2, blocking_level)), &
+                    plaquette(out_site, -2, blocking_level))
+
+    end subroutine loop_171
+
+    ! Loop 172: PQ3 x PQ-3
+    subroutine loop_172(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 3, blocking_level), &
+                    square_pulse(in_site, -3, blocking_level)), &
+                    plaquette(out_site, -3, blocking_level))
+
+    end subroutine loop_172
+
+    ! Loop 173: PQ4 x PQ-4
+    subroutine loop_173(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 4, blocking_level), &
+                    square_pulse(in_site, 2, blocking_level)), &
+                    plaquette(out_site, -4, blocking_level))
+
+    end subroutine loop_173
+
+    ! Loop 174: PQ-1 x PQ1
+    subroutine loop_174(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -1, blocking_level), &
+                    square_pulse(in_site, -3, blocking_level)), &
+                    plaquette(out_site, 1, blocking_level))
+
+    end subroutine loop_174
+
+    ! Loop 175: PQ-2 x PQ2
+    subroutine loop_175(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -2, blocking_level), &
+                    square_pulse(in_site, 2, blocking_level)), &
+                    plaquette(out_site, 2, blocking_level))
+
+    end subroutine loop_175
+
+    ! Loop 176: PQ-3 x PQ3
+    subroutine loop_176(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -3, blocking_level), &
+                    square_pulse(in_site, -3, blocking_level)), &
+                    plaquette(out_site, 3, blocking_level))
+
+    end subroutine loop_176
+
+    ! Loop 177: PQ-4 x PQ4
+    subroutine loop_177(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -4, blocking_level), &
+                    square_pulse(in_site, -2, blocking_level)), &
+                    plaquette(out_site, 4, blocking_level))
+
+    end subroutine loop_177
 end module
