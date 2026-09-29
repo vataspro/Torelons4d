@@ -1501,7 +1501,7 @@ module thermal_lines
 
         out_site = in_site
 
-        A11 = matmul(plaquette(out_site, 2, blocking_level), &
+        A11 = matmul(plaquette(in_site, 2, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level))
         
     end subroutine loop_147
@@ -2036,4 +2036,150 @@ module thermal_lines
                     plaquette(out_site, 4, blocking_level))
 
     end subroutine loop_177
+
+    !##############################################
+    !        PLAQUETTE x BRIDGE x PLAQUETTE
+    !
+    !             |\   |\    
+    !            _| \__|_\_
+    !             \ |  \ |
+    !              \|   \|
+    !                
+    !##############################################
+    ! Loop 178
+    subroutine loop_178(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 1, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, -3, blocking_level))
+
+    end subroutine loop_178
+
+    ! Loop 179
+    subroutine loop_179(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 2, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, -4, blocking_level))
+
+    end subroutine loop_179
+
+    ! Loop 180
+    subroutine loop_180(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 3, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, -1, blocking_level))
+
+    end subroutine loop_180
+
+    ! Loop 181
+    subroutine loop_181(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, 4, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, -2, blocking_level))
+
+    end subroutine loop_181
+
+    ! Loop 182
+    subroutine loop_182(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -1, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, 3, blocking_level))
+
+    end subroutine loop_182
+
+
+    ! Loop 183
+    subroutine loop_183(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -2, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, 4, blocking_level))
+
+    end subroutine loop_183
+
+    ! Loop 184
+    subroutine loop_184(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -3, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, 1, blocking_level))
+
+    end subroutine loop_184
+
+    ! Loop 185
+    subroutine loop_185(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(plaquette(in_site, -4, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level)), &
+                    plaquette(out_site, 2, blocking_level))
+
+    end subroutine loop_185
 end module
