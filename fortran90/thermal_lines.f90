@@ -2350,4 +2350,63 @@ module thermal_lines
 
     end subroutine loop_193
 
+    !##############################################
+    !        PULSE x PLAQUETTE x PULSE
+    !            ___  ___
+    !           |  / /  /
+    !        ___| | /  /____ 
+    !             |/
+    !         
+    !##############################################
+    ! Loop 194
+    subroutine loop_194(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(square_pulse(in_site, 2, blocking_level), &
+                    plaquette(mid_site, 1, blocking_level)), &
+                    square_pulse(mid_site, -3, blocking_level))
+
+    end subroutine loop_194
+
+    ! Loop 195
+    subroutine loop_195(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(square_pulse(in_site, 3, blocking_level), &
+                    plaquette(mid_site, 2, blocking_level)), &
+                    square_pulse(mid_site, 2, blocking_level))
+
+    end subroutine loop_195
+
+    ! Loop 196
+    subroutine loop_196(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        integer(int32) :: mid_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        mid_site = move(in_site, 1, blocking_level)
+
+        A11 = matmul(matmul(square_pulse(in_site, -2, blocking_level), &
+                    plaquette(mid_site, 3, blocking_level)), &
+                    square_pulse(mid_site, 3, blocking_level))
+
+    end subroutine loop_196
+
 end module
