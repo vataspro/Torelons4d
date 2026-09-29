@@ -1474,16 +1474,13 @@ module thermal_lines
     !              \|
     !
     !##############################################
-    ! Loop 143: plaquette x 1 polyakov link
-    subroutine loop_143(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+    ! Loop 146: plaquette in (+,+) direction x 1 polyakov link
+    subroutine loop_146(in_site, out_site, A11, blocking_level, gauge_field_blocked)
         implicit none
         integer, intent(in) :: in_site, blocking_level
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         integer, intent(out) :: out_site
         complex(real64), intent(inout) :: A11(NCOL, NCOL)
-        integer :: mid_site
-
-        mid_site = move(in_site, 1, blocking_level)
 
         A11 = matmul(plaquette(in_site, 1, blocking_level), &
                     gauge_field_blocked(:, :, in_site, 1, blocking_level))
@@ -1491,6 +1488,115 @@ module thermal_lines
 
         out_site = in_site
         
-    end subroutine loop_143
+    end subroutine loop_146
+
+
+    ! Loop 147: plaquette in (-,+) direction x 1 polyakov link
+    subroutine loop_147(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = in_site
+
+        A11 = matmul(plaquette(out_site, 2, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+        
+    end subroutine loop_147
+
+
+    ! Loop 148: plaquette in (+,-) direction x 1 polyakov link
+    subroutine loop_148(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = in_site
+
+        A11 = matmul(plaquette(out_site, 3, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+        
+    end subroutine loop_148
+
+
+    ! Loop 149: plaquette in (-,-) direction x 1 polyakov link
+    subroutine loop_149(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        out_site = in_site
+
+        A11 = matmul(plaquette(out_site, 4, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+        
+    end subroutine loop_149
+
+
+    ! Loop 150: hermitian plaquette in (+,+) direction x 1 polyakov link
+    subroutine loop_150(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        A11 = matmul(plaquette(in_site, -1, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+
+        out_site = in_site
+        
+    end subroutine loop_150
+
+    ! Loop 151: hermitian plaquette in (-,+) direction x 1 polyakov link
+    subroutine loop_151(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        A11 = matmul(plaquette(in_site, -2, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+
+        out_site = in_site
+        
+    end subroutine loop_151
+
+    ! Loop 152: hermitian plaquette in (+,-) direction x 1 polyakov link
+    subroutine loop_152(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        A11 = matmul(plaquette(in_site, -3, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+
+        out_site = in_site
+        
+    end subroutine loop_152
+
+    ! Loop 153: hermitian plaquette in (-,-) direction x 1 polyakov link
+    subroutine loop_153(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+
+        A11 = matmul(plaquette(in_site, -4, blocking_level), &
+                    gauge_field_blocked(:, :, in_site, 1, blocking_level))
+
+        out_site = in_site
+        
+    end subroutine loop_153
 
 end module
