@@ -42,13 +42,13 @@ program mock_main
 
     !call loop_1(1, site_out, A11, 2)
 
-    blevel = 5
+    blevel = 1
     ! call print_matrix(A11)
-    site_idx = 1526
     do site_idx=1,SLICE_VOLUME
     !    do blevel=1,MAX_BLOCKING_LEVEL
                 A11 = get_I(2)
-                call loop_1(site_idx, site_out, A11, blevel)
+                call loop_147(site_idx, site_out, A11, blevel, blok_timeslice)
+                !call myplaq(site_idx, A11, blevel, blok_timeslice)
                 write(outfilename,  '(A,I0,A,I0,A)') 'LOOP1_SITE',site_idx,'_BL',blevel,'.DAT'
                 open(11, file=trim(outfilename),FORM='UNFORMATTED',status='REPLACE',ACCESS='STREAM')
                 WRITE(11) A11
