@@ -168,6 +168,7 @@ program main
         ! Conduct measurements over every time slice
         do t = 1, LX4
             ! Block gauge field
+            write(*, '(a, i0)') "Blocking gauge field for time slice ", t
             call cpu_time(start)
             gauge_field_slice_blocked = &
             get_blocked_gauge_field(gauge_field(:, :, (t-1)*SLICE_VOLUME+1 : t*SLICE_VOLUME, 1:3))
@@ -176,30 +177,39 @@ program main
 
             ! Measure thermal lines over all blocking levels
             do blocking_level = 1, MAX_BLOCKING_LEVEL
+                write(*, '(a, i0, a, i0)') "Measuring lines at blocking level ", &
+                blocking_level, " for time slice ", t
                 call cpu_time(start)
                 call THERML1(gauge_field_slice_blocked, t, blocking_level, lines, momentum_lines)
                 call cpu_time(finish)
                 avg_runtime_measurement = avg_runtime_measurement + (finish - start)
             enddo
         enddo
+        write(*, '(a)') "Measurments complete!"
 
         ! Update vevs of all states
         do state = 1, 10
             call cpu_time(start)
+            write(*, '(a, i0)') "Updating vevs for torelon state ", state
             call states(state)%update_vevs(lines, bin_index)
+            write(*, '(a, i0)') "Updating vevs for torelon momentum state ", state
             call momentum_states(state)%update_vevs(lines, bin_index)
             call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo
+        write(*, '(a)') "Vevs updated!"
 
         ! Update correlation matrices of all states
         do state = 1, 10
             call cpu_time(start)
+            write(*, '(a, i0)') "Updating correlation matrix for torelon state ", state
             call states(state)%update_corr_matrix(lines, bin_index)
+            write(*, '(a, i0)') "Updating correlation matrix for torelon momentum state ", state
             call states(state)%update_corr_matrix(lines, bin_index)
             call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo
+        write(*, '(a)') "Correlation matrices updated!"
     enddo
 
 
