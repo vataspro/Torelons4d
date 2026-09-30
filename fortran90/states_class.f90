@@ -340,7 +340,7 @@ module states_class
         do concurrent (i = 1:size(torelon%LINE_INDICES), blocking_level = 1:MAX_BLOCKING_LEVEL)
             ! Find index of operator being accessed
             line_index = torelon%LINE_INDICES(i)
-            id = (line_index - 1) * MAX_BLOCKING_LEVEL + blocking_level
+            id = (i - 1) * MAX_BLOCKING_LEVEL + blocking_level
             
             ! Update vevs
             torelon%vevs(id, bin_index) = torelon%vevs(id, bin_index) &
@@ -360,7 +360,7 @@ module states_class
         do concurrent (i = 1:size(torelon%LINE_INDICES), blocking_level = 1:MAX_BLOCKING_LEVEL)
             ! Find index of operator being accessed
             line_index = torelon%LINE_INDICES(i)
-            id = (line_index - 1) * MAX_BLOCKING_LEVEL + blocking_level
+            id = (i - 1) * MAX_BLOCKING_LEVEL + blocking_level
             
             ! Update vevs
             torelon%vevs(id, bin_index) = torelon%vevs(id, bin_index) &
@@ -383,8 +383,8 @@ module states_class
             ! Find id's of loops being accessed
             line_index1 = torelon%LINE_INDICES(i)
             line_index2 = torelon%LINE_INDICES(j)
-            id1 = (line_index1 - 1) * MAX_BLOCKING_LEVEL + b1
-            id2 = (line_index2 - 1) * MAX_BLOCKING_LEVEL + b2
+            id1 = (i - 1) * MAX_BLOCKING_LEVEL + b1
+            id2 = (j - 1) * MAX_BLOCKING_LEVEL + b2
 
             ! Update correlation matrices
             torelon%corr_matrix(id1, id2, delta_t, bin_index) &
@@ -408,8 +408,8 @@ module states_class
             ! Find id's of loops being accessed
             line_index1 = torelon%LINE_INDICES(i)
             line_index2 = torelon%LINE_INDICES(j)
-            id1 = (line_index1 - 1) * MAX_BLOCKING_LEVEL + b1
-            id2 = (line_index2 - 1) * MAX_BLOCKING_LEVEL + b2
+            id1 = (i - 1) * MAX_BLOCKING_LEVEL + b1
+            id2 = (j - 1) * MAX_BLOCKING_LEVEL + b2
 
             ! Update correlation matrices
             torelon%corr_matrix(id1, id2, delta_t, bin_index) &
