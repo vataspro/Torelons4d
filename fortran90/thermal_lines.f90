@@ -432,7 +432,8 @@ module thermal_lines
         array_index = 1
         if (narrow_operator) then
             ! Advance along the flux tube, adding square pulses at blocking level b-1, and filling in with gauge links at blocking level b. If b=1, fill in with two gauge links.
-            do position = 0, square_pulse_positions(n_pulses)
+            position = 0
+            do while (position <= square_pulse_positions(n_pulses))
                 if (array_index > n_pulses) error stop "array_index exceeded number of pulses"
                 if (square_pulse_positions(array_index) == position) then
                     ! In this case, add a square pulse at this position at the appropriate blocking level
@@ -442,6 +443,7 @@ module thermal_lines
                     ! Advance by half a step
                     site = move(site, 1, deformation_blocking_level)
                     array_index = array_index + 1
+                    position = position + 1
                 else
                     ! In this case, fill the gap between square pulses in with gauge links
                     if (blocking_level == 1) then
@@ -459,6 +461,7 @@ module thermal_lines
                         ! Advance by a full step
                         site = move(site, 1, blocking_level)
                     endif
+                    position = position + 2
                 endif
             enddo
         else
