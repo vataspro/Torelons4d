@@ -1542,7 +1542,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [2, 3], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
@@ -1558,7 +1558,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [3, -2], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
@@ -1574,7 +1574,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [-2, -3], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
@@ -1590,7 +1590,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [-3, 2], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
@@ -1606,7 +1606,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [2, -3], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
@@ -1622,7 +1622,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [3, 2], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
@@ -1638,7 +1638,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [-2, 3], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
@@ -1654,7 +1654,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
+                                  [0, 3], [-3, -2], &
                                   narrow_operator = .true., &
                                   check_length = .true., &
                                   advance_site = .false., &
