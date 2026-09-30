@@ -192,8 +192,8 @@ program main
             call cpu_time(start)
             write(*, '(a, i0)') "Updating vevs for torelon state ", state
             call states(state)%update_vevs(lines, bin_index)
-            write(*, '(a, i0)') "Updating vevs for torelon momentum state ", state
-            call momentum_states(state)%update_vevs(lines, bin_index)
+            ! write(*, '(a, i0)') "Updating vevs for torelon momentum state ", state
+            ! call momentum_states(state)%update_vevs(lines, bin_index)
             call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo
