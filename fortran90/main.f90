@@ -1,4 +1,5 @@
 program main
+    use mpi_f08
     use torelon_parameters
     use lattice
     use read_field_config
@@ -8,6 +9,9 @@ program main
     implicit none
 
     ! ---------------------------------------- Initialise variables ---------------------------------------- !
+
+    ! Parallelisation variables
+    integer :: my_rank, num_ranks, mpierr
 
     ! File access variables
     logical :: file_exists
@@ -34,6 +38,13 @@ program main
 
 
     ! ----------------------------------------- Set up calculation ----------------------------------------- !
+
+    ! Initialise MPI
+    call mpi_init(mpierr)
+
+    ! Get this rank number and number of ranks
+    call mpi_comm_rank(mpi_comm_world, my_rank, mpierr)
+    call mpi_comm_size(mpi_comm_world, num_ranks, mpierr)
 
     ! Load all parameters from file
     call initialise_parameters("parameters.txt")
