@@ -1,6 +1,7 @@
 module thermal_lines
     use parameters
     use lattice
+    use omp_lib 
     implicit none
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -212,6 +213,7 @@ module thermal_lines
             ! Iterate over all blocking levels
             do blocking_level = 1, MAX_BLOCKING_LEVEL
                 ! Iterate over all sites
+                !$OMP PARALLEL DO
                 do site = 1, SLICE_VOLUME
                     ! Calculate square pulses
                     squares_up(:, :, site, dir_count, blocking_level) &
@@ -221,6 +223,7 @@ module thermal_lines
                     = calculate_square_pulse_down(gauge_field_blocked(:, :, :, :, blocking_level), &
                                                   blocking_level, site, flux_direction, pulse_direction)
                 enddo
+                !$OMP END PARALLEL DO
             enddo
 
             ! Iterate dir_count
