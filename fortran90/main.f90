@@ -204,7 +204,7 @@ program main
             write(*, '(a, i0)') "Updating vevs for torelon state ", state
             call states(state)%update_vevs(lines, bin_index)
             ! write(*, '(a, i0)') "Updating vevs for torelon momentum state ", state
-            ! call momentum_states(state)%update_vevs(lines, bin_index)
+            ! call momentum_states(state)%update_vevs(momentum_lines, bin_index)
             call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo
@@ -216,7 +216,7 @@ program main
             write(*, '(a, i0)') "Updating correlation matrix for torelon state ", state
             call states(state)%update_corr_matrix(lines, bin_index)
             ! write(*, '(a, i0)') "Updating correlation matrix for torelon momentum state ", state
-            ! call states(state)%update_corr_matrix(lines, bin_index)
+            ! call momentum_states(state)%update_corr_matrix(momentum_lines, bin_index)
             call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo
