@@ -254,19 +254,21 @@ module thermal_lines
         nu = plaquette_direction_index(3)
 
         ! Iterate over lattice and calculate all plaquettes in plane orthogonal to the flux direction
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO COLLAPSE(2)
         do blocking_level = 1, MAX_BLOCKING_LEVEL
-            ! Calculate plaquette in (mu, nu) = (+, +) direction
-            !$OMP PARALLEL DO
             do site = 1, SLICE_VOLUME
+                ! Calculate plaquette in (mu, nu) = (+, +) direction
                 plaquettes(:, :, site, 1, blocking_level) &
                 = calculate_plaquette(gauge_field_blocked(:, :, :, :, blocking_level), &
                                       blocking_level, site, flux_direction)
             enddo
-            !$OMP END PARALLEL DO
+        enddo
+        !$OMP END PARALLEL DO
 
-            !$OMP PARALLEL DO PRIVATE(similarity_matrix, site_minus_mu, site_minus_nu, diagonal_site)
-            ! Calculate plaquettes in other directions by applying similarity transformation to (+,+) plaquettes
+
+        ! Calculate plaquettes in other directions by applying similarity transformation to (+,+) plaquettes
+        !$OMP PARALLEL DO COLLAPSE(2) PRIVATE(similarity_matrix, site_minus_mu, site_minus_nu, diagonal_site)
+        do blocking_level = 1, MAX_BLOCKING_LEVEL
             do site = 1, SLICE_VOLUME
                 ! Get relevant sites
                 site_minus_mu = move(site, -mu, blocking_level)
@@ -296,7 +298,6 @@ module thermal_lines
                     plaquettes(:, :, site_minus_nu, 1, blocking_level)), &
                     similarity_matrix)
             enddo
-            !$OMP END PARALLEL DO
         enddo
         !$OMP END PARALLEL DO
     end subroutine
