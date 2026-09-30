@@ -1,4 +1,4 @@
-module parameters
+module torelon_parameters
     use iso_fortran_env, only : int8, int32, int64, real32, real64
     implicit none
 
@@ -68,4 +68,4 @@ module parameters
         NCONFIG = CONFIG_PER_BIN * NUM_BINS
         CONFIG_STOP = CONFIG_START + (NCONFIG - 1) * CONFIG_STEP
     end subroutine initialise_parameters
-end module parameters
+end module torelon_parameters

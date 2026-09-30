@@ -1,5 +1,5 @@
 module here_be_dragons
-    use parameters
+    use torelon_parameters
     use lattice
     use thermal_lines
     implicit none

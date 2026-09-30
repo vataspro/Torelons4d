@@ -1,5 +1,5 @@
 module lattice
-    use parameters
+    use torelon_parameters
     implicit none
 
     ! Containers for lattice pointers by 1 lattice step and multiple lattice steps in the case of blocked links

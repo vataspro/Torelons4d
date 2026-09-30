@@ -1,5 +1,5 @@
 module here_be_dragons
-    use parameters
+    use torelon_parameters
     use lattice
     implicit none
 
@@ -357,6 +357,7 @@ module here_be_dragons
                     enddo
 
                     !! OPERATOR CONSTRUCTION
+                    ! PRIVATE(m2, mn, ico, A11
                     do iddd = 1, 337 !new!
                         m2 = mn
                         A11 = cmplx(0.0, 0.0, kind=real64)
@@ -423,18 +424,19 @@ module here_be_dragons
                                 !                     UP Y
                                 !**********************************************************************
                                 case(1)
-                                    B11 = gauge_field(:, :, M2, JU)
-                                    M3 = move(M2, JU, ids)
-                                    C11 = gauge_field(:, :, M3, KU)
-                                    D11 = matmul(B11, C11)
-                                    M3 = move(M2, KU, ids)
-                                    M2 = M3
-                                    C11 = gauge_field(:, :, M2, JU)
-                                    C11 = herm(C11)
-                                    SQUY1 = matmul(D11, C11)
-                                    C11 = matmul(A11, SQUY1)
-                                    A11 = C11
+                                   ! B11 = gauge_field(:, :, M2, JU)
+                                   ! M3 = move(M2, JU, ids)
+                                   ! C11 = gauge_field(:, :, M3, KU)
+                                   ! D11 = matmul(B11, C11)
+                                   ! M3 = move(M2, KU, ids)
+                                   ! M2 = M3
+                                   ! C11 = gauge_field(:, :, M2, JU)
+                                   ! C11 = herm(C11)
+                                   ! SQUY1 = matmul(D11, C11)
+                                   ! C11 = matmul(A11, SQUY1)
+                                   ! A11 = C11
 
+                                    A11 = loop_1(M2
                                     ieee = 1
 
                                 !**********************************************************************C

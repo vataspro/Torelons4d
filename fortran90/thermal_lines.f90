@@ -1,5 +1,5 @@
 module thermal_lines
-    use parameters
+    use torelon_parameters
     use lattice
     use omp_lib 
     implicit none
