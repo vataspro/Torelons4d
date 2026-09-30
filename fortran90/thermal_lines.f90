@@ -1089,7 +1089,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [2, 2], &
+                                  [0, 3], [2, 2], &
                                   .true., .false., .false., A11)
     end subroutine loop_25
 
@@ -1102,7 +1102,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [3, 3], &
+                                  [0, 3], [3, 3], &
                                   .true., .false., .false., A11)
     end subroutine loop_26
 
@@ -1115,7 +1115,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [-2, -2], &
+                                  [0, 3], [-2, -2], &
                                   .true., .false., .false., A11)
     end subroutine loop_27
 
@@ -1128,7 +1128,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [-3, -3], &
+                                  [0, 3], [-3, -3], &
                                   .true., .false., .false., A11)
     end subroutine loop_28
 
@@ -1141,7 +1141,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [2, -2], &
+                                  [0, 3], [2, -2], &
                                   .true., .false., .false., A11)
     end subroutine loop_29
 
@@ -1154,7 +1154,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [3, -3], &
+                                  [0, 3], [3, -3], &
                                   .true., .false., .false., A11)
     end subroutine loop_30
 
@@ -1167,7 +1167,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [-2, 2], &
+                                  [0, 3], [-2, 2], &
                                   .true., .false., .false., A11)
     end subroutine loop_31
 
@@ -1180,7 +1180,7 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 2], [-3, 3], &
+                                  [0, 3], [-3, 3], &
                                   .true., .false., .false., A11)
     end subroutine loop_32
 
