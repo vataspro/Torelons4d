@@ -2,6 +2,9 @@ module parameters
     use iso_fortran_env, only : int8, int32, int64, real32, real64
     implicit none
 
+    !! Define pi
+    real(real64), parameter :: PI = 4.0d0 * atan(1.0d0)
+
     !! Declare input parameters
     ! Configuration file path and file name (without configuration number)
     character(len=256) :: FILEPATH, FILENAME
@@ -20,6 +23,10 @@ module parameters
     ! Smearing parameters
     real(real64) :: STAPLE_WEIGHT ! Weighting of staples in smearing procedure, renamed from PARBS
     real(real64) :: DIAGONAL_STAPLE_WEIGHT ! Weighting of diagonal staples in smearing procedure, renamed from PARBDS
+    real(real64) :: TOL_SVD ! Tolerance on SVD-unitarisation algorithm. Set to between 1e-6 - 1e-10.
+
+    ! Measurement parameters
+    integer :: NUM_BINS
 
     !! Declare dependant parameters
     ! Lattice parameters
@@ -27,6 +34,7 @@ module parameters
     integer :: LATTICE_VOLUME ! Total number of sites, renamed from LSIZE
     integer :: NCOL2 ! Square number of colours
     integer :: MAX_DELTA_T ! Maximum time extent of correlation functions, renamed from MAXDTLS
+    integer :: CONFIG_PER_BIN ! Number of measurements contributing to one bin, renamed from IBING
 
     ! File access parameters
     integer :: CONFIG_STOP ! Index of last configuration to be read, renamed from ICMAX
@@ -42,7 +50,7 @@ module parameters
 
         ! Define variables to read in from parameter file
         namelist /params/ FILEPATH, FILENAME, NCOL, LX1, LX2, LX3, LX4, NCONFIG, CONFIG_STEP, CONFIG_START, &
-        MAX_BLOCKING_LEVEL, STAPLE_WEIGHT, DIAGONAL_STAPLE_WEIGHT
+        MAX_BLOCKING_LEVEL, STAPLE_WEIGHT, DIAGONAL_STAPLE_WEIGHT, TOL_SVD, NUM_BINS
 
         ! Read parameters from parameter file
         open(10, file=trim(parameter_filename))
@@ -54,6 +62,10 @@ module parameters
         LATTICE_VOLUME = SLICE_VOLUME * LX4
         NCOL2 = NCOL * NCOL
         MAX_DELTA_T = LX4 / 2
+        CONFIG_PER_BIN = NCONFIG / NUM_BINS
+
+        ! Reset NCONFIG to be a clean multiple of NUM_BINS, so that every bin contains the same number of measurements
+        NCONFIG = CONFIG_PER_BIN * NUM_BINS
         CONFIG_STOP = CONFIG_START + (NCONFIG - 1) * CONFIG_STEP
-    end subroutine
-end module
+    end subroutine initialise_parameters
+end module parameters
