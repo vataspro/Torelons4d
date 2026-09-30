@@ -210,10 +210,9 @@ module thermal_lines
             ! Set direction index. This is a small array to map between pulse_direction and the position of the relevant entry in the 4th dimension of the squares_up/down arrays
             squares_direction_index(pulse_direction) = dir_count
 
-            ! Iterate over all blocking levels
+            ! Iterate over all blocking levels and sites
+            !$OMP PARALLEL DO COLLAPSE(2)
             do blocking_level = 1, MAX_BLOCKING_LEVEL
-                ! Iterate over all sites
-                !$OMP PARALLEL DO
                 do site = 1, SLICE_VOLUME
                     ! Calculate square pulses
                     squares_up(:, :, site, dir_count, blocking_level) &
@@ -223,8 +222,8 @@ module thermal_lines
                     = calculate_square_pulse_down(gauge_field_blocked(:, :, :, :, blocking_level), &
                                                   blocking_level, site, flux_direction, pulse_direction)
                 enddo
-                !$OMP END PARALLEL DO
             enddo
+            !$OMP END PARALLEL DO
 
             ! Iterate dir_count
             dir_count = dir_count + 1
@@ -255,6 +254,7 @@ module thermal_lines
         nu = plaquette_direction_index(3)
 
         ! Iterate over lattice and calculate all plaquettes in plane orthogonal to the flux direction
+        !$OMP PARALLEL DO
         do blocking_level = 1, MAX_BLOCKING_LEVEL
             ! Calculate plaquette in (mu, nu) = (+, +) direction
             !$OMP PARALLEL DO
@@ -298,6 +298,7 @@ module thermal_lines
             enddo
             !$OMP END PARALLEL DO
         enddo
+        !$OMP END PARALLEL DO
     end subroutine
 
     ! Return square pulse from given site, in given direction
