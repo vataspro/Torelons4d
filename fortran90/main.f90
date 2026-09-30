@@ -97,12 +97,12 @@ program main
     write(*, '(a)') " *"
     write(*, '(a, i0)') "[Info][Measurements]                 Number of measurements = ", NCONFIG
     write(*, '(a, a, i0)') &
-    "[Info][Measurements]                 Starting configuration: ", FILENAME, CONFIG_START
+    "[Info][Measurements]                 Starting configuration: ", trim(FILENAME), CONFIG_START
     write(*, '(a, i0)') "[Info][Measurements]                 Measurements per bin = ", CONFIG_PER_BIN
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(a)') "[Info][Number of Operators q=0]      J   P   R      #"
+    write(*, '(a)') "[Info][Number of Operators q=0]      J   P   R   #"
     write(*, '(a)') "[Info][Number of Operators q=0]      ----------------"
     write(*, '(a, i0)') "[Info][Number of Operators q=0]      0   +   +   ", states(1)%get_num_operators()
     write(*, '(a, i0)') "[Info][Number of Operators q=0]      0   +   -   ", states(2)%get_num_operators()
@@ -118,7 +118,7 @@ program main
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(a)') "[Info][Number of Operators q=1]      J   P      #"
+    write(*, '(a)') "[Info][Number of Operators q=1]      J   P   #"
     write(*, '(a)') "[Info][Number of Operators q=1]      ------------"
     write(*, '(a, i0)') "[Info][Number of Operators q=1]      0   +   ", momentum_states(1)%get_num_operators()
     write(*, '(a, i0)') "[Info][Number of Operators q=1]      0   -   ", momentum_states(2)%get_num_operators()
@@ -129,7 +129,7 @@ program main
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(a)') "[Info][Number of Operators q=2]      J   P      #"
+    write(*, '(a)') "[Info][Number of Operators q=2]      J   P   #"
     write(*, '(a)') "[Info][Number of Operators q=2]      ------------"
     write(*, '(a, i0)') "[Info][Number of Operators q=2]      0   +   ", momentum_states(6)%get_num_operators()
     write(*, '(a, i0)') "[Info][Number of Operators q=2]      0   -   ", momentum_states(7)%get_num_operators()
