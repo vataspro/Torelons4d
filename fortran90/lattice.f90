@@ -1,5 +1,5 @@
 module lattice
-    use torelon_parameters
+    use parameters
     implicit none
 
     ! Containers for lattice pointers by 1 lattice step and multiple lattice steps in the case of blocked links
@@ -121,20 +121,46 @@ module lattice
     end subroutine setup_lattice
 
     ! Move around lattice by either blocked or unblocked amounts
-    pure integer function move(site, direction, blocking_level)
+    integer function move(site, direction, blocking_level)
         implicit none
         integer, intent(in) :: site, direction
         integer, intent(in), optional :: blocking_level
 
         ! Check parameters are compatible and fall within the range of the lattice, then return requested lattice site
         if (present(blocking_level)) then
+            ! Site must belong to a time slice and direction must point in a spatial direction
+            if (site > SLICE_VOLUME) then
+                write(*, '(a, a, i0)') "site must be on a spatial slice in move function with blocking_level", &
+                "argument present, therefore must be less than or equal to ", SLICE_VOLUME
+            endif
+            if (abs(direction) > 3 .or. direction == 0) then
+                write(*, '(a, a)') "direction must be spatial in move function with blocking_level argument", &
+                "present, therefore must be less than or equal to 3"
+                stop
+            endif
+            if (blocking_level > MAX_BLOCKING_LEVEL+1) then
+                write(*, '(a, i0)') "blocking_level must be less than ", MAX_BLOCKING_LEVEL+1
+                stop
+            endif
+
+            ! Return blocked neighbour
             if (direction > 0) then
                 move = lattice_pointers_blocked_up(site, direction, blocking_level)
             else
                 move = lattice_pointers_blocked_down(site, abs(direction), blocking_level)
             endif
-
         else
+            ! Site must belong to the lattice and direction must point in 4d
+            if (site > LATTICE_VOLUME) then
+                write(*, '(a, a, i0)') "site must be on the lattice in move function without ", &
+                "blocking_level argument present, therefore must be less than or equal to ", LATTICE_VOLUME
+            endif
+            if (abs(direction) > 4 .or. direction  == 0) then
+                write(*, '(a, a)') "direction must be spatial or temporal in move function without ", &
+                "blocking_level argument present, therefore must be less than or equal to 4"
+                stop
+            endif
+
             ! Return unblocked neighbour
             if (direction > 0) then
                 move = lattice_pointers_up(site, direction)
@@ -477,6 +503,7 @@ module lattice
             call get_diagonal_links(gauge_field_slice, mu, blocking_level, diagonal_links_mu, diagonal_pointers_mu)
 
             ! Smear each link pointing in direction mu individually
+            !$OMP PARALLEL DO PRIVATE(site_plus_mu, temp_site1, temp_site2, staple, nu, nu_ku)
             do site = 1, SLICE_VOLUME
                 ! Get site the given link points to
                 site_plus_mu = move(site, mu, blocking_level)
@@ -532,6 +559,7 @@ module lattice
                 ! Unitarise smeared link to sit in SU(N)
                 smear(:, :, site, mu) = normalise_link(smear(:, :, site, mu))
             enddo
+            !$OMP END PARALLEL DO
         enddo
     end function get_smeared_gauge_field
 
@@ -556,13 +584,15 @@ module lattice
             current_blocking_level)
 
             ! Form blocked configuration at next blocking level by blocking this smeared configuration
+            !$OMP PARALLEL DO COLLAPSE(2)
             do mu = 1, 3
                 do site = 1, SLICE_VOLUME
                     blok(:, :, site, mu, next_blocking_level) &
-                    = matmul(smeared_gauge_field(:, :, site, mu), &
-                    smeared_gauge_field(:, :, move(site,mu,current_blocking_level), mu))
+                    = matmul(blok(:, :, site, mu, current_blocking_level), &
+                    blok(:, :, move(site,mu,current_blocking_level), mu, current_blocking_level))
                 enddo
             enddo
+            !$OMP END PARALLEL DO
         enddo
     end function get_blocked_gauge_field
 end module lattice
