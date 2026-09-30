@@ -223,6 +223,9 @@ program main
     avg_runtime_loading
     write(*, '(a, f0.2)') &
     "[Info][Runtimes]                     Average runtime for updating vevs and correlators    ", avg_runtime_correlation
+    write(*, '(a)') " *"
+    write(*, '(a)') " *******************************************************"
+    write(*, '(a)') " *"
 
     ! Output results
     do state = 1, 10

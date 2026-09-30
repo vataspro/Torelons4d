@@ -242,7 +242,7 @@ module states_class
         if (abs(parity) /= 1) then
             error stop "Invalid parity passed to init_torelon_momentum_state, Must be +-1."
         endif
-        if (abs(momentum) /= 0) then
+        if (abs(momentum) == 0) then
             error stop "Invalid momentum passed to init_torelon_momentum_state. Must not be 0."
         endif
         if (num_operators < 0) then

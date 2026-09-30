@@ -441,7 +441,8 @@ module thermal_lines
         array_index = 1
         if (narrow_operator) then
             ! Advance along the flux tube, adding square pulses at blocking level b-1, and filling in with gauge links at blocking level b. If b=1, fill in with two gauge links.
-            do position = 0, square_pulse_positions(n_pulses)
+            position = 0
+            do while (position <= square_pulse_positions(n_pulses))
                 if (array_index > n_pulses) error stop "array_index exceeded number of pulses"
                 if (square_pulse_positions(array_index) == position) then
                     ! In this case, add a square pulse at this position at the appropriate blocking level
@@ -451,6 +452,7 @@ module thermal_lines
                     ! Advance by half a step
                     site = move(site, 1, deformation_blocking_level)
                     array_index = array_index + 1
+                    position = position + 1
                 else
                     ! In this case, fill the gap between square pulses in with gauge links
                     if (blocking_level == 1) then
@@ -468,6 +470,7 @@ module thermal_lines
                         ! Advance by a full step
                         site = move(site, 1, blocking_level)
                     endif
+                    position = position + 2
                 endif
             enddo
         else
@@ -602,26 +605,20 @@ module thermal_lines
     ! Outputs:
     ! - check_length: a boolean flag indicating whether to check that the operator is too large for the lattice. If true, the function returns the identity matrix and out_site=in_site.
     ! - advance_site: a boolean flag indicating whether out_site should be returned as in_site or the end of the loop. If true, out_site is returned as the end point of the operator. If false, out_site is returned as in_site.
-    ! - include_gauge_links: an optional flag indicating whether gauge links should be inserted between distinct longitudinal positions. It defaults to true.
     ! Outputs:
     ! - out_site: the site are which the deformation ends
     ! - A11: the matrix representing the deformation
     subroutine loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
         square_pulse_positions, square_pulse_directions, plaquette_positions, plaquette_orientations, &
-        check_length, advance_site, deformation, include_gauge_links)
+        check_length, advance_site, deformation)
         integer, intent(in) :: in_site, blocking_level, square_pulse_positions(:), square_pulse_directions(:), &
         plaquette_positions(:), plaquette_orientations(:)
         integer, intent(out) :: out_site
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         logical, intent(in) :: check_length, advance_site
-        logical, intent(in), optional :: include_gauge_links
         complex(real64), intent(out) :: deformation(NCOL, NCOL)
 
         integer :: site, pulse_index, plaquette_index, position, i, n_pulses, n_plaquettes, length
-        logical :: connect_sites
-
-        connect_sites = .true.
-        if (present(include_gauge_links)) connect_sites = include_gauge_links
 
         ! Check square_pulse_positions and square_pulse_directions are compatible
         n_pulses = size(square_pulse_directions)
@@ -693,11 +690,11 @@ module thermal_lines
                         deformation = matmul(deformation, &
                         square_pulse(site, square_pulse_directions(pulse_index), blocking_level))
                         pulse_index = pulse_index + 1
-                    elseif (connect_sites) then
+                    else
                         deformation = matmul(deformation, &
                         gauge_field_blocked(:, :, site, 1, blocking_level))
                     endif
-                elseif (connect_sites) then ! All square pulses have been used
+                else ! All square pulses have been used
                     deformation = matmul(deformation, &
                     gauge_field_blocked(:, :, site, 1, blocking_level))
                 endif
@@ -726,11 +723,11 @@ module thermal_lines
                         deformation = matmul(deformation, &
                         square_pulse(site, square_pulse_directions(pulse_index), blocking_level))
                         pulse_index = pulse_index + 1
-                    elseif (connect_sites) then
+                    else
                         deformation = matmul(deformation, &
                         gauge_field_blocked(:, :, site, 1, blocking_level))
                     endif
-                elseif (connect_sites) then ! All square pulses have been used
+                else ! All square pulses have been used
                     deformation = matmul(deformation, &
                     gauge_field_blocked(:, :, site, 1, blocking_level))
                 endif
@@ -787,7 +784,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0], [2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_1
 
     ! Loop 2
@@ -800,7 +800,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0], [3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_2
 
     ! Loop 3
@@ -813,7 +816,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0], [-2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_3
 
     ! Loop 4
@@ -826,7 +832,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0], [-3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_4
 
     ! Loop 5
@@ -839,7 +848,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [2, 2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_5
 
     ! Loop 6
@@ -852,7 +864,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [3, 3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_6
 
     ! Loop 7
@@ -865,7 +880,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-2, -2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_7
 
     ! Loop 8
@@ -878,7 +896,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-3, -3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_8
 
     ! Loop 9
@@ -891,7 +912,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [2, -2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_9
 
     ! Loop 10
@@ -904,7 +928,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [3, -3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_10
 
     ! Loop 11
@@ -917,7 +944,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-2, 2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_11
 
     ! Loop 12
@@ -930,7 +960,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-3, 3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_12
 
     ! Loop 13
@@ -943,7 +976,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [2, -2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_13
 
     ! Loop 14
@@ -956,7 +992,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [3, -3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_14
 
     ! Loop 15
@@ -969,7 +1008,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-2, 2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_15
 
     ! Loop 16
@@ -982,7 +1024,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-3, 3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_16
 
     ! Loop 17
@@ -995,7 +1040,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -2, 2, -2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_17
 
     ! Loop 18
@@ -1008,7 +1056,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -3, 3, -3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_18
 
     ! Loop 19
@@ -1021,7 +1072,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 2, -2, 2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_19
 
     ! Loop 20
@@ -1034,7 +1088,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 3, -3, 3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_20
 
     ! Loop 21
@@ -1047,7 +1104,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -2, -2, 2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_21
 
     ! Loop 22
@@ -1060,7 +1120,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -3, -3, 3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_22
 
     ! Loop 23
@@ -1073,7 +1136,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 2, 2, -2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_23
 
     ! Loop 24
@@ -1086,7 +1152,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 3, 3, -3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_24
 
     ! Loop 25
@@ -1099,7 +1168,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [2, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_25
 
     ! Loop 26
@@ -1112,7 +1184,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [3, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_26
 
     ! Loop 27
@@ -1125,7 +1200,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [-2, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_27
 
     ! Loop 28
@@ -1138,7 +1216,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [-3, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_28
 
     ! Loop 29
@@ -1151,7 +1232,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [2, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_29
 
     ! Loop 30
@@ -1164,7 +1248,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [3, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_30
 
     ! Loop 31
@@ -1177,7 +1264,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [-2, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_31
 
     ! Loop 32
@@ -1190,7 +1280,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 3], [-3, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_32
 
     ! Loop 33
@@ -1203,7 +1296,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [2, 3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_33
 
     ! Loop 34
@@ -1216,7 +1312,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [3, -2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_34
 
     ! Loop 35
@@ -1229,7 +1328,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-2, -3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_35
 
     ! Loop 36
@@ -1242,7 +1344,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-3, 2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_36
 
     ! Loop 37
@@ -1255,7 +1360,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [2, -3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_37
 
     ! Loop 38
@@ -1268,7 +1376,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [3, 2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_38
 
     ! Loop 39
@@ -1281,7 +1392,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-2, 3], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_39
 
     ! Loop 40
@@ -1294,7 +1408,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-3, -2], &
-                                  .false., .false., .true., A11)
+                                  narrow_operator = .false., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_40
 
     ! Loop 41
@@ -1307,7 +1424,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -2, 3, -3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_41
 
     ! Loop 42
@@ -1320,7 +1440,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -3, -2, 2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_42
 
     ! Loop 43
@@ -1333,7 +1456,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 2, -3, 3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_43
 
     ! Loop 44
@@ -1346,7 +1472,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 3, 2, -2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_44
 
     ! Loop 45
@@ -1359,7 +1488,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -3, 2, -2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_45
 
     ! Loop 46
@@ -1372,7 +1504,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 2, 3, -3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_46
 
     ! Loop 47
@@ -1385,7 +1520,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 3, -2, 2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_47
 
     ! Loop 48
@@ -1398,7 +1536,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -2, -3, 3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_48
 
     ! Loop 49
@@ -1410,8 +1551,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [2, 3], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_49
 
     ! Loop 50
@@ -1423,8 +1567,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [3, -2], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_50
 
     ! Loop 51
@@ -1436,8 +1583,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [-2, -3], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_51
 
     ! Loop 52
@@ -1449,8 +1599,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [-3, 2], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_52
 
     ! Loop 53
@@ -1462,8 +1615,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [2, -3], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_53
 
     ! Loop 54
@@ -1475,8 +1631,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [3, 2], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_54
 
     ! Loop 55
@@ -1488,8 +1647,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [-2, 3], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_55
 
     ! Loop 56
@@ -1501,8 +1663,11 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
-                                  [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  [0, 3], [-3, -2], &
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_56
 
     ! Loop 57
@@ -1515,7 +1680,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_57
 
     ! Loop 58
@@ -1528,7 +1696,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_58
 
     ! Loop 59
@@ -1541,7 +1712,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_59
 
     ! Loop 60
@@ -1554,7 +1728,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_60
 
     ! Loop 61
@@ -1567,7 +1744,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_61
 
     ! Loop 62
@@ -1580,7 +1760,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_62
 
     ! Loop 63
@@ -1593,7 +1776,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_63
 
     ! Loop 64
@@ -1606,7 +1792,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_64
 
     ! Loop 65
@@ -1619,7 +1808,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 2, 2, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_65
 
     ! Loop 66
@@ -1632,7 +1824,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 3, 3, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_66
 
     ! Loop 67
@@ -1645,7 +1840,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -2, -2, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_67
 
     ! Loop 68
@@ -1658,7 +1856,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -3, -3, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_68
 
     ! Loop 69
@@ -1671,7 +1872,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 2, -2, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_69
 
     ! Loop 70
@@ -1684,7 +1888,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 3, -3, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_70
 
     ! Loop 71
@@ -1697,7 +1904,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -2, 2, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_71
 
     ! Loop 72
@@ -1710,7 +1920,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -3, 3, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_72
 
     ! Loop 73
@@ -1723,7 +1936,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 2, 3, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_73
 
     ! Loop 74
@@ -1736,7 +1952,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 3, -2, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_74
 
     ! Loop 75
@@ -1749,7 +1968,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -2, -3, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_75
 
     ! Loop 76
@@ -1762,7 +1984,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -3, 2, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_76
 
     ! Loop 77
@@ -1775,7 +2000,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -3, -2, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_77
 
     ! Loop 78
@@ -1788,7 +2016,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 2, -3, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_78
 
     ! Loop 79
@@ -1801,7 +2032,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 3, 2, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_79
 
     ! Loop 80
@@ -1814,7 +2048,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -2, 3, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_80
 
     ! Loop 81
@@ -1827,7 +2064,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_81
 
     ! Loop 82
@@ -1840,7 +2080,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_82
 
     ! Loop 83
@@ -1853,7 +2096,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_83
 
     ! Loop 84
@@ -1866,7 +2112,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_84
 
     ! Loop 85
@@ -1879,7 +2128,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_85
 
     ! Loop 86
@@ -1892,7 +2144,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_86
 
     ! Loop 87
@@ -1905,7 +2160,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_87
 
     ! Loop 88
@@ -1918,7 +2176,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_88
 
     ! Loop 89
@@ -1931,7 +2192,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_89
 
     ! Loop 90
@@ -1944,7 +2208,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_90
 
     ! Loop 91
@@ -1957,7 +2224,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_91
 
     ! Loop 92
@@ -1970,7 +2240,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_92
 
     ! Loop 93
@@ -1983,7 +2256,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_93
 
     ! Loop 94
@@ -1996,7 +2272,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_94
 
     ! Loop 95
@@ -2009,7 +2288,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_95
 
     ! Loop 96
@@ -2022,7 +2304,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_96
 
     ! Loop 97
@@ -2035,7 +2320,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_97
 
     ! Loop 98
@@ -2048,7 +2336,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_98
 
     ! Loop 99
@@ -2061,7 +2352,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_99
 
     ! Loop 100
@@ -2074,7 +2368,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_100
 
     ! Loop 101
@@ -2087,7 +2384,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_101
 
     ! Loop 102
@@ -2100,7 +2400,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_102
 
     ! Loop 103
@@ -2113,7 +2416,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_103
 
     ! Loop 104
@@ -2126,7 +2432,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_104
 
     ! Loop 105
@@ -2139,7 +2448,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_105
 
     ! Loop 106
@@ -2152,7 +2464,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_106
 
     ! Loop 107
@@ -2165,7 +2480,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_107
 
     ! Loop 108
@@ -2178,7 +2496,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_108
 
     ! Loop 109
@@ -2191,7 +2512,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_109
 
     ! Loop 110
@@ -2204,7 +2528,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_110
 
     ! Loop 111
@@ -2217,7 +2544,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_111
 
     ! Loop 112
@@ -2230,7 +2560,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_112
 
     ! Loop 113
@@ -2243,7 +2576,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_113
 
     ! Loop 114
@@ -2256,7 +2592,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_114
 
     ! Loop 115
@@ -2269,7 +2608,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_115
 
     ! Loop 116
@@ -2282,7 +2624,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_116
 
     ! Loop 117
@@ -2295,7 +2640,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_117
 
     ! Loop 118
@@ -2308,7 +2656,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_118
 
     ! Loop 119
@@ -2321,7 +2672,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_119
 
     ! Loop 120
@@ -2334,7 +2688,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_120
 
     ! Loop 121
@@ -2347,7 +2704,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_121
 
     ! Loop 122
@@ -2360,7 +2720,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_122
 
     ! Loop 123
@@ -2373,7 +2736,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_123
 
     ! Loop 124
@@ -2386,7 +2752,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_124
 
     ! Loop 125
@@ -2399,7 +2768,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_125
 
     ! Loop 126
@@ -2412,7 +2784,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_126
 
     ! Loop 127
@@ -2425,7 +2800,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_127
 
     ! Loop 128
@@ -2438,7 +2816,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_128
 
     ! Loop 129
@@ -2451,7 +2832,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, 3, -2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_129
 
     ! Loop 130
@@ -2464,7 +2848,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, -2, -3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_130
 
     ! Loop 131
@@ -2477,7 +2864,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, -3, 2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_131
 
     ! Loop 132
@@ -2490,7 +2880,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, 2, 3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_132
 
     ! Loop 133
@@ -2503,7 +2896,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [3, 2, -3, -2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_133
 
     ! Loop 134
@@ -2516,7 +2912,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-2, 3, 2, -3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_134
 
     ! Loop 135
@@ -2529,7 +2928,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [-3, -2, 3, 2], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_135
 
     ! Loop 136
@@ -2542,7 +2944,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1, 2, 3], [2, -3, -2, 3], &
-                                  .true., .false., .false., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .false., &
+                                  deformation = A11)
     end subroutine loop_136
 
     ! Loop 137
@@ -2555,7 +2960,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [2, 3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_137
 
     ! Loop 138
@@ -2568,7 +2976,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [3, -2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_138
 
     ! Loop 139
@@ -2581,7 +2992,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-2, -3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_139
 
     ! Loop 140
@@ -2594,7 +3008,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-3, 2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_140
 
     ! Loop 141
@@ -2607,7 +3024,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [2, -3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_141
 
     ! Loop 142
@@ -2620,7 +3040,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [3, 2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_142
 
     ! Loop 143
@@ -2633,7 +3056,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-2, 3], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_143
 
     ! Loop 144
@@ -2646,7 +3072,10 @@ module thermal_lines
 
         call loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
                                   [0, 1], [-3, -2], &
-                                  .true., .false., .true., A11)
+                                  narrow_operator = .true., &
+                                  check_length = .true., &
+                                  advance_site = .true., &
+                                  deformation = A11)
     end subroutine loop_144
 
     ! Loop 197
@@ -2659,7 +3088,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, -2], &
                                              [1], [4], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_197
 
@@ -2672,8 +3103,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, 2], &
-                                             [1], [6], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-2], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_198
 
@@ -2686,8 +3119,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, 3], &
-                                             [1], [5], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-1], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_199
 
@@ -2700,8 +3135,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, -2], &
-                                             [1], [8], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-4], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_200
 
@@ -2714,8 +3151,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, -3], &
-                                             [1], [7], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-3], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_201
 
@@ -2728,8 +3167,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, -3], &
-                                             [1], [5], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-1], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_202
 
@@ -2742,8 +3183,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, -2], &
-                                             [1], [6], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-2], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_203
 
@@ -2756,8 +3199,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, 3], &
-                                             [1], [7], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-3], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_204
 
@@ -2770,8 +3215,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, 2], &
-                                             [1], [8], &
-                                             .false., .false., A11, .false.)
+                                             [1], [-4], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_205
 
@@ -2785,7 +3232,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, -2], &
                                              [1], [2], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_206
 
@@ -2799,7 +3248,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, 3], &
                                              [1], [1], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_207
 
@@ -2813,7 +3264,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, 2], &
                                              [1], [4], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_208
 
@@ -2827,7 +3280,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, -3], &
                                              [1], [3], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_209
 
@@ -2841,7 +3296,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [1, 2], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_210
 
     ! Loop 211
@@ -2854,7 +3311,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [2, 3], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_211
 
     ! Loop 212
@@ -2867,7 +3326,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [3, 4], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_212
 
     ! Loop 213
@@ -2880,7 +3341,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [4, 1], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_213
 
     ! Loop 214
@@ -2892,8 +3355,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 0], [5, 6], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-1, -2], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_214
 
     ! Loop 215
@@ -2905,8 +3370,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 0], [8, 5], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_215
 
     ! Loop 216
@@ -2918,8 +3385,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 0], [7, 8], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-3, -4], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_216
 
     ! Loop 217
@@ -2931,8 +3400,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 0], [6, 7], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_217
 
     ! Loop 218
@@ -2944,8 +3415,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [1, 1], [5, 6], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-1, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_218
 
     ! Loop 219
@@ -2957,8 +3430,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [1, 1], [6, 7], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_219
 
     ! Loop 220
@@ -2970,8 +3445,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [1, 1], [7, 8], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-3, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_220
 
     ! Loop 221
@@ -2983,8 +3460,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [1, 1], [8, 5], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_221
 
     ! Loop 222
@@ -2997,7 +3476,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [1, 2], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_222
 
     ! Loop 223
@@ -3010,7 +3491,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [4, 1], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_223
 
     ! Loop 224
@@ -3023,7 +3506,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [3, 4], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_224
 
     ! Loop 225
@@ -3036,7 +3521,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [2, 3], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_225
 
     ! Loop 226
@@ -3049,7 +3536,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1, 1], [1, 2, 3], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_226
 
     ! Loop 227
@@ -3062,7 +3551,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1, 1], [2, 3, 4], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_227
 
     ! Loop 228
@@ -3075,7 +3566,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1, 1], [3, 4, 1], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_228
 
     ! Loop 229
@@ -3088,7 +3581,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1, 1], [4, 1, 2], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_229
 
     ! Loop 230
@@ -3100,8 +3595,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 0, 0], [8, 5, 6], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0, 0], [-4, -1, -2], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_230
 
     ! Loop 231
@@ -3113,8 +3610,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 0, 0], [7, 8, 5], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0, 0], [-3, -4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_231
 
     ! Loop 232
@@ -3126,8 +3625,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 0, 0], [6, 7, 8], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0, 0], [-2, -3, -4], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_232
 
     ! Loop 233
@@ -3139,8 +3640,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 0, 0], [5, 6, 7], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0, 0], [-1, -2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_233
 
     ! Loop 234
@@ -3152,8 +3655,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [1, 1, 1], [5, 6, 7], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1, 1], [-1, -2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_234
 
     ! Loop 235
@@ -3165,8 +3670,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [1, 1, 1], [6, 7, 8], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1, 1], [-2, -3, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_235
 
     ! Loop 236
@@ -3178,8 +3685,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [1, 1, 1], [7, 8, 5], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1, 1], [-3, -4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_236
 
     ! Loop 237
@@ -3191,8 +3700,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [1, 1, 1], [8, 5, 6], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1, 1], [-4, -1, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_237
 
     ! Loop 238
@@ -3205,7 +3716,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0, 0], [4, 1, 2], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_238
 
     ! Loop 239
@@ -3218,7 +3731,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0, 0], [3, 4, 1], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_239
 
     ! Loop 240
@@ -3231,7 +3746,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0, 0], [2, 3, 4], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_240
 
     ! Loop 241
@@ -3244,7 +3761,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0, 0], [1, 2, 3], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_241
 
     ! Loop 242
@@ -3256,8 +3775,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 0], [2, 7], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_242
 
     ! Loop 243
@@ -3269,8 +3790,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 0], [3, 6], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [3, -2], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_243
 
     ! Loop 244
@@ -3282,8 +3805,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 0], [4, 5], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_244
 
     ! Loop 245
@@ -3295,8 +3820,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 0], [1, 8], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [1, -4], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_245
 
     ! Loop 246
@@ -3308,8 +3835,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [1, 1], [4, 5], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_246
 
     ! Loop 247
@@ -3321,8 +3850,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [1, 1], [1, 8], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [1, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_247
 
     ! Loop 248
@@ -3334,8 +3865,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [1, 1], [2, 7], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_248
 
     ! Loop 249
@@ -3347,8 +3880,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [1, 1], [3, 6], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [3, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_249
 
     ! Loop 250
@@ -3360,8 +3895,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 0], [6, 3], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-2, 3], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_250
 
     ! Loop 251
@@ -3373,8 +3910,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 0], [7, 2], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-3, 2], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_251
 
     ! Loop 252
@@ -3386,8 +3925,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 0], [8, 1], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-4, 1], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_252
 
     ! Loop 253
@@ -3399,8 +3940,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 0], [5, 4], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-1, 4], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_253
 
     ! Loop 254
@@ -3412,8 +3955,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [1, 1], [8, 1], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-4, 1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_254
 
     ! Loop 255
@@ -3425,8 +3970,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [1, 1], [5, 4], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-1, 4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_255
 
     ! Loop 256
@@ -3438,8 +3985,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [1, 1], [6, 3], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-2, 3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_256
 
     ! Loop 257
@@ -3451,8 +4000,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [1, 1], [7, 2], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-3, 2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_257
 
     ! Loop 258
@@ -3465,7 +4016,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [2, 4], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_258
 
     ! Loop 259
@@ -3478,7 +4031,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [3, 1], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_259
 
     ! Loop 260
@@ -3491,7 +4046,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [4, 2], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_260
 
     ! Loop 261
@@ -3504,7 +4061,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [1, 3], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_261
 
     ! Loop 262
@@ -3516,8 +4075,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [1, 1], [7, 5], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-3, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_262
 
     ! Loop 263
@@ -3529,8 +4090,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [1, 1], [6, 8], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-2, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_263
 
     ! Loop 264
@@ -3542,8 +4105,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [1, 1], [5, 7], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-1, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_264
 
     ! Loop 265
@@ -3555,8 +4120,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [1, 1], [8, 6], &
-                                             .false., .true., A11, .false.)
+                                             [1, 1], [-4, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_265
 
     ! Loop 266
@@ -3568,8 +4135,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 0], [6, 8], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-2, -4], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_266
 
     ! Loop 267
@@ -3581,8 +4150,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 0], [7, 5], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-3, -1], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_267
 
     ! Loop 268
@@ -3594,8 +4165,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 0], [8, 6], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-4, -2], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_268
 
     ! Loop 269
@@ -3607,8 +4180,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 0], [5, 7], &
-                                             .false., .false., A11, .false.)
+                                             [0, 0], [-1, -3], &
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
     end subroutine loop_269
 
     ! Loop 270
@@ -3621,7 +4196,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [3, 1], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_270
 
     ! Loop 271
@@ -3634,7 +4211,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [2, 4], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_271
 
     ! Loop 272
@@ -3647,7 +4226,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [1, 3], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_272
 
     ! Loop 273
@@ -3660,7 +4241,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [4, 2], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_273
 
     ! Loop 274
@@ -3672,8 +4255,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 0, 1], [2, 3, 7], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [2, 3, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_274
 
     ! Loop 275
@@ -3685,8 +4270,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 0, 1], [3, 4, 6], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [3, 4, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_275
 
     ! Loop 276
@@ -3698,8 +4285,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 0, 1], [4, 1, 5], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [4, 1, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_276
 
     ! Loop 277
@@ -3711,8 +4300,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 0, 1], [1, 2, 8], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [1, 2, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_277
 
     ! Loop 278
@@ -3724,8 +4315,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 1, 1], [4, 8, 5], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [4, -4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_278
 
     ! Loop 279
@@ -3737,8 +4330,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 1, 1], [1, 7, 8], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [1, -3, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_279
 
     ! Loop 280
@@ -3750,8 +4345,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 1, 1], [2, 6, 7], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [2, -2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_280
 
     ! Loop 281
@@ -3763,8 +4360,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 1, 1], [3, 5, 6], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [3, -1, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_281
 
     ! Loop 282
@@ -3776,8 +4375,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 0, 1], [6, 7, 3], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [-2, -3, 3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_282
 
     ! Loop 283
@@ -3789,8 +4390,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 0, 1], [7, 8, 2], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [-3, -4, 2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_283
 
     ! Loop 284
@@ -3802,8 +4405,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 0, 1], [8, 5, 1], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [-4, -1, 1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_284
 
     ! Loop 285
@@ -3815,8 +4420,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 0, 1], [5, 6, 4], &
-                                             .false., .true., A11, .false.)
+                                             [0, 0, 1], [-1, -2, 4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_285
 
     ! Loop 286
@@ -3828,8 +4435,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 1, 1], [8, 4, 1], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [-4, 4, 1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_286
 
     ! Loop 287
@@ -3841,8 +4450,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 1, 1], [5, 3, 4], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [-1, 3, 4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_287
 
     ! Loop 288
@@ -3854,8 +4465,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 1, 1], [6, 2, 3], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [-2, 2, 3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_288
 
     ! Loop 289
@@ -3867,8 +4480,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 1, 1], [7, 1, 2], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1, 1], [-3, 1, 2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_289
 
     ! Loop 290
@@ -3881,7 +4496,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 0, 1, 1], [2, 3, 4, 1, 2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_290
 
     ! Loop 291
@@ -3894,7 +4511,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 0, 1, 1], [3, 4, 1, 2, 3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_291
 
     ! Loop 292
@@ -3907,7 +4526,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 0, 1, 1], [4, 1, 2, 3, 4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_292
 
     ! Loop 293
@@ -3920,7 +4541,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 0, 1, 1], [1, 2, 3, 4, 1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_293
 
     ! Loop 294
@@ -3932,8 +4555,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1, 1, 1], [5, 6, 7, 8, 5], &
-                             .false., .true., A11)
+                             [0, 0, 1, 1, 1], [-1, -2, -3, -4, -1], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_294
 
     ! Loop 295
@@ -3945,8 +4570,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1, 1, 1], [8, 5, 6, 7, 8], &
-                             .false., .true., A11)
+                             [0, 0, 1, 1, 1], [-4, -1, -2, -3, -4], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_295
 
     ! Loop 296
@@ -3958,8 +4585,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1, 1, 1], [7, 8, 5, 6, 7], &
-                             .false., .true., A11)
+                             [0, 0, 1, 1, 1], [-3, -4, -1, -2, -3], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_296
 
     ! Loop 297
@@ -3971,8 +4600,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1, 1, 1], [6, 7, 8, 5, 6], &
-                             .false., .true., A11)
+                             [0, 0, 1, 1, 1], [-2, -3, -4, -1, -2], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_297
 
     ! Loop 298
@@ -3984,8 +4615,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 0, 1, 1], [6, 7, 8, 5, 6], &
-                             .false., .true., A11)
+                             [0, 0, 0, 1, 1], [-2, -3, -4, -1, -2], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_298
 
     ! Loop 299
@@ -3997,8 +4630,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 0, 1, 1], [7, 8, 5, 6, 7], &
-                             .false., .true., A11)
+                             [0, 0, 0, 1, 1], [-3, -4, -1, -2, -3], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_299
 
     ! Loop 300
@@ -4010,8 +4645,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 0, 1, 1], [8, 5, 6, 7, 8], &
-                             .false., .true., A11)
+                             [0, 0, 0, 1, 1], [-4, -1, -2, -3, -4], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_300
 
     ! Loop 301
@@ -4023,8 +4660,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 0, 1, 1], [5, 6, 7, 8, 5], &
-                             .false., .true., A11)
+                             [0, 0, 0, 1, 1], [-1, -2, -3, -4, -1], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_301
 
     ! Loop 302
@@ -4037,7 +4676,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 1, 1, 1], [1, 2, 3, 4, 1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_302
 
     ! Loop 303
@@ -4050,7 +4691,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 1, 1, 1], [4, 1, 2, 3, 4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_303
 
     ! Loop 304
@@ -4063,7 +4706,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 1, 1, 1], [3, 4, 1, 2, 3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_304
 
     ! Loop 305
@@ -4076,7 +4721,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 0, 1, 1, 1], [2, 3, 4, 1, 2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_305
 
     ! Loop 306
@@ -4088,8 +4735,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 1], [2, 7], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_306
 
     ! Loop 307
@@ -4101,8 +4750,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 1], [3, 6], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [3, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_307
 
     ! Loop 308
@@ -4114,8 +4765,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 1], [4, 5], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_308
 
     ! Loop 309
@@ -4127,8 +4780,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 1], [1, 8], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [1, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_309
 
     ! Loop 310
@@ -4140,8 +4795,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 1], [4, 5], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [4, -1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_310
 
     ! Loop 311
@@ -4153,8 +4810,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 1], [1, 8], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [1, -4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_311
 
     ! Loop 312
@@ -4166,8 +4825,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 1], [2, 7], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [2, -3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_312
 
     ! Loop 313
@@ -4179,8 +4840,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 1], [3, 6], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [3, -2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_313
 
     ! Loop 314
@@ -4192,8 +4855,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 1], [6, 3], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-2, 3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_314
 
     ! Loop 315
@@ -4205,8 +4870,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 1], [7, 2], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-3, 2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_315
 
     ! Loop 316
@@ -4218,8 +4885,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 1], [8, 1], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-4, 1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_316
 
     ! Loop 317
@@ -4231,8 +4900,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 1], [5, 4], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-1, 4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_317
 
     ! Loop 318
@@ -4244,8 +4915,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
-                                             [0, 1], [8, 1], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-4, 1], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_318
 
     ! Loop 319
@@ -4257,8 +4930,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
-                                             [0, 1], [5, 4], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-1, 4], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_319
 
     ! Loop 320
@@ -4270,8 +4945,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
-                                             [0, 1], [6, 3], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-2, 3], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_320
 
     ! Loop 321
@@ -4283,8 +4960,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
-                                             [0, 1], [7, 2], &
-                                             .false., .true., A11, .false.)
+                                             [0, 1], [-3, 2], &
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_321
 
     ! Loop 322
@@ -4296,8 +4975,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [2, 7, 6], &
-                             .false., .true., A11)
+                             [0, 0, 1], [2, -3, -2], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_322
 
     ! Loop 323
@@ -4309,8 +4990,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [3, 6, 5], &
-                             .false., .true., A11)
+                             [0, 0, 1], [3, -2, -1], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_323
 
     ! Loop 324
@@ -4322,8 +5005,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [4, 5, 8], &
-                             .false., .true., A11)
+                             [0, 0, 1], [4, -1, -4], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_324
 
     ! Loop 325
@@ -4335,8 +5020,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [1, 8, 7], &
-                             .false., .true., A11)
+                             [0, 0, 1], [1, -4, -3], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_325
 
     ! Loop 326
@@ -4348,8 +5035,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [1, 4, 5], &
-                             .false., .true., A11)
+                             [0, 1, 1], [1, 4, -1], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_326
 
     ! Loop 327
@@ -4361,8 +5050,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [2, 1, 8], &
-                             .false., .true., A11)
+                             [0, 1, 1], [2, 1, -4], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_327
 
     ! Loop 328
@@ -4374,8 +5065,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [3, 2, 7], &
-                             .false., .true., A11)
+                             [0, 1, 1], [3, 2, -3], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_328
 
     ! Loop 329
@@ -4387,8 +5080,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [4, 3, 6], &
-                             .false., .true., A11)
+                             [0, 1, 1], [4, 3, -2], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_329
 
     ! Loop 330
@@ -4400,8 +5095,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [6, 3, 2], &
-                             .false., .true., A11)
+                             [0, 0, 1], [-2, 3, 2], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_330
 
     ! Loop 331
@@ -4413,8 +5110,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [7, 2, 1], &
-                             .false., .true., A11)
+                             [0, 0, 1], [-3, 2, 1], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_331
 
     ! Loop 332
@@ -4426,8 +5125,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [8, 1, 4], &
-                             .false., .true., A11)
+                             [0, 0, 1], [-4, 1, 4], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_332
 
     ! Loop 333
@@ -4439,8 +5140,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 0, 1], [5, 4, 3], &
-                             .false., .true., A11)
+                             [0, 0, 1], [-1, 4, 3], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_333
 
     ! Loop 334
@@ -4452,8 +5155,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [5, 8, 1], &
-                             .false., .true., A11)
+                             [0, 1, 1], [-1, -4, 1], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_334
 
     ! Loop 335
@@ -4465,8 +5170,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [6, 5, 4], &
-                             .false., .true., A11)
+                             [0, 1, 1], [-2, -1, 4], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_335
 
     ! Loop 336
@@ -4478,8 +5185,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [7, 6, 3], &
-                             .false., .true., A11)
+                             [0, 1, 1], [-3, -2, 3], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_336
 
     ! Loop 337
@@ -4491,8 +5200,10 @@ module thermal_lines
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
-                             [0, 1, 1], [8, 7, 2], &
-                             .false., .true., A11)
+                             [0, 1, 1], [-4, -3, 2], &
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_337
 
     ! Loop 145: normal Polyakov link
@@ -4652,7 +5363,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [1, 1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_154
 
     ! Loop 155
@@ -4665,7 +5378,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [2, 2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_155
 
     ! Loop 156
@@ -4678,7 +5393,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [3, 3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_156
 
     ! Loop 157
@@ -4691,7 +5408,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [4, 4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_157
 
     ! Loop 158
@@ -4704,7 +5423,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-1, -1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_158
 
     ! Loop 159
@@ -4717,7 +5438,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-2, -2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_159
 
     ! Loop 160
@@ -4730,7 +5453,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-3, -3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_160
 
     ! Loop 161
@@ -4743,7 +5468,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-4, -4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_161
 
     ! Loop 162
@@ -4756,7 +5483,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [1, -2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_162
 
     ! Loop 163
@@ -4769,7 +5498,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [2, -1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_163
 
     ! Loop 164
@@ -4782,7 +5513,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [3, -4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_164
 
     ! Loop 165
@@ -4795,7 +5528,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [4, -3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_165
 
     ! Loop 166
@@ -4808,7 +5543,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-1, 2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_166
 
     ! Loop 167
@@ -4821,7 +5558,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-2, 1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_167
 
     ! Loop 168
@@ -4834,7 +5573,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-3, 4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_168
 
     ! Loop 169
@@ -4847,7 +5588,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-4, 3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_169
 
     ! Loop 170
@@ -4860,7 +5603,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [1, -2], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_170
 
     ! Loop 171
@@ -4873,7 +5618,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [2, -1], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_171
 
     ! Loop 172
@@ -4886,7 +5633,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [3, -4], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_172
 
     ! Loop 173
@@ -4899,7 +5648,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [4, -3], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_173
 
     ! Loop 174
@@ -4912,7 +5663,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [-1, 2], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_174
 
     ! Loop 175
@@ -4925,7 +5678,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [-2, 1], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_175
 
     ! Loop 176
@@ -4938,7 +5693,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [-3, 4], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_176
 
     ! Loop 177
@@ -4951,7 +5708,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [-4, 3], &
-                                             .false., .true., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .true., &
+                                             deformation = A11)
     end subroutine loop_177
 
     ! Loop 178
@@ -4964,7 +5723,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [1, -4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_178
 
     ! Loop 179
@@ -4977,7 +5738,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [2, -3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_179
 
     ! Loop 180
@@ -4990,7 +5753,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [3, -2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_180
 
     ! Loop 181
@@ -5003,7 +5768,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [4, -1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_181
 
     ! Loop 182
@@ -5016,7 +5783,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-1, 4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_182
 
     ! Loop 183
@@ -5029,7 +5798,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-2, 3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_183
 
     ! Loop 184
@@ -5042,7 +5813,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-3, 2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_184
 
     ! Loop 185
@@ -5055,7 +5828,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-4, 1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_185
 
     ! Loop 186
@@ -5068,7 +5843,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [1, 3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_186
 
     ! Loop 187
@@ -5081,7 +5858,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [2, 4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_187
 
     ! Loop 188
@@ -5094,7 +5873,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [3, 1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_188
 
     ! Loop 189
@@ -5107,7 +5888,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [4, 2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_189
 
     ! Loop 190
@@ -5120,7 +5903,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-1, -3], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_190
 
     ! Loop 191
@@ -5133,7 +5918,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-2, -4], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_191
 
     ! Loop 192
@@ -5146,7 +5933,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-3, -1], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_192
 
     ! Loop 193
@@ -5159,7 +5948,9 @@ module thermal_lines
 
         call loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                              [0, 1], [-4, -2], &
-                             .false., .true., A11)
+                             check_length = .true., &
+                             advance_site = .true., &
+                             deformation = A11)
     end subroutine loop_193
 
     ! Loop 194
@@ -5172,7 +5963,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, -3], &
                                              [1], [1], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_194
 
@@ -5186,7 +5979,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, 2], &
                                              [1], [2], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_195
 
@@ -5200,7 +5995,9 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, 3], &
                                              [1], [3], &
-                                             .false., .false., A11, .false.)
+                                             check_length = .true., &
+                                             advance_site = .false., &
+                                             deformation = A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_196
 
