@@ -1,5 +1,5 @@
 program blocking_example
-    use parameters
+    use torelon_parameters
     use lattice
     use read_field_config
 

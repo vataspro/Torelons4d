@@ -1,5 +1,5 @@
 module states_class
-    use parameters
+    use torelon_parameters
     use lattice
 
     implicit none

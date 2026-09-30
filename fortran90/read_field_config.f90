@@ -1,5 +1,5 @@
 module read_field_config
-    use parameters
+    use torelon_parameters
     use lattice
     implicit none
 

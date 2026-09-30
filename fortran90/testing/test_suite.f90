@@ -1,5 +1,5 @@
 program test_suite
-    use parameters
+    use torelon_parameters
     use lattice
     use read_field_config
     implicit none
@@ -338,8 +338,8 @@ program test_suite
             trial_identity = matmul(herm(trial_U), trial_U)
 
             ! Test if trial identity matrix is sufficiently close to the identity
-            diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.off_diagonal_mask)
-            off_diagonal_good = all((abs(trial_identity) < TOL_SVD).or.diagonal_mask)
+            diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < epsilon(1.0)).or.off_diagonal_mask)
+            off_diagonal_good = all((abs(trial_identity) < epsilon(1.0)).or.diagonal_mask)
             ierr = diagonal_good.and.off_diagonal_good
             if (.not.ierr) then
                 write(*, "(a)") "unitarise_SVD test FAILED"
@@ -501,7 +501,7 @@ program test_suite
         diag_computed, diag_pointer_computed)
 
         ! Check diagonal links and diagonal pointers are equal
-        diag_diff = (abs(diag_computed - diag_check) <= epsilon(1.0))
+        diag_diff = (abs(diag_computed - diag_check) <= 1e-6)
         diag_equal = all(diag_diff)
         pointer_diff = (diag_pointer_computed == diag_pointer_check)
         pointers_equal = all(pointer_diff)
