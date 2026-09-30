@@ -593,26 +593,20 @@ module thermal_lines
     ! Outputs:
     ! - check_length: a boolean flag indicating whether to check that the operator is too large for the lattice. If true, the function returns the identity matrix and out_site=in_site.
     ! - advance_site: a boolean flag indicating whether out_site should be returned as in_site or the end of the loop. If true, out_site is returned as the end point of the operator. If false, out_site is returned as in_site.
-    ! - include_gauge_links: an optional flag indicating whether gauge links should be inserted between distinct longitudinal positions. It defaults to true.
     ! Outputs:
     ! - out_site: the site are which the deformation ends
     ! - A11: the matrix representing the deformation
     subroutine loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
         square_pulse_positions, square_pulse_directions, plaquette_positions, plaquette_orientations, &
-        check_length, advance_site, deformation, include_gauge_links)
+        check_length, advance_site, deformation)
         integer, intent(in) :: in_site, blocking_level, square_pulse_positions(:), square_pulse_directions(:), &
         plaquette_positions(:), plaquette_orientations(:)
         integer, intent(out) :: out_site
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
         logical, intent(in) :: check_length, advance_site
-        logical, intent(in), optional :: include_gauge_links
         complex(real64), intent(out) :: deformation(NCOL, NCOL)
 
         integer :: site, pulse_index, plaquette_index, position, i, n_pulses, n_plaquettes, length
-        logical :: connect_sites
-
-        connect_sites = .true.
-        if (present(include_gauge_links)) connect_sites = include_gauge_links
 
         ! Check square_pulse_positions and square_pulse_directions are compatible
         n_pulses = size(square_pulse_directions)
@@ -684,11 +678,11 @@ module thermal_lines
                         deformation = matmul(deformation, &
                         square_pulse(site, square_pulse_directions(pulse_index), blocking_level))
                         pulse_index = pulse_index + 1
-                    elseif (connect_sites) then
+                    else
                         deformation = matmul(deformation, &
                         gauge_field_blocked(:, :, site, 1, blocking_level))
                     endif
-                elseif (connect_sites) then ! All square pulses have been used
+                else ! All square pulses have been used
                     deformation = matmul(deformation, &
                     gauge_field_blocked(:, :, site, 1, blocking_level))
                 endif
@@ -717,11 +711,11 @@ module thermal_lines
                         deformation = matmul(deformation, &
                         square_pulse(site, square_pulse_directions(pulse_index), blocking_level))
                         pulse_index = pulse_index + 1
-                    elseif (connect_sites) then
+                    else
                         deformation = matmul(deformation, &
                         gauge_field_blocked(:, :, site, 1, blocking_level))
                     endif
-                elseif (connect_sites) then ! All square pulses have been used
+                else ! All square pulses have been used
                     deformation = matmul(deformation, &
                     gauge_field_blocked(:, :, site, 1, blocking_level))
                 endif
@@ -2650,7 +2644,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, -2], &
                                              [1], [4], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_197
 
@@ -2664,7 +2658,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, 2], &
                                              [1], [6], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_198
 
@@ -2678,7 +2672,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, 3], &
                                              [1], [5], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_199
 
@@ -2692,7 +2686,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, -2], &
                                              [1], [8], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_200
 
@@ -2706,7 +2700,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, -3], &
                                              [1], [7], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_201
 
@@ -2720,7 +2714,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, -3], &
                                              [1], [5], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_202
 
@@ -2734,7 +2728,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, -2], &
                                              [1], [6], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_203
 
@@ -2748,7 +2742,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, 3], &
                                              [1], [7], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_204
 
@@ -2762,7 +2756,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, 2], &
                                              [1], [8], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_205
 
@@ -2776,7 +2770,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-3, -2], &
                                              [1], [2], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_206
 
@@ -2790,7 +2784,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, 3], &
                                              [1], [1], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_207
 
@@ -2804,7 +2798,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, 2], &
                                              [1], [4], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_208
 
@@ -2818,7 +2812,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, -3], &
                                              [1], [3], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_209
 
@@ -2832,7 +2826,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [1, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_210
 
     ! Loop 211
@@ -2845,7 +2839,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [2, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_211
 
     ! Loop 212
@@ -2858,7 +2852,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [3, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_212
 
     ! Loop 213
@@ -2871,7 +2865,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [4, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_213
 
     ! Loop 214
@@ -2884,7 +2878,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [5, 6], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_214
 
     ! Loop 215
@@ -2897,7 +2891,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [8, 5], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_215
 
     ! Loop 216
@@ -2910,7 +2904,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [7, 8], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_216
 
     ! Loop 217
@@ -2923,7 +2917,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [6, 7], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_217
 
     ! Loop 218
@@ -2936,7 +2930,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [5, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_218
 
     ! Loop 219
@@ -2949,7 +2943,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [6, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_219
 
     ! Loop 220
@@ -2962,7 +2956,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [7, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_220
 
     ! Loop 221
@@ -2975,7 +2969,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [8, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_221
 
     ! Loop 222
@@ -2988,7 +2982,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [1, 2], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_222
 
     ! Loop 223
@@ -3001,7 +2995,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [4, 1], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_223
 
     ! Loop 224
@@ -3014,7 +3008,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [3, 4], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_224
 
     ! Loop 225
@@ -3027,7 +3021,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [2, 3], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_225
 
     ! Loop 226
@@ -3040,7 +3034,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1, 1], [1, 2, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_226
 
     ! Loop 227
@@ -3053,7 +3047,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1, 1], [2, 3, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_227
 
     ! Loop 228
@@ -3066,7 +3060,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1, 1], [3, 4, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_228
 
     ! Loop 229
@@ -3079,7 +3073,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1, 1], [4, 1, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_229
 
     ! Loop 230
@@ -3092,7 +3086,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0, 0], [8, 5, 6], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_230
 
     ! Loop 231
@@ -3105,7 +3099,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0, 0], [7, 8, 5], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_231
 
     ! Loop 232
@@ -3118,7 +3112,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0, 0], [6, 7, 8], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_232
 
     ! Loop 233
@@ -3131,7 +3125,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0, 0], [5, 6, 7], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_233
 
     ! Loop 234
@@ -3144,7 +3138,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1, 1], [5, 6, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_234
 
     ! Loop 235
@@ -3157,7 +3151,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1, 1], [6, 7, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_235
 
     ! Loop 236
@@ -3170,7 +3164,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1, 1], [7, 8, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_236
 
     ! Loop 237
@@ -3183,7 +3177,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1, 1], [8, 5, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_237
 
     ! Loop 238
@@ -3196,7 +3190,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0, 0], [4, 1, 2], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_238
 
     ! Loop 239
@@ -3209,7 +3203,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0, 0], [3, 4, 1], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_239
 
     ! Loop 240
@@ -3222,7 +3216,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0, 0], [2, 3, 4], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_240
 
     ! Loop 241
@@ -3235,7 +3229,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0, 0], [1, 2, 3], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_241
 
     ! Loop 242
@@ -3248,7 +3242,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [2, 7], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_242
 
     ! Loop 243
@@ -3261,7 +3255,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [3, 6], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_243
 
     ! Loop 244
@@ -3274,7 +3268,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [4, 5], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_244
 
     ! Loop 245
@@ -3287,7 +3281,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [1, 8], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_245
 
     ! Loop 246
@@ -3300,7 +3294,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [4, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_246
 
     ! Loop 247
@@ -3313,7 +3307,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [1, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_247
 
     ! Loop 248
@@ -3326,7 +3320,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [2, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_248
 
     ! Loop 249
@@ -3339,7 +3333,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [3, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_249
 
     ! Loop 250
@@ -3352,7 +3346,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [6, 3], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_250
 
     ! Loop 251
@@ -3365,7 +3359,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [7, 2], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_251
 
     ! Loop 252
@@ -3378,7 +3372,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [8, 1], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_252
 
     ! Loop 253
@@ -3391,7 +3385,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [5, 4], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_253
 
     ! Loop 254
@@ -3404,7 +3398,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [8, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_254
 
     ! Loop 255
@@ -3417,7 +3411,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [5, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_255
 
     ! Loop 256
@@ -3430,7 +3424,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [6, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_256
 
     ! Loop 257
@@ -3443,7 +3437,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [7, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_257
 
     ! Loop 258
@@ -3456,7 +3450,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [2, 4], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_258
 
     ! Loop 259
@@ -3469,7 +3463,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [3, 1], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_259
 
     ! Loop 260
@@ -3482,7 +3476,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [4, 2], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_260
 
     ! Loop 261
@@ -3495,7 +3489,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [1, 3], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_261
 
     ! Loop 262
@@ -3508,7 +3502,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [7, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_262
 
     ! Loop 263
@@ -3521,7 +3515,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [6, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_263
 
     ! Loop 264
@@ -3534,7 +3528,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [5, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_264
 
     ! Loop 265
@@ -3547,7 +3541,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [8, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_265
 
     ! Loop 266
@@ -3560,7 +3554,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0], [6, 8], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_266
 
     ! Loop 267
@@ -3573,7 +3567,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0], [7, 5], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_267
 
     ! Loop 268
@@ -3586,7 +3580,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0], [8, 6], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_268
 
     ! Loop 269
@@ -3599,7 +3593,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0], [5, 7], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
     end subroutine loop_269
 
     ! Loop 270
@@ -3612,7 +3606,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [1, 1], [3, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_270
 
     ! Loop 271
@@ -3625,7 +3619,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [1, 1], [2, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_271
 
     ! Loop 272
@@ -3638,7 +3632,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [1, 1], [1, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_272
 
     ! Loop 273
@@ -3651,7 +3645,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [1, 1], [4, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_273
 
     ! Loop 274
@@ -3664,7 +3658,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0, 1], [2, 3, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_274
 
     ! Loop 275
@@ -3677,7 +3671,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0, 1], [3, 4, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_275
 
     ! Loop 276
@@ -3690,7 +3684,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0, 1], [4, 1, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_276
 
     ! Loop 277
@@ -3703,7 +3697,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0, 1], [1, 2, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_277
 
     ! Loop 278
@@ -3716,7 +3710,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1, 1], [4, 8, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_278
 
     ! Loop 279
@@ -3729,7 +3723,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1, 1], [1, 7, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_279
 
     ! Loop 280
@@ -3742,7 +3736,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1, 1], [2, 6, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_280
 
     ! Loop 281
@@ -3755,7 +3749,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1, 1], [3, 5, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_281
 
     ! Loop 282
@@ -3768,7 +3762,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 0, 1], [6, 7, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_282
 
     ! Loop 283
@@ -3781,7 +3775,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 0, 1], [7, 8, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_283
 
     ! Loop 284
@@ -3794,7 +3788,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 0, 1], [8, 5, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_284
 
     ! Loop 285
@@ -3807,7 +3801,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 0, 1], [5, 6, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_285
 
     ! Loop 286
@@ -3820,7 +3814,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1, 1], [8, 4, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_286
 
     ! Loop 287
@@ -3833,7 +3827,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1, 1], [5, 3, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_287
 
     ! Loop 288
@@ -3846,7 +3840,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1, 1], [6, 2, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_288
 
     ! Loop 289
@@ -3859,7 +3853,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1, 1], [7, 1, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_289
 
     ! Loop 290
@@ -4080,7 +4074,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [2, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_306
 
     ! Loop 307
@@ -4093,7 +4087,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [3, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_307
 
     ! Loop 308
@@ -4106,7 +4100,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [4, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_308
 
     ! Loop 309
@@ -4119,7 +4113,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [1, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_309
 
     ! Loop 310
@@ -4132,7 +4126,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [4, 5], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_310
 
     ! Loop 311
@@ -4145,7 +4139,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [1, 8], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_311
 
     ! Loop 312
@@ -4158,7 +4152,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [2, 7], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_312
 
     ! Loop 313
@@ -4171,7 +4165,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [3, 6], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_313
 
     ! Loop 314
@@ -4184,7 +4178,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [6, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_314
 
     ! Loop 315
@@ -4197,7 +4191,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [7, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_315
 
     ! Loop 316
@@ -4210,7 +4204,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [8, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_316
 
     ! Loop 317
@@ -4223,7 +4217,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [5, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_317
 
     ! Loop 318
@@ -4236,7 +4230,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [8, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_318
 
     ! Loop 319
@@ -4249,7 +4243,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [5, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_319
 
     ! Loop 320
@@ -4262,7 +4256,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [6, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_320
 
     ! Loop 321
@@ -4275,7 +4269,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [7, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_321
 
     ! Loop 322
@@ -4851,7 +4845,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [1, -2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_170
 
     ! Loop 171
@@ -4864,7 +4858,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [2, -1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_171
 
     ! Loop 172
@@ -4877,7 +4871,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [3, -4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_172
 
     ! Loop 173
@@ -4890,7 +4884,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [4, -3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_173
 
     ! Loop 174
@@ -4903,7 +4897,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [3], &
                                              [0, 1], [-1, 2], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_174
 
     ! Loop 175
@@ -4916,7 +4910,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [2], &
                                              [0, 1], [-2, 1], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_175
 
     ! Loop 176
@@ -4929,7 +4923,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-3], &
                                              [0, 1], [-3, 4], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_176
 
     ! Loop 177
@@ -4942,7 +4936,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0], [-2], &
                                              [0, 1], [-4, 3], &
-                                             .false., .true., A11, .false.)
+                                             .false., .true., A11)
     end subroutine loop_177
 
     ! Loop 178
@@ -5163,7 +5157,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [2, -3], &
                                              [1], [1], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_194
 
@@ -5177,7 +5171,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [3, 2], &
                                              [1], [2], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_195
 
@@ -5191,7 +5185,7 @@ module thermal_lines
         call loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
                                              [0, 1], [-2, 3], &
                                              [1], [3], &
-                                             .false., .false., A11, .false.)
+                                             .false., .false., A11)
         out_site = move(in_site, 1, blocking_level)
     end subroutine loop_196
 
