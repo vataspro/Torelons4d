@@ -19,7 +19,7 @@ exec
 fortran77_scalar_looptest/run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n1
 fortran90_loops_test_suite/operator_dispatch.f90
 fortran90_loops_test_suite/operator_test_suite
-
+fortran90_loops_test_suite/comparison_output.txt
 
 # Keep all gitkeep files to retain directory structure
 !*/.gitkeep
