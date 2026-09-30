@@ -1,0 +1,639 @@
+program test_suite
+    use parameters
+    use lattice
+    use read_field_config
+    implicit none
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !
+    ! ---------------------------------------------- TEST SUITE ----------------------------------------------
+    !
+    ! Use this program to test all functions written to calculate Torelon energies.
+    !
+    ! To write a testing function, follow the procedure below:
+    ! 1) Define a subroutine called test_<function_name>. This function should take only one argument, ierr,
+    !    which is a logical variable of intent(out). Upon completion of the test, if the test is successful,
+    !    ierr should be returned as .true., otherwise it should be returned as .false.
+    !
+    ! 2) Guide to writing test function:
+    !    2a) If the test function needs a field configuration, do this be calling load_gauge_field() at the
+    !        start of the test. It takes no arguments. This function loads the gauge field into memory only if
+    !        it is not already stored in memory. If it is, it takes no action. The gauge field is stored in the
+    !        gauge_field global variable. This should not be modified during the test unless loading from the
+    !        configuration file.
+    !    2b) The test should also write(*, "(a)") "<function_name> test PASSED/FAILED" depending on the outcome.
+    !        Also add a print statement print *, "" to add a new line after this message. This improves the
+    !        readability of the output of the test.
+    !
+    ! 3) To add the test to the list of tests, add the following line after the gauge field is allocated and
+    !    before the success statement is printed to the screen:
+    !        call check_success(test_<function_name>)
+    !    This will run the test and stop the program if the test fails.
+    !
+    ! Happy testing!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    complex(real64), allocatable :: gauge_field(:,:,:,:)
+    logical :: gauge_field_loaded
+
+    ! Read parameters from input file
+    call initialise_parameters("parameter_file.txt")
+
+    ! Check parameters are correct
+    call check_parameters()
+
+    ! Test parameters
+    call check_success(test_dependant_parameters)
+
+    ! Setup lattice pointers
+    call setup_lattice()
+
+    ! Test move function
+    call check_success(test_move)
+
+    ! Allocate gauge field so that it only needs to be loaded once
+    allocate(gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4))
+    gauge_field_loaded = .false.
+
+    ! Test loading of gauge field
+    call check_success(test_read_gauge_field)
+
+    ! Test unitarisation procedure
+    call check_success(test_unitarise_SVD)
+
+    ! Test determinant procedure
+    call check_success(test_det)
+
+    ! Test smearing and blocking procedures
+    call check_success(test_normalise_link)
+
+    ! Test diagonal links procedure
+    call check_success(test_get_diagonal_links)
+
+    ! Test smearing procedure
+    call check_success(test_get_smeared_gauge_field)
+
+    ! Test blocking procedure
+    call check_success(test_get_blocked_gauge_field)
+
+    ! Print success statement
+    write(*, "(a)") "----------ALL TESTS PASSED----------"
+
+    contains
+
+    ! Print matrix
+    subroutine print_matrix(matrix)
+        implicit none
+        complex(real64), dimension(:,:), intent(in) :: matrix
+
+        integer :: i, j
+        integer, dimension(2) :: N
+
+        N = shape(matrix)
+        do i = 1, N(1)
+            do j = 1, N(2)
+                write(6, '(f0.6, a, f0.6, a)', advance='no') real(matrix(i,j)), "+",&
+                aimag(matrix(i,j)), "i    "
+            enddo
+            print *, ""
+        enddo
+        print *, ""
+    end subroutine
+
+    ! Load gauge field if gauge field has yet to be loaded
+    subroutine load_gauge_field()
+        implicit none
+
+        character(len=16) :: file_config_id
+        character(len=256) :: directory
+
+        if (.not.gauge_field_loaded) then
+            ! Set directory path
+            write(file_config_id, "(i0)") CONFIG_START
+            directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+
+            ! Load gauge field into memory
+            call read_gauge_field(directory, gauge_field)
+            gauge_field_loaded = .true.
+        endif
+    end subroutine
+
+    ! Quit program if a test has failed
+    subroutine check_success(test_function)
+        implicit none
+
+        interface
+            subroutine test_function(ierr)
+                use parameters
+                use lattice
+                use read_field_config
+                implicit none
+                logical, intent(out) :: ierr
+            end subroutine
+        end interface
+
+        logical :: error_code
+
+        call test_function(error_code)
+        if (.not.error_code) then
+            stop "Test failed. Program halting."
+        end if
+    end subroutine check_success
+
+    ! Check parameters are correct for testing
+    subroutine check_parameters()
+        implicit none
+
+        ! Check loaded parameters
+        if (NCOL /= 2) then
+            error stop "NCOL must be equal to 2"
+        end if
+        if (LX1 /= 26) then
+            error stop "LX1 must be equal to 26"
+        end if
+        if (LX2 /= 26) then
+            error stop "LX2 must be equal to 26"
+        end if
+        if (LX3 /= 26) then
+            error stop "LX3 must be equal to 26"
+        end if
+        if (LX4 /= 52) then
+            error stop "LX4 must be equal to 52"
+        end if
+
+        ! Output success
+        write(*, "(a)") "Parameter check PASSED"
+        print *, ""
+    end subroutine check_parameters
+
+    ! Test dependant parameters
+    subroutine test_dependant_parameters(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        ierr = .true.
+
+        ! Check dependant parameters
+        if (SLICE_VOLUME /= LX1 * LX2 * LX3) then
+            ierr = .false.
+            write(*, "(a)") "SLICE_VOLUME test FAILED"
+            return
+        end if
+        if (LATTICE_VOLUME /= SLICE_VOLUME * LX4) then
+            ierr = .false.
+            write(*, "(a)") "LATTICE_VOLUME test FAILED"
+            return
+        end if
+        if (NCOL2 /= NCOL * NCOL) then
+            ierr = .false.
+            write(*, "(a)") "NCOL2 test FAILED"
+            return
+        end if
+        if (MAX_DELTA_T /= LX4 / 2) then
+            ierr = .false.
+            write(*, "(a)") "MAX_DELTA_T test FAILED"
+            return
+        end if
+
+        ! Print success
+        write(*, "(a)") "Dependant parameter check PASSED"
+        print *, ""
+    end subroutine test_dependant_parameters
+
+    ! Test move function
+    subroutine test_move(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        integer :: IUP_old(LATTICE_VOLUME, 4), IDN_old(LATTICE_VOLUME, 4), &
+        IUPB_old(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), IDNB_old(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), &
+        IUP_new(LATTICE_VOLUME, 4), IDN_new(LATTICE_VOLUME, 4), &
+        IUPB_new(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), IDNB_new(SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL+1), &
+        site, mu, blocking_level
+        logical :: IUP_equal, IDN_equal, IUPB_equal, IDNB_equal
+
+        ! Load old IUP, IDN from NEIGHBS.DAT file
+        open(11, file='NEIGHBS.DAT', form='unformatted', status='old', access='stream')
+        read(11) IUP_old
+        read(11) IDN_old
+        close(11)
+
+        ! Load old IUPB, IDNB from BLOCKED_NEIGHBS.DAT file
+        open(11, file='BLOCKED_NEIGHBS.DAT', form='unformatted', status='old', access='stream')
+        read(11) IUPB_old
+        read(11) IDNB_old
+        close(11)
+
+        ! Construct IUP and IDN using move function
+        do mu = 1, 4
+            do site = 1, LATTICE_VOLUME
+                IUP_new(site, mu) = move(site, mu)
+                IDN_new(site, mu) = move(site, -mu)
+            enddo
+        enddo
+
+        ! Construct IUPB and IDNB using move function
+        do blocking_level = 1, MAX_BLOCKING_LEVEL+1
+            do mu = 1, 3
+                do site = 1, SLICE_VOLUME
+                    IUPB_new(site, mu, blocking_level) = move(site, mu, blocking_level)
+                    IDNB_new(site, mu, blocking_level) = move(site, -mu, blocking_level)
+                enddo
+            enddo
+        enddo
+
+        ! Check if all moving arrays match
+        IUP_equal = all(IUP_old == IUP_new)
+        IDN_equal = all(IDN_old == IDN_new)
+        IUPB_equal = all(IUPB_old == IUPB_new)
+        IDNB_equal = all(IDNB_old == IDNB_new)
+
+        ! Check if test has succeeded
+        ierr = IUP_equal.and.IDN_equal.and.IUPB_equal.and.IDNB_equal
+        if (ierr) then
+            write(*, '(a)') "move test PASSED"
+        else
+            write(*, '(a)') "move test FAILED"
+        endif
+        print *, ""
+    end subroutine
+
+    ! Test loading of field configurations
+    subroutine test_read_gauge_field(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real64) :: gauge_field_correct(5), gauge_field_check(5)
+
+        ! Load gauge field into memory
+        call load_gauge_field()
+
+        ! Set correct links
+        gauge_field_correct = &
+        [(0.545266926,0.530812383), &
+        (-0.632124960,-0.146082729), &
+        (0.632124960,-0.146082729), &
+        (0.545266926,-0.530812383), &
+        (-0.778977633,8.882141858E-02)]
+
+        ! Get links that should match the set links from the loaded gauge field
+        gauge_field_check(1) = gauge_field(1,1,1,1)
+        gauge_field_check(2) = gauge_field(2,1,1,1)
+        gauge_field_check(3) = gauge_field(1,2,1,1)
+        gauge_field_check(4) = gauge_field(2,2,1,1)
+        gauge_field_check(5) = gauge_field(1,1,2,1)
+
+        ! Check first 5 elements of loaded gauge field against correct values
+        ierr = all(abs(gauge_field_check - gauge_field_correct) <= epsilon(1.0))
+        if (ierr) then
+            write(*, "(a)") "read_gauge_field test PASSED"
+        else
+            write(*, "(a)") "read_gauge_field test FAILED"
+            print *, gauge_field_check
+        end if
+        print *, ""
+    end subroutine test_read_gauge_field
+
+    ! Test unitarisation function
+    subroutine test_unitarise_SVD(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        integer, parameter :: num_tests = 10
+        complex(real64) :: matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL)
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
+        real :: random_numbers(2*num_tests)
+        logical :: diagonal_good, off_diagonal_good, diagonal_mask(NCOL, NCOL), off_diagonal_mask(NCOL, NCOL)
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Get random sites and random directions
+        call random_number(random_numbers)
+        random_numbers(1:num_tests) = random_numbers(1:num_tests) * LATTICE_VOLUME
+        random_sites = ceiling(random_numbers(1:num_tests))
+        random_numbers(num_tests+1:2*num_tests) = random_numbers(num_tests+1:2*num_tests) * 4
+        random_directions = ceiling(random_numbers(num_tests+1:2*num_tests))
+
+        ! Get mask for diagonal and off-diagonal elements
+        diagonal_mask = .false.
+        do i = 1, NCOL
+            diagonal_mask(i,i) = .true.
+        enddo
+        off_diagonal_mask = .not.diagonal_mask
+
+        ! For each random site and direction, add 2 consectutive links from that site and in that direction. Apply the unitarisation procedure to the sum and test the result for unitarity. If any are not unitary, return ierr = .false. and halt execution.
+        ierr = .true.
+        do k = 1, num_tests
+            site = random_sites(k)
+            mu = random_directions(k)
+
+            ! Sum consective links in direction mu from site
+            matrix_sum = gauge_field(:,:,site,mu) + gauge_field(:,:,move(site,mu),mu)
+
+            ! Apply unitaristation procedure
+            trial_U = unitarise_SVD(matrix_sum)
+
+            ! Form trial identity matrix
+            trial_identity = matmul(herm(trial_U), trial_U)
+
+            ! Test if trial identity matrix is sufficiently close to the identity
+            diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.off_diagonal_mask)
+            off_diagonal_good = all((abs(trial_identity) < TOL_SVD).or.diagonal_mask)
+            ierr = diagonal_good.and.off_diagonal_good
+            if (.not.ierr) then
+                write(*, "(a)") "unitarise_SVD test FAILED"
+                write(*, "(a)") "Trial unitary matrix:"
+                call print_matrix(trial_U)
+                write(*, "(a)") "Trial identity matrix:"
+                call print_matrix(trial_identity)
+                return
+            endif
+        enddo
+        write(*, "(a)") "unitarise_SVD test PASSED"
+        print *, ""
+    end subroutine
+
+    ! Test determinant function
+    subroutine test_det(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        integer, parameter :: num_tests = 10
+        complex(real64) :: matrix_sum(NCOL, NCOL), computed_det, correct_det
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), k
+        real :: random_numbers(2*num_tests)
+        logical :: real_good, imag_good
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Get random sites and random directions
+        call random_number(random_numbers)
+        random_numbers(1:num_tests) = random_numbers(1:num_tests) * LATTICE_VOLUME
+        random_sites = ceiling(random_numbers(1:num_tests))
+        random_numbers(num_tests+1:2*num_tests) = random_numbers(num_tests+1:2*num_tests) * 4
+        random_directions = ceiling(random_numbers(num_tests+1:2*num_tests))
+
+        ! For each random site and direction, sum 2 consectutive links from that site and in that direction. Apply the determinant procedure to the sum and test the result against formula for determinant of 2x2 matrix. If they are not equal for all of the tests, return ierr = .false. and halt execution.
+        ierr = .true.
+        do k = 1, num_tests
+            site = random_sites(k)
+            mu = random_directions(k)
+
+            ! Sum consective links in direction mu from site
+            matrix_sum = gauge_field(:,:,site,mu) + gauge_field(:,:,move(site,mu),mu)
+
+            ! Compute determinant using det function
+            computed_det = det(matrix_sum)
+
+            ! Compute 2x2 determinant
+            correct_det = matrix_sum(1,1) * matrix_sum(2,2) - matrix_sum(1,2) * matrix_sum(2,1)
+
+            ! We expect this to be a phase, so check real and imaginary components individually
+            real_good = (real(computed_det - correct_det, kind=real64) <= epsilon(1.0d0))
+            imag_good = (aimag(computed_det - correct_det) <= epsilon(1.0d0))
+            ierr = real_good.and.imag_good
+            if (.not.ierr) then
+                write(*, "(a)") "det test FAILED"
+                write(*, "(a, f0.15, a, f0.15, a)") "Computed determinant", real(computed_det, kind=real64), &
+                " + ", aimag(computed_det), "i"
+                write(*, "(a, f0.15, a, f0.15, a)") "Correct determinant", real(correct_det, kind=real64), &
+                " + ", aimag(correct_det), "i"
+                return
+            endif
+        enddo
+        write(*, "(a)") "det test PASSED"
+        print *, ""
+    end subroutine
+
+    ! Test normalisation function
+    subroutine test_normalise_link(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        integer, parameter :: num_tests = 10
+        complex(real64) :: matrix_sum(NCOL, NCOL), trial_U(NCOL, NCOL), trial_identity(NCOL, NCOL), determinant
+        integer :: site, random_sites(num_tests), mu, random_directions(num_tests), i, k
+        real :: random_numbers(2*num_tests)
+        logical :: diagonal_good, off_diagonal_good, diagonal_mask(NCOL, NCOL), off_diagonal_mask(NCOL, NCOL), &
+        real_good, imag_good
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Get random sites and random directions
+        call random_number(random_numbers)
+        random_numbers(1:num_tests) = random_numbers(1:num_tests) * LATTICE_VOLUME
+        random_sites = ceiling(random_numbers(1:num_tests))
+        random_numbers(num_tests+1:2*num_tests) = random_numbers(num_tests+1:2*num_tests) * 4
+        random_directions = ceiling(random_numbers(num_tests+1:2*num_tests))
+
+        ! Get mask for diagonal and off-diagonal elements
+        diagonal_mask = .false.
+        do i = 1, NCOL
+            diagonal_mask(i,i) = .true.
+        enddo
+        off_diagonal_mask = .not.diagonal_mask
+
+        ! For each random site and direction, add 2 consectutive links from that site and in that direction. Apply the unitarisation procedure to the sum and test the result for unitarity. If any are not unitary, return ierr = .false. and halt execution.
+        ierr = .true.
+        do k = 1, num_tests
+            site = random_sites(k)
+            mu = random_directions(k)
+
+            ! Sum consective links in direction mu from site
+            matrix_sum = gauge_field(:,:,site,mu) + gauge_field(:,:,move(site,mu),mu)
+
+            ! Normalise matrix_sum to lie in SU(N)
+            trial_U = normalise_link(matrix_sum)
+
+            ! Form trial identity matrix
+            trial_identity = matmul(herm(trial_U), trial_U)
+
+            ! Compute 2x2 determinant
+            determinant = trial_U(1,1) * trial_U(2,2) - trial_U(1,2) * trial_U(2,1)
+
+            ! Test if trial identity matrix is sufficiently close to the identity and determinant is sufficiently close to 1
+            diagonal_good = all((abs(trial_identity - cmplx(1.0, 0.0)) < TOL_SVD).or.off_diagonal_mask)
+            off_diagonal_good = all((abs(trial_identity) < TOL_SVD).or.diagonal_mask)
+            real_good = (real(determinant - cmplx(1.0,0.0, kind=real64), kind=real64) <= epsilon(1.0d0))
+            imag_good = (aimag(determinant - cmplx(1.0,0.0, kind=real64)) <= epsilon(1.0d0))
+            ierr = diagonal_good.and.off_diagonal_good.and.real_good.and.imag_good
+            if (.not.ierr) then
+                write(*, "(a)") "normalise_link test FAILED"
+                write(*, "(a)") "Trial unitary matrix:"
+                call print_matrix(trial_U)
+                write(*, "(a)") "Trial identity matrix:"
+                call print_matrix(trial_identity)
+                write(*, "(a, f0.15, a, f0.15, a)") "Determinant", real(determinant, kind=real64), &
+                " + ", aimag(determinant), "i"
+                return
+            endif
+        enddo
+        write(*, "(a)") "normalise_link test PASSED"
+        print *, ""
+    end subroutine
+
+    ! Test diagonal links
+    subroutine test_get_diagonal_links(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real32) :: diag_check(NCOL, NCOL, SLICE_VOLUME, 4)
+        integer :: diag_pointer_check(SLICE_VOLUME, 4)
+        complex(real64) :: diag_computed(NCOL, NCOL, SLICE_VOLUME, 4)
+        integer :: diag_pointer_computed(SLICE_VOLUME, 4), i, j, printed
+        logical :: diag_equal, pointers_equal, &
+        diag_diff(NCOL, NCOL, SLICE_VOLUME, 4), pointer_diff(SLICE_VOLUME, 4)
+
+        ! Load data from old code, stored in DIAG.DAT file
+        open(11, file='DIAG.DAT', form='unformatted', status='old', access='stream')
+        read(11) diag_check
+        read(11) diag_pointer_check
+        close(11)
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Get diagonal links for gauge configuration in direction mu = 1
+        call get_diagonal_links(gauge_field(:,:,1:SLICE_VOLUME,1:3), 1, 1, &
+        diag_computed, diag_pointer_computed)
+
+        ! Check diagonal links and diagonal pointers are equal
+        diag_diff = (abs(diag_computed - diag_check) <= epsilon(1.0))
+        diag_equal = all(diag_diff)
+        pointer_diff = (diag_pointer_computed == diag_pointer_check)
+        pointers_equal = all(pointer_diff)
+        ierr = diag_equal.and.pointers_equal
+        if (ierr) then
+            write(*, "(a)") "get_diagonal_links test PASSED"
+        else
+            write(*, "(a)") "get_diagonal_links test FAILED"
+            if (diag_equal) then
+                write(*, "(a)") "    diagonal links: CORRECT"
+            else
+                write(*, "(a)") "    diagonal links: INCORRECT"
+                ! Output indices of all incorrect links and first 10 incorrect matrices
+                write(*, "(a)") "    Indices of incorrect links:"
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.all(diag_diff(:,:,i,j))) then
+                            write(*, "(a, i0, a, i0)") "    Site: ", i, "    Direction: ", j
+                        endif
+                    enddo
+                enddo
+                printed = 0
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.all(diag_diff(:,:,i,j))) then
+                            write(*, "(a, i0, a, i0, a)") "    Site: ", i, "    Direction: ", j, &
+                            "    Matrix (from file):"
+                            call print_matrix(cmplx(diag_check(:,:,i,j), kind=real64))
+                            write(*, "(a, i0, a, i0, a)") "    Site: ", i, "    Direction: ", j, &
+                            "    Matrix (computed):"
+                            call print_matrix(diag_computed(:,:,i,j))
+                            printed = printed + 1
+                        endif
+                        if (printed >= 10) exit
+                    enddo
+                    if (printed >= 10) exit
+                enddo
+            endif
+            if (pointers_equal) then
+                write(*, "(a)") "    pointers:       CORRECT"
+            else
+                write(*, '(a)') "    pointers:       INCORRECT"
+                ! Output indices of all incorrect links and first 10 incorrect matrices
+                write(*, "(a)") "    Indices of incorrect pointers:"
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.(pointer_diff(i,j))) then
+                            write(*, "(a, i0, a, i0)") "    Site: ", i, "    Direction: ", j
+                        endif
+                    enddo
+                enddo
+                printed = 0
+                do j = 1, 4
+                    do i = 1, SLICE_VOLUME
+                        if (.not.(pointer_diff(i,j))) then
+                            write(*, "(a, i0, a, i0, a, i0)") "    Site: ", i, "    Direction: ", j, &
+                            "    Pointer (from file): ", diag_pointer_check(i,j)
+                            write(*, "(a, i0, a, i0, a, i0)") "    Site: ", i, "    Direction: ", j, &
+                            "    Pointer (computed):  ", diag_pointer_computed(i,j)
+                            printed = printed + 1
+                        endif
+                        if (printed >= 10) exit
+                    enddo
+                    if (printed >= 10) exit
+                enddo
+            endif
+        endif
+    end subroutine
+
+    ! Test smearing function
+    subroutine test_get_smeared_gauge_field(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real32) :: smear_check(NCOL, NCOL, SLICE_VOLUME, 3)
+        complex(real64) :: smear_computed(NCOL, NCOL, SLICE_VOLUME, 3)
+        logical :: smear_equal
+
+        ! Load smear_check from SMEARED_SAVE.DAT file
+        open(11, file='SMEARED_SAVE.DAT', form='unformatted', status='old', access='stream')
+        read(11) smear_check
+        close(11)
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Smear configuration at 1st blocking level
+        smear_computed = get_smeared_gauge_field(gauge_field(:,:,1:SLICE_VOLUME,1:3), 1)
+
+        ! Check if smeared configuration is equal to those produced during old calculation
+        smear_equal = all(abs(smear_computed - smear_check) <= max(epsilon(1.0), TOL_SVD))
+        if (ierr) then
+            write(*, "(a)") "get_smeared_gauge_field test PASSED"
+        else
+            write(*, "(a)") "get_smeared_gauge_field test FAILED"
+            write(*, "(a)") "    Matrix (1,1) from file:"
+            call print_matrix(cmplx(smear_check(:,:,1,1), kind=real64))
+            write(*, "(a)") "    Matrix (1,1) computed:"
+            call print_matrix(smear_computed(:,:,1,1))
+        endif
+    end subroutine
+
+    ! Test blocking function
+    subroutine test_get_blocked_gauge_field(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real32) :: blok_check(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64) :: blok_computed(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        logical :: blok_equal
+
+        ! Load blok_check from BLOCKED_SAVE.DAT file
+        open(11, file='BLOCKED_SAVE.DAT', form='unformatted', status='old', access='stream')
+        read(11) blok_check
+        close(11)
+
+        ! Load gauge field into memory if it hasn't been already
+        call load_gauge_field()
+
+        ! Block configuration
+        blok_computed = get_blocked_gauge_field(gauge_field(:, :, 1:SLICE_VOLUME, 1:3))
+
+        ! Check if smeared configuration is equal to those produced during old calculation
+        blok_equal = all(abs(blok_computed - blok_check) <= max(epsilon(1.0), TOL_SVD))
+        if (ierr) then
+            write(*, "(a)") "get_blocked_gauge_field test PASSED"
+        else
+            write(*, "(a)") "get_blocked_gauge_field test FAILED"
+            write(*, "(a)") "    Matrix (1,1), blocking level 2 from file:"
+            call print_matrix(cmplx(blok_check(:,:,1,1,2), kind=real64))
+            write(*, "(a)") "    Matrix (1,1), blocking level 2 computed:"
+            call print_matrix(blok_computed(:,:,1,1,2))
+        endif
+    end subroutine
+end program test_suite

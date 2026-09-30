@@ -3439,4 +3439,18 @@ module thermal_lines
         )
     end subroutine loop_144
 
+    ! Loop 145: Simple Polyakov line
+    subroutine loop_145(in_site, out_site, A11, blocking_level, gauge_field_blocked)
+        implicit none
+        integer, intent(in) :: in_site, blocking_level
+        integer, intent(out) :: out_site
+        complex(real64), intent(inout) :: A11(NCOL, NCOL)
+        integer, parameter :: number_of_square_pulses = 2
+        integer :: pulse_directions(number_of_square_pulses)
+        integer :: pulse_start_offsets(number_of_square_pulses)
+
+
+        A11 = gauge_field_blocked(:, :, 1, in_site, blocking_level)
+    end subroutine loop_145
+
 end module
