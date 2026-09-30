@@ -361,6 +361,387 @@ module thermal_lines
         end select
     end function
 
+    ! Construct deformation composed of square pulses and gauge links
+    ! Inputs:
+    ! - in_site: the site at which the deformation starts
+    ! - gauge_field_blocked: the blocked gauge field configuration on the given time slice
+    ! - blocking_level: the blocking level of the polyakov loop to be attached to the deformation
+    ! - square_pulse_positions: the relative positions of sqaure pulses along the flux tube in units of the blocking level (if narrow_operator = false) or at one lower blocking level (if narrow operator = true)
+    ! - square_pulse_directions: the directions of the square pulses corresponding to those at square_pulse_positions
+    ! - narrow_operator: a boolean flag indicating if the deformation is to be calculated at one lower blocking level
+    ! - check_length: a boolean flag indicating whether to check that the operator is too large for the lattice. If true, the function returns the identity matrix and out_site=in_site.
+    ! Outputs:
+    ! - advance_site: a boolean flag indicating whether out_site should be returned as in_site or the end of the loop. If true, out_site is returned as the end point of the operator. If false, out_site is returned as in_site.
+    ! - out_site: the site are which the deformation ends
+    ! - A11: the matrix representing the deformation
+    subroutine loop_square_pulse(in_site, out_site, gauge_field_blocked, blocking_level, &
+        square_pulse_positions, square_pulse_directions, narrow_operator, check_length, advance_site, &
+        deformation)
+        integer, intent(in) :: in_site, blocking_level, square_pulse_positions(:), square_pulse_directions(:)
+        integer, intent(out) :: out_site
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        logical, intent(in) :: narrow_operator, check_length, advance_site
+        complex(real64), intent(out) :: deformation(NCOL, NCOL)
+
+        integer :: deformation_blocking_level, site, array_index, position, i, n_pulses, length
+
+        ! Check square_pulse_positions and square_pulse_directions are compatible
+        n_pulses = size(square_pulse_directions)
+        if (size(square_pulse_positions) /= n_pulses .or. square_pulse_positions(1) /= 0) &
+        error stop "square_pulse_positions and square_pulse_directions incompatible"
+
+        ! Check that elements of square_pulse_positions always increase, so that this corresponds to a continuous operator
+        do array_index = 1, n_pulses - 1
+            if (square_pulse_positions(array_index) >= square_pulse_positions(array_index+1)) &
+            error stop "square_pulse_positions does not correspond to a continuous operator"
+        enddo
+
+        ! Check narrow operator can fit into Polyakov loop at input blocking level
+        if (narrow_operator .and. mod(square_pulse_positions(n_pulses), 2) /= 1) &
+        error stop "Narrow operator does not fit into Polyakov loop"
+
+        ! Assign blocking level of the deformation
+        if (narrow_operator) then
+            if (blocking_level == 1) then
+                deformation_blocking_level = 1
+            else
+                deformation_blocking_level = blocking_level - 1
+            endif
+        else
+            deformation_blocking_level = blocking_level
+        endif
+
+        ! Initialise deformation to identity matrix
+        deformation = cmplx(0.0,0.0,kind=real64)
+        do i = 1, NCOL
+            deformation(i, i) = cmplx(1.0,0.0,kind=real64)
+        enddo
+
+        ! Check that the operator fits inside the lattice by finding the position in unblocked lattice units of the end of the operator
+        if (check_length) then
+            length = (square_pulse_positions(n_pulses) + 1) * 2**(deformation_blocking_level-1)
+            if (length > LX1) then ! Operator does not fit along the flux tube
+                ! Output identity matrix and return input site
+                out_site = in_site
+                return
+            endif
+        endif
+
+        ! Build operator
+        site = in_site
+        array_index = 1
+        if (narrow_operator) then
+            ! Advance along the flux tube, adding square pulses at blocking level b-1, and filling in with gauge links at blocking level b. If b=1, fill in with two gauge links.
+            do position = 0, square_pulse_positions(n_pulses)
+                if (array_index > n_pulses) error stop "array_index exceeded number of pulses"
+                if (square_pulse_positions(array_index) == position) then
+                    ! In this case, add a square pulse at this position at the appropriate blocking level
+                    deformation = matmul(deformation, &
+                    square_pulse(site, square_pulse_directions(array_index), deformation_blocking_level))
+
+                    ! Advance by half a step
+                    site = move(site, 1, deformation_blocking_level)
+                    array_index = array_index + 1
+                else
+                    ! In this case, fill the gap between square pulses in with gauge links
+                    if (blocking_level == 1) then
+                        do i = 1, 2
+                            deformation = matmul(deformation, &
+                            gauge_field_blocked(:, :, site, 1, 1))
+
+                            ! Advance by a full step (after iteration)
+                            site = move(site, 1, 1)
+                        enddo
+                    else
+                        deformation = matmul(deformation, &
+                        gauge_field_blocked(:, :, site, 1, blocking_level))
+
+                        ! Advance by a full step
+                        site = move(site, 1, blocking_level)
+                    endif
+                endif
+            enddo
+        else
+            ! Advance along the flux tube, adding square pulses and filling in with gauge links, until we get to the last square pulse
+            do position = 0, square_pulse_positions(n_pulses)
+                if (array_index > n_pulses) then
+                    error stop "array_index exceeded number of pulses"
+                elseif (square_pulse_positions(array_index) == position) then
+                    ! In this case, add a square pulse at this position
+                    deformation = matmul(deformation, &
+                    square_pulse(site, square_pulse_directions(array_index), blocking_level))
+                    array_index = array_index + 1
+                else
+                    ! In this case, fill the gap between pulses in with a blocked gauge link
+                    deformation = matmul(deformation, &
+                    gauge_field_blocked(:, :, site, 1, blocking_level))
+                endif
+                ! Move along flux tube to next position
+                site = move(site, 1, blocking_level)
+            enddo
+        endif
+
+        ! Set output position
+        if (advance_site) then
+            out_site = site
+        else
+            out_site = in_site
+        endif
+    end subroutine
+
+    ! Construct deformation composed of plaquettes and gauge links
+    ! Inputs:
+    ! - in_site: the site at which the deformation starts
+    ! - gauge_field_blocked: the blocked gauge field configuration on the given time slice
+    ! - blocking_level: the blocking level of the polyakov loop to be attached to the deformation
+    ! - plaquette_positions: the relative positions of the plaquettes along the flux tube in units of the blocking level
+    ! - plaquette_orientations: the orientations of the plaquettes corresponding to those at plaquette_positions
+    ! Outputs:
+    ! - check_length: a boolean flag indicating whether to check that the operator is too large for the lattice. If true, the function returns the identity matrix and out_site=in_site.
+    ! - advance_site: a boolean flag indicating whether out_site should be returned as in_site or the end of the loop. If true, out_site is returned as the end point of the operator. If false, out_site is returned as in_site.
+    ! Outputs:
+    ! - out_site: the site are which the deformation ends
+    ! - A11: the matrix representing the deformation
+    subroutine loop_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
+        plaquette_positions, plaquette_orientations, check_length, advance_site, deformation)
+        integer, intent(in) :: in_site, blocking_level, plaquette_positions(:), plaquette_orientations(:)
+        integer, intent(out) :: out_site
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        logical, intent(in) :: check_length, advance_site
+        complex(real64), intent(out) :: deformation(NCOL, NCOL)
+
+        integer :: site, array_index, position, i, n_plaquettes, length
+
+        ! Check plaquette_positions and plaquette_orientations are compatible
+        n_plaquettes = size(plaquette_orientations)
+        if (size(plaquette_positions) /= n_plaquettes .or. plaquette_positions(1) /= 0) &
+        error stop "plaquette_positions and plaquette_orientations incompatible"
+
+        ! Check that elements of plaquette_positions always increase or stay the same, so that this corresponds to a continuous operator
+        do array_index = 1, n_plaquettes - 1
+            if (plaquette_positions(array_index) > plaquette_positions(array_index+1)) &
+            error stop "plaquette_positions does not correspond to a continuous operator"
+        enddo
+
+        ! Initialise deformation to identity matrix
+        deformation = cmplx(0.0,0.0,kind=real64)
+        do i = 1, NCOL
+            deformation(i, i) = cmplx(1.0,0.0,kind=real64)
+        enddo
+
+        ! Check that the operator fits inside the lattice by finding the position in unblocked lattice units of the end of the operator
+        if (check_length) then
+            length = plaquette_positions(n_plaquettes) * 2**(blocking_level-1)
+            if (length > LX1) then ! Operator does not fit along the flux tube
+                ! Output identity matrix and return input site
+                out_site = in_site
+                return
+            endif
+        endif
+
+        ! Build operator
+        ! Multiply all plaquettes at the starting site into deformation in the given order
+        array_index = 1
+        do
+            if (array_index > n_plaquettes) then
+                error stop "plaquette_index exceeded number of plaquettes"
+            elseif (plaquette_positions(array_index) /= 0) then
+                exit
+            else
+                deformation = matmul(deformation, &
+                plaquette(in_site, plaquette_orientations(array_index), blocking_level))
+                array_index = array_index + 1
+            endif
+        enddo
+        ! Multiply other plaquettes at further sites along the flux tube into deformation in the given order, separated by gauge links
+        site = in_site
+        do position = 1, plaquette_positions(n_plaquettes)
+            ! Advance to this new position by adding a gauge link
+            deformation = matmul(deformation, &
+            gauge_field_blocked(:, :, site, 1, blocking_level))
+            site = move(site, 1, blocking_level)
+
+            ! Multiply all plaquettes at the current site into deformation in the given order
+            do
+                if (array_index > n_plaquettes) exit
+                if (plaquette_positions(array_index) /= position) exit
+
+                deformation = matmul(deformation, &
+                plaquette(site, plaquette_orientations(array_index), blocking_level))
+
+                array_index = array_index + 1
+            enddo
+        enddo
+
+        ! Set output position
+        if (advance_site) then
+            out_site = site
+        else
+            out_site = in_site
+        endif
+    end subroutine
+
+    ! Construct deformation composed of square pulses, plaquettes and gauge links
+    ! Inputs:
+    ! - in_site: the site at which the deformation starts
+    ! - gauge_field_blocked: the blocked gauge field configuration on the given time slice
+    ! - blocking_level: the blocking level of the polyakov loop to be attached to the deformation
+    ! - square_pulse_positions: the relative positions of sqaure pulses along the flux tube in units of the blocking level
+    ! - square_pulse_directions: the directions of the square pulses corresponding to those at square_pulse_positions
+    ! - plaquette_positions: the relative positions of the plaquettes along the flux tube in units of the blocking level
+    ! - plaquette_orientations: the orientations of the plaquettes corresponding to those at plaquette_positions
+    ! Outputs:
+    ! - check_length: a boolean flag indicating whether to check that the operator is too large for the lattice. If true, the function returns the identity matrix and out_site=in_site.
+    ! - advance_site: a boolean flag indicating whether out_site should be returned as in_site or the end of the loop. If true, out_site is returned as the end point of the operator. If false, out_site is returned as in_site.
+    ! Outputs:
+    ! - out_site: the site are which the deformation ends
+    ! - A11: the matrix representing the deformation
+    subroutine loop_square_pulse_plaquette(in_site, out_site, gauge_field_blocked, blocking_level, &
+        square_pulse_positions, square_pulse_directions, plaquette_positions, plaquette_orientations, &
+        check_length, advance_site, deformation)
+        integer, intent(in) :: in_site, blocking_level, square_pulse_positions(:), square_pulse_directions(:), &
+        plaquette_positions(:), plaquette_orientations(:)
+        integer, intent(out) :: out_site
+        complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        logical, intent(in) :: check_length, advance_site
+        complex(real64), intent(out) :: deformation(NCOL, NCOL)
+
+        integer :: site, pulse_index, plaquette_index, position, i, n_pulses, n_plaquettes, length
+
+        ! Check square_pulse_positions and square_pulse_directions are compatible
+        n_pulses = size(square_pulse_directions)
+        if (size(square_pulse_positions) /= n_pulses) &
+        error stop "square_pulse_positions and square_pulse_directions incompatible"
+
+        ! Check plaquette_positions and plaquette_orientations are compatible
+        n_plaquettes = size(plaquette_orientations)
+        if (size(plaquette_positions) /= n_plaquettes) &
+        error stop "plaquette_positions and plaquette_orientations incompatible"
+
+        ! Check that elements of square_pulse_positions always increase, so that this corresponds to a continuous operator
+        do pulse_index = 1, n_pulses - 1
+            if (square_pulse_positions(pulse_index) >= square_pulse_positions(pulse_index+1)) &
+            error stop "square_pulse_positions does not correspond to a continuous operator"
+        enddo
+
+        ! Check that elements of plaquette_positions always increase or stay the same, so that this corresponds to a continuous operator
+        do plaquette_index = 1, n_plaquettes - 1
+            if (plaquette_positions(plaquette_index) > plaquette_positions(plaquette_index+1)) &
+            error stop "plaquette_positions does not correspond to a continuous operator"
+        enddo
+
+        ! Check that operator starts at in_site
+        if (square_pulse_positions(1) /= 0 .and. plaquette_positions(1) /= 0) &
+        error stop "Operator does not begin at input site"
+
+        ! Initialise deformation to identity matrix
+        deformation = cmplx(0.0,0.0,kind=real64)
+        do i = 1, NCOL
+            deformation(i, i) = cmplx(1.0,0.0,kind=real64)
+        enddo
+
+        ! Check that the operator fits inside the lattice by finding the position in unblocked lattice units of the end of the operator
+        if (check_length) then
+            if (square_pulse_positions(n_pulses) >= plaquette_positions(n_plaquettes)) then
+                length = (square_pulse_positions(n_pulses) + 1) * 2**(blocking_level-1)
+            else
+                length = plaquette_positions(n_plaquettes) * 2**(blocking_level-1)
+            endif
+            if (length > LX1) then ! Operator does not fit along the flux tube
+                ! Output identity matrix and return input site
+                out_site = in_site
+                return
+            endif
+        endif
+
+        ! Build operator
+        ! If the last deformation is a plaquette, we need to ensure we do not add an extra gauge link to the end of the operator
+        if (square_pulse_positions(n_pulses) >= plaquette_positions(n_plaquettes)) then
+            site = in_site
+            pulse_index = 1
+            plaquette_index = 1
+            do position = 0, square_pulse_positions(n_pulses)
+                ! Multiply all plaquettes at current site into deformation in the given order
+                do
+                    if (plaquette_index > n_plaquettes) exit
+                    if (plaquette_positions(plaquette_index) /= position) exit
+
+                    deformation = matmul(deformation, &
+                    plaquette(site, plaquette_orientations(plaquette_index), blocking_level))
+
+                    plaquette_index = plaquette_index + 1
+                enddo
+
+                ! Multiply by square pulse or gauge link and advance to next site
+                if (pulse_index <= n_pulses) then
+                    if (square_pulse_positions(pulse_index) == position) then
+                        deformation = matmul(deformation, &
+                        square_pulse(site, square_pulse_directions(pulse_index), blocking_level))
+                        pulse_index = pulse_index + 1
+                    else
+                        deformation = matmul(deformation, &
+                        gauge_field_blocked(:, :, site, 1, blocking_level))
+                    endif
+                else ! All square pulses have been used
+                    deformation = matmul(deformation, &
+                    gauge_field_blocked(:, :, site, 1, blocking_level))
+                endif
+                site = move(site, 1, blocking_level)
+            enddo
+        else
+            ! Multiply all plaquettes at the starting site into deformation in the given order
+            plaquette_index = 1
+            do
+                if (plaquette_index > n_plaquettes) exit
+                if (plaquette_positions(plaquette_index) /= 0) exit
+
+                deformation = matmul(deformation, &
+                plaquette(in_site, plaquette_orientations(plaquette_index), blocking_level))
+
+                plaquette_index = plaquette_index + 1
+            enddo
+
+            ! Multiple other plaquettes at further sites along the flux tube into deformation in the given order, separated square pulses or by gauge links
+            site = in_site
+            pulse_index = 1
+            do position = 1, plaquette_positions(n_plaquettes)
+                ! Advance to this new position by adding a square pulse or a gauge link
+                if (pulse_index <= n_pulses) then
+                    if (square_pulse_positions(pulse_index) == position-1) then
+                        deformation = matmul(deformation, &
+                        square_pulse(site, square_pulse_directions(pulse_index), blocking_level))
+                        pulse_index = pulse_index + 1
+                    else
+                        deformation = matmul(deformation, &
+                        gauge_field_blocked(:, :, site, 1, blocking_level))
+                    endif
+                else ! All square pulses have been used
+                    deformation = matmul(deformation, &
+                    gauge_field_blocked(:, :, site, 1, blocking_level))
+                endif
+                site = move(site, 1, blocking_level)
+
+                ! Multiply all plaquettes at the current site into deformation in the given order
+                do
+                    if (plaquette_index > n_plaquettes) exit
+                    if (plaquette_positions(plaquette_index) /= position) exit
+
+                    deformation = matmul(deformation, &
+                    plaquette(site, plaquette_orientations(plaquette_index), blocking_level))
+                    
+                    plaquette_index = plaquette_index + 1
+                enddo
+            enddo
+        endif
+
+        ! Set output position
+        if (advance_site) then
+            out_site = site
+        else
+            out_site = in_site
+        endif
+    end subroutine
+
     ! Move forward by a small number of blocked lattice units.
     integer function move_forward(site, number_of_steps, blocking_level)
         implicit none
