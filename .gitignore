@@ -21,3 +21,4 @@ fortran77_scalar_looptest/run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n1
 # Keep all gitkeep files to retain directory structure
 !*/.gitkeep
 fortran77_scalar_looptest/run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n1
+fortran90_looptest/
