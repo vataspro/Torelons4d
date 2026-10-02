@@ -15,7 +15,7 @@ SOURCES := \
 	lattice.f90 \
 	read_field_config.f90 \
 	thermal_lines.f90 \
-	here_be_dragons_omp_iddd.f90 \
+	measure_lines_omp.f90 \
 	states_class.f90 \
 	main.f90
 
@@ -56,7 +56,7 @@ $(BUILD_DIR)/read_field_config.o: \
 	$(BUILD_DIR)/parameters.o \
 	$(BUILD_DIR)/lattice.o
 
-$(BUILD_DIR)/here_be_dragons_omp_iddd.o: \
+$(BUILD_DIR)/measure_lines_omp.o: \
 	$(BUILD_DIR)/parameters.o \
 	$(BUILD_DIR)/lattice.o \
 	$(BUILD_DIR)/thermal_lines.o \
@@ -68,7 +68,7 @@ $(BUILD_DIR)/states_class.o: \
 $(BUILD_DIR)/main.o: \
 	$(BUILD_DIR)/parameters.o \
 	$(BUILD_DIR)/lattice.o \
-	$(BUILD_DIR)/here_be_dragons_omp_iddd.o \
+	$(BUILD_DIR)/measure_lines_omp.o \
 	$(BUILD_DIR)/states_class.o
 
 # ----------------------------------------------------------------------

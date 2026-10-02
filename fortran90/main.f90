@@ -2,7 +2,7 @@ program main
     use torelon_parameters
     use lattice
     use read_field_config
-    use here_be_dragons
+    use measure_lines
     use states_class
 
     implicit none
