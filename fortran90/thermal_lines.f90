@@ -1,6 +1,7 @@
 module thermal_lines
     use torelon_parameters
     use lattice
+    use omp_lib 
     implicit none
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -209,9 +210,9 @@ module thermal_lines
             ! Set direction index. This is a small array to map between pulse_direction and the position of the relevant entry in the 4th dimension of the squares_up/down arrays
             squares_direction_index(pulse_direction) = dir_count
 
-            ! Iterate over all blocking levels
+            ! Iterate over all blocking levels and sites
+            !$OMP PARALLEL DO COLLAPSE(2)
             do blocking_level = 1, MAX_BLOCKING_LEVEL
-                ! Iterate over all sites
                 do site = 1, SLICE_VOLUME
                     ! Calculate square pulses
                     squares_up(:, :, site, dir_count, blocking_level) &
@@ -222,6 +223,7 @@ module thermal_lines
                                                   blocking_level, site, flux_direction, pulse_direction)
                 enddo
             enddo
+            !$OMP END PARALLEL DO
 
             ! Iterate dir_count
             dir_count = dir_count + 1
@@ -252,15 +254,21 @@ module thermal_lines
         nu = plaquette_direction_index(3)
 
         ! Iterate over lattice and calculate all plaquettes in plane orthogonal to the flux direction
+        !$OMP PARALLEL DO COLLAPSE(2)
         do blocking_level = 1, MAX_BLOCKING_LEVEL
-            ! Calculate plaquette in (mu, nu) = (+, +) direction
             do site = 1, SLICE_VOLUME
+                ! Calculate plaquette in (mu, nu) = (+, +) direction
                 plaquettes(:, :, site, 1, blocking_level) &
                 = calculate_plaquette(gauge_field_blocked(:, :, :, :, blocking_level), &
                                       blocking_level, site, flux_direction)
             enddo
+        enddo
+        !$OMP END PARALLEL DO
 
-            ! Calculate plaquettes in other directions by applying similarity transformation to (+,+) plaquettes
+
+        ! Calculate plaquettes in other directions by applying similarity transformation to (+,+) plaquettes
+        !$OMP PARALLEL DO COLLAPSE(2) PRIVATE(similarity_matrix, site_minus_mu, site_minus_nu, diagonal_site)
+        do blocking_level = 1, MAX_BLOCKING_LEVEL
             do site = 1, SLICE_VOLUME
                 ! Get relevant sites
                 site_minus_mu = move(site, -mu, blocking_level)
@@ -291,6 +299,7 @@ module thermal_lines
                     similarity_matrix)
             enddo
         enddo
+        !$OMP END PARALLEL DO
     end subroutine
 
     ! Return square pulse from given site, in given direction

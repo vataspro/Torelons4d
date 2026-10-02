@@ -121,8 +121,10 @@ module states_class
         t_plus_s = t
         do s = 1, LX4
             t_plus_s = mod(t_plus_s, LX4) + 1
-            time_slice_avg = time_slice_avg &
-            + 0.5d0 * (phi_1(s))*conjg(phi_2(t_plus_s)) + phi_1(t_plus_s)*conjg(phi_2(s))
+            time_slice_avg = time_slice_avg + 0.5d0 * ( &
+                phi_1(s) * conjg(phi_2(t_plus_s)) &
+                + phi_1(t_plus_s) * conjg(phi_2(s)) &
+            )
         enddo
     end function
 

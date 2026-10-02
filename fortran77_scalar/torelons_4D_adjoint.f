@@ -1927,7 +1927,7 @@ C
             WRITE(23,101) ID,APLAQRP,APLAQIP,SPLAQRP,SPLAQIP
       ENDDO
 C**********************************************************************
-C     DIAGONAL CORRELATORS smirloglou 00302102473443, 00306972428749
+C     DIAGONAL CORRELATORS 
 C**********************************************************************      
       WRITE(23,80)
       
