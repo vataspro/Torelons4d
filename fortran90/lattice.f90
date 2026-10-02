@@ -1,5 +1,5 @@
 module lattice
-    use parameters
+    use torelon_parameters
     implicit none
 
     ! Containers for lattice pointers by 1 lattice step and multiple lattice steps in the case of blocked links
@@ -492,15 +492,28 @@ module lattice
         implicit none
         complex(real64), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
         integer, intent(in) :: blocking_level
-        complex(real64) :: smear(NCOL, NCOL, SLICE_VOLUME, 3)
+        complex(real64), allocatable :: smear(:,:,:,:)
 
-        complex(real64) :: diagonal_links_mu(NCOL, NCOL, SLICE_VOLUME, 4), staple(NCOL, NCOL)
-        integer :: diagonal_pointers_mu(SLICE_VOLUME, 4), mu, nu, nu_ku, site, temp_site1, temp_site2, site_plus_mu
+        complex(real64), allocatable :: diagonal_links_mu(:,:,:,:)
+        complex(real64) :: staple(NCOL, NCOL)
+        integer, allocatable :: diagonal_pointers_mu(:,:)
+        integer :: mu, nu, nu_ku, site, temp_site1, temp_site2, site_plus_mu
+
+        allocate(smear(NCOL, NCOL, SLICE_VOLUME, 3))
+        allocate(diagonal_links_mu(NCOL, NCOL, SLICE_VOLUME, 4))
+        allocate(diagonal_pointers_mu(SLICE_VOLUME, 4))
+
+        write(*, '(A,I0)') '[DEBUG][smear] enter blocking_level=', blocking_level
+        flush(6)
 
         ! Smear over each direction individually
         do mu = 1, 3 ! mu is the direction of the link to be smeared
+            write(*, '(A,I0,A,I0)') '[DEBUG][smear] build diagonal links: blocking_level=', blocking_level, ' mu=', mu
+            flush(6)
             ! Get diagonal links to all links in plane perpendicular to mu
             call get_diagonal_links(gauge_field_slice, mu, blocking_level, diagonal_links_mu, diagonal_pointers_mu)
+            write(*, '(A,I0,A,I0)') '[DEBUG][smear] smear sites: blocking_level=', blocking_level, ' mu=', mu
+            flush(6)
 
             ! Smear each link pointing in direction mu individually
             !$OMP PARALLEL DO PRIVATE(site_plus_mu, temp_site1, temp_site2, staple, nu, nu_ku)
@@ -560,16 +573,26 @@ module lattice
                 smear(:, :, site, mu) = normalise_link(smear(:, :, site, mu))
             enddo
             !$OMP END PARALLEL DO
+            write(*, '(A,I0,A,I0)') '[DEBUG][smear] finished mu: blocking_level=', blocking_level, ' mu=', mu
+            flush(6)
         enddo
+        write(*, '(A,I0)') '[DEBUG][smear] exit blocking_level=', blocking_level
+        flush(6)
     end function get_smeared_gauge_field
 
     function get_blocked_gauge_field(gauge_field_slice) result(blok)
         implicit none
         complex(real64), intent(in) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
-        complex(real64) :: blok(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL)
+        complex(real64), allocatable :: blok(:,:,:,:,:)
 
         integer :: current_blocking_level, next_blocking_level, mu, site
-        complex(real64) :: smeared_gauge_field(NCOL, NCOL, SLICE_VOLUME, 3)
+        complex(real64), allocatable :: smeared_gauge_field(:,:,:,:)
+
+        allocate(blok(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL))
+        allocate(smeared_gauge_field(NCOL, NCOL, SLICE_VOLUME, 3))
+
+        write(*, '(A)') '[DEBUG][block] enter get_blocked_gauge_field'
+        flush(6)
 
         ! Initialise first blocking level as original lattice
         blok(:, :, :, :, 1) = gauge_field_slice
@@ -580,8 +603,12 @@ module lattice
             next_blocking_level = current_blocking_level + 1
 
             ! Smear configuration at current blocking level
+            write(*, '(A,I0,A,I0)') '[DEBUG][block] start level ', current_blocking_level, ' -> ', next_blocking_level
+            flush(6)
             smeared_gauge_field = get_smeared_gauge_field(blok(:, :, :, :, current_blocking_level), &
             current_blocking_level)
+            write(*, '(A,I0,A,I0)') '[DEBUG][block] finished smearing level ', current_blocking_level, ' -> ', next_blocking_level
+            flush(6)
 
             ! Form blocked configuration at next blocking level by blocking this smeared configuration
             !$OMP PARALLEL DO COLLAPSE(2)
@@ -593,6 +620,10 @@ module lattice
                 enddo
             enddo
             !$OMP END PARALLEL DO
+            write(*, '(A,I0,A,I0)') '[DEBUG][block] finished blocking level ', current_blocking_level, ' -> ', next_blocking_level
+            flush(6)
         enddo
+        write(*, '(A)') '[DEBUG][block] exit get_blocked_gauge_field'
+        flush(6)
     end function get_blocked_gauge_field
 end module lattice

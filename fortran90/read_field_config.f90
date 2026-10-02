@@ -1,6 +1,6 @@
 module read_field_config
     use torelon_parameters
-    use lattice
+    use lattice, only: site_index
     implicit none
 
     contains
@@ -73,16 +73,16 @@ module read_field_config
         real(real64) :: quaternion(4)
 
         ! Check gauge field variable is the correct size
-        if (size(gauge_field, dim=1) /= NCOL) then
+        if (size(gauge_field, 1) /= NCOL) then
             error stop "gauge_field must have size NCOL in 1st dimension"
         end if
-        if (size(gauge_field, dim=2) /= NCOL) then
+        if (size(gauge_field, 2) /= NCOL) then
             error stop "gauge_field must have size NCOL in 2nd dimension"
         end if
-        if (size(gauge_field, dim=3) /= LATTICE_VOLUME) then
+        if (size(gauge_field, 3) /= LATTICE_VOLUME) then
             error stop "gauge_field must have size LATTICE_VOLUME in 3rd dimension"
         end if
-        if (size(gauge_field, dim=4) /= 4) then
+        if (size(gauge_field, 4) /= 4) then
             error stop "gauge_field must have size 4 in 4th dimension"
         end if
 

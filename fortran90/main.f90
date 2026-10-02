@@ -160,25 +160,37 @@ program main
         file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
 
         ! Load gauge field
+        write(*, '(A,I0,2A)') '[DEBUG][main] reading config ', config, ' from ', trim(file_path)
+        flush(6)
         call cpu_time(start)
         call read_gauge_field(file_path, gauge_field)
         call cpu_time(finish)
+        write(*, '(A,I0)') '[DEBUG][main] finished reading config ', config
+        flush(6)
         avg_runtime_loading = avg_runtime_loading + (finish - start)
 
         ! Conduct measurements over every time slice
         do t = 1, LX4
             ! Block gauge field
+            write(*, '(A,I0,A,I0)') '[DEBUG][main] start blocking: config=', config, ' t=', t
+            flush(6)
             call cpu_time(start)
             gauge_field_slice_blocked = &
             get_blocked_gauge_field(gauge_field(:, :, (t-1)*SLICE_VOLUME+1 : t*SLICE_VOLUME, 1:3))
             call cpu_time(finish)
+            write(*, '(A,I0,A,I0)') '[DEBUG][main] finished blocking: config=', config, ' t=', t
+            flush(6)
             avg_runtime_blocking = avg_runtime_blocking + (finish - start)
 
             ! Measure thermal lines over all blocking levels
             do blocking_level = 1, MAX_BLOCKING_LEVEL
+                write(*, '(A,I0,A,I0,A,I0)') '[DEBUG][main] start THERML1: config=', config, ' t=', t, ' blocking_level=', blocking_level
+                flush(6)
                 call cpu_time(start)
                 call THERML1(gauge_field_slice_blocked, t, blocking_level, lines, momentum_lines)
                 call cpu_time(finish)
+                write(*, '(A,I0,A,I0,A,I0)') '[DEBUG][main] finished THERML1: config=', config, ' t=', t, ' blocking_level=', blocking_level
+                flush(6)
                 avg_runtime_measurement = avg_runtime_measurement + (finish - start)
             enddo
         enddo
@@ -196,7 +208,7 @@ program main
         do state = 1, 10
             call cpu_time(start)
             call states(state)%update_corr_matrix(lines, bin_index)
-            call states(state)%update_corr_matrix(lines, bin_index)
+            call momentum_states(state)%update_corr_matrix(momentum_lines, bin_index)
             call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo

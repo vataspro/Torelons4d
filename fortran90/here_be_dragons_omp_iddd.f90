@@ -154,6 +154,8 @@ module here_be_dragons
 
         id = blocking_level ! Current blocking level (BL)
 
+        write(*, '(A,I0,A,I0)') '[DEBUG][THERML1] enter: time_slice=', time_slice, ' requested_blocking_level=', blocking_level
+        flush(6)
 
         ! We try and fit the blocking level lengths into LX1
         ! Fill lcnt array
@@ -184,6 +186,9 @@ module here_be_dragons
         ! Only happens if LX1 = 2 (I think)
         idsm1 = ids - 1
         if (ids == 1) idsm1 = ids
+
+        write(*, '(A,I0,A,I0,A,I0,A,I0,A,I0)') '[DEBUG][THERML1] geometry: time_slice=', time_slice, ' id=', id, ' ids=', ids, ' idsm1=', idsm1, ' lcnt(ids)=', lcnt(ids)
+        flush(6)
 
         !**********************************************************************
         ! Define our configuration at the current blocking level
@@ -387,6 +392,8 @@ module here_be_dragons
                     ! PRIVATE(m2, mn, ico, A11
                     ! Every accumulator element csum*(ieee[,k]) is written by exactly one iddd per site, so they
                     ! can stay shared. pf, lcnt, lin*, rem11, ids, ... are only read inside the region.
+                    write(*, '(A,I0,A,I0,A,I0)') '[DEBUG][THERML1] start operator construction: time_slice=', time_slice, ' blocking_level=', id, ' mn=', mn
+                    flush(6)
                     !$omp parallel do default(shared) schedule(static) &
                     !$omp&   private(m2, m3, ico, ieee, akt1, A11, B11, C11, ic)
                     do iddd = 1, 337 !new!
@@ -1382,6 +1389,8 @@ module here_be_dragons
 
                     enddo
                     !$omp end parallel do
+                    write(*, '(A,I0,A,I0,A,I0)') '[DEBUG][THERML1] finished operator construction: time_slice=', time_slice, ' blocking_level=', id, ' mn=', mn
+                    flush(6)
 
                 enddo
             enddo
