@@ -2,6 +2,7 @@ program main_mpi
     use mpi_f08
     use torelon_parameters
     use lattice
+    use read_field_config
 
     implicit none
 
@@ -25,8 +26,8 @@ program main_mpi
     complex(real64), allocatable :: gauge_field(:,:,:,:), gauge_field_blocked(:,:,:,:,:)
 
     ! Measurement variables
-    integer, allocatable :: mock_lines(:)
-    integer :: mock_vev
+    integer, allocatable, asynchronous :: mock_lines(:)
+    integer, allocatable :: mock_vevs(:)
 
     ! Loop variables
     integer :: config, t, blocking_level, state, rank
@@ -59,7 +60,7 @@ program main_mpi
             inquire(file=trim(file_path), exist=file_exists)
             if (.not.file_exists) then
                 write(*, '(a, a)') "[Error][File access]    Cannot access file ", file_path
-                stop
+                call mpi_abort(mpi_comm_world, mpierr)
             endif
         enddo
 
@@ -110,13 +111,11 @@ program main_mpi
     ! Setup lattice movers
     call setup_lattice()
 
-    ! ! Allocate arrays
-    ! if (my_rank == 0) then
-    !     allocate(gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4))
-    ! else
-    !     allocate(gauge_field(NCOL, NCOL, SLICE_VOLUME, 3), &
-    !     gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL))
-    ! endif
+    ! Allocate arrays
+    if (my_rank /= 0) then
+        allocate(gauge_field(NCOL, NCOL, SLICE_VOLUME, 3), &
+        gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL))
+    endif
 
     call mpi_barrier(mpi_comm_world, mpierr)
 
@@ -125,13 +124,13 @@ program main_mpi
 
     ! Have each rank 1,...,num_ranks-1 send its time slices to rank 0
     if (my_rank == 0) then
-        allocate(mock_lines(LX4))
+        allocate(mock_lines(LX4), mock_vevs(LX4))
         allocate(recv_status(LX4), recv_request(LX4))
+        mock_vevs = 0
     else
-        allocate(mock_lines(my_LX4))
+        allocate(mock_lines(1))
     endif
     mock_lines = 0
-    mock_vev = 0
 
     if (my_rank == 0) then
         ! Recieve messages for all time slices
@@ -140,12 +139,31 @@ program main_mpi
             0, mpi_comm_world, recv_request(t), mpierr)
         enddo
         call mpi_waitall(LX4, recv_request, recv_status)
+        mock_vevs = mock_vevs + mock_lines
     else
-        ! Send messages to rank 0
+        ! Set directory of file
+        write(file_config_id, "(i0)") CONFIG_START
+        file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+
+        ! Measure over time slices assigned to this rank
+        send_request = mpi_request_null
         do t = my_t_start, my_t_stop
-            call mpi_isend(t, 1, mpi_int, 0, 0, mpi_comm_world, send_request, mpierr)
+            ! Load configuration from file
+            call read_gauge_field_slice(file_path, gauge_field, t)
+
+            ! Block configuration
+            gauge_field_blocked = get_blocked_gauge_field(gauge_field)
+
+            ! Wait for previous communication to finish
             call mpi_wait(send_request, send_status)
+
+            ! Measure lines
+            mock_lines(1) = t
+
+            ! Send lines to rank 0
+            call mpi_isend(mock_lines(1), 1, mpi_int, 0, 0, mpi_comm_world, send_request, mpierr)
         enddo
+        call mpi_wait(send_request, send_status)
     endif
 
     if (my_rank == 0) then
