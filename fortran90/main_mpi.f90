@@ -9,7 +9,7 @@ program main_mpi
     ! ---------------------------------------- Initialise variables ---------------------------------------- !
 
     ! Parallelisation variables
-    integer :: my_rank, num_ranks, mpierr, my_LX4, my_t_start, my_t_stop, local_LX4
+    integer :: my_rank, num_ranks, mpierr, my_LX4, my_t_start, my_t_stop, local_LX4, result
     integer, allocatable :: rank_lookup_table(:)
     type(mpi_status) :: send_status
     type(mpi_status), allocatable :: recv_status(:)
@@ -132,44 +132,58 @@ program main_mpi
     endif
     mock_lines = 0
 
-    if (my_rank == 0) then
-        ! Recieve messages for all time slices
-        do t = 1, LX4
-            call mpi_irecv(mock_lines(t), 1, mpi_int, rank_lookup_table(t), &
-            0, mpi_comm_world, recv_request(t), mpierr)
-        enddo
-        call mpi_waitall(LX4, recv_request, recv_status)
-        mock_vevs = mock_vevs + mock_lines
-    else
-        ! Set directory of file
-        write(file_config_id, "(i0)") CONFIG_START
-        file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+    do config = CONFIG_START, CONFIG_STOP, CONFIG_STEP
+        if (my_rank == 0) then
+            ! Recieve messages for all time slices
+            do t = 1, LX4
+                call mpi_irecv(mock_lines(t), 1, mpi_int, rank_lookup_table(t), &
+                0, mpi_comm_world, recv_request(t), mpierr)
+            enddo
+            call mpi_waitall(LX4, recv_request, recv_status)
+        else
+            ! Set directory of file
+            write(file_config_id, "(i0)") config
+            file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
 
-        ! Measure over time slices assigned to this rank
-        send_request = mpi_request_null
-        do t = my_t_start, my_t_stop
-            ! Load configuration from file
-            call read_gauge_field_slice(file_path, gauge_field, t)
+            ! Measure over time slices assigned to this rank
+            send_request = mpi_request_null
+            do t = my_t_start, my_t_stop
+                ! Load configuration from file
+                call read_gauge_field_slice(file_path, gauge_field, t)
 
-            ! Block configuration
-            gauge_field_blocked = get_blocked_gauge_field(gauge_field)
+                ! Block configuration
+                gauge_field_blocked = get_blocked_gauge_field(gauge_field)
 
-            ! Wait for previous communication to finish
+                ! Wait for previous communication to finish
+                call mpi_wait(send_request, send_status)
+
+                ! Measure lines
+                mock_lines(1) = config * t 
+
+                ! Send lines to rank 0
+                call mpi_isend(mock_lines(1), 1, mpi_int, 0, 0, mpi_comm_world, send_request, mpierr)
+            enddo
             call mpi_wait(send_request, send_status)
+        endif
 
-            ! Measure lines
-            mock_lines(1) = t
+        ! Wait for all measurements on this configuration to have been recieved
+        call mpi_barrier(mpi_comm_world, mpierr)
 
-            ! Send lines to rank 0
-            call mpi_isend(mock_lines(1), 1, mpi_int, 0, 0, mpi_comm_world, send_request, mpierr)
-        enddo
-        call mpi_wait(send_request, send_status)
-    endif
+        ! Ranks 1,...,num_ranks-1 now start measuring the next configuration whilst rank 0 updates the vevs and correlation matrices. Lines on rank 0 are safe as the next measurements have not yet been recieved into lines.
+        if (my_rank == 0) then
+            mock_vevs = mock_vevs + mock_lines
+        endif
+    end do
 
     if (my_rank == 0) then
         test_success = .true.
         do t = 1, LX4
-            if (mock_lines(t) /= t) then
+            result = 0
+            do config = CONFIG_START, CONFIG_STOP, CONFIG_STEP
+                result = result + config*t
+            enddo
+            print *, t, mock_vevs(t), result
+            if (mock_vevs(t) /= result) then
                 test_success = .false.
                 exit
             endif
