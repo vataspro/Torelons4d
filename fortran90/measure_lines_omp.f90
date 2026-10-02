@@ -1,4 +1,4 @@
-module here_be_dragons
+module measure_lines
     use torelon_parameters
     use lattice
     use thermal_lines
