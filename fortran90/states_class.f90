@@ -460,10 +460,10 @@ module states_class
 
         ! Output file name vevs have been saved to
         if (torelon%SPIN == 1) then
-            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=1, P=", &
+            write(*, '(a, i0, a, a)') "[Info][Measurements]      Vevs for state J=1, P=", &
             torelon%PR, ", q=0 saved to file ", file_name
         else
-            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=", &
+            write(*, '(3(a, i0), 2(a))') "[Info][Measurements]      Vevs for state J=", &
             torelon%SPIN, ", PP = ", torelon%PP, ", PR=", torelon%PR, ", q=0 saved to file ", file_name
         endif
 
@@ -486,11 +486,11 @@ module states_class
         ! Output file name correlation matrix have been saved to
         if (torelon%SPIN == 1) then
             write(*, '(a, i0, a, a)') &
-            "[Info][Measurements]                 Correlation matrix for state J=1, P=", &
+            "[Info][Measurements]      Correlation matrix for state J=1, P=", &
             torelon%PR, ", q=0 saved to file ", file_name
         else
-            write(*, '(a, i0, a, a)') &
-            "[Info][Measurements]                 Correlation matrix for state J=", &
+            write(*, '(3(a, i0), 2(a))') &
+            "[Info][Measurements]      Correlation matrix for state J=", &
             torelon%SPIN, ", PP = ", torelon%PP, ", PR=", torelon%PR, ", q=0 saved to file ", file_name
         endif
     end subroutine
@@ -531,10 +531,10 @@ module states_class
 
         ! Output file name vevs have been saved to
         if (torelon%SPIN == 1) then
-            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=1, q=", &
+            write(*, '(a, i0, a, a)') "[Info][Measurements]      Vevs for state J=1, q=", &
             torelon%MOMENTUM, " saved to file ", file_name
         else
-            write(*, '(a, i0, a, a)') "[Info][Measurements]                 Vevs for state J=", &
+            write(*, '(3(a, i0), 2(a))') "[Info][Measurements]      Vevs for state J=", &
             torelon%SPIN, ", P = ", torelon%PARITY, ", q=", torelon%MOMENTUM, " saved to file ", file_name
         endif
 
@@ -557,11 +557,11 @@ module states_class
         ! Output file name vevs have been saved to
         if (torelon%SPIN == 1) then
             write(*, '(a, i0, a, a)') &
-            "[Info][Measurements]                 Correlation matrix for state J=1, q=", &
+            "[Info][Measurements]      Correlation matrix for state J=1, q=", &
             torelon%MOMENTUM, " saved to file ", file_name
         else
-            write(*, '(a, i0, a, a)') &
-            "[Info][Measurements]                 Correlation matrix for state J=", &
+            write(*, '(3(a, i0), 2(a))') &
+            "[Info][Measurements]      Correlation matrix for state J=", &
             torelon%SPIN, ", P = ", torelon%PARITY, ", q=", torelon%MOMENTUM, " saved to file ", file_name
         endif
     end subroutine

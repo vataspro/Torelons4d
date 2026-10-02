@@ -49,14 +49,16 @@ program main
     ! Load all parameters from file
     call initialise_parameters("parameters.txt")
 
-    ! Check first configuration can be found
-    write(file_config_id, "(i0)") CONFIG_START
-    file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
-    inquire(file=trim(file_path), exist=file_exists)
-    if (.not.file_exists) then
-        write(*, '(a, a)') "[Error][File access] Cannot access file ", file_path
-        stop
-    endif
+    ! Check all configurations can be found
+    do config = CONFIG_START, CONFIG_STOP, CONFIG_STEP
+        write(file_config_id, "(i0)") config
+        file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+        inquire(file=trim(file_path), exist=file_exists)
+        if (.not.file_exists) then
+            write(*, '(a, a)') "[Error][File access]    Cannot access file ", file_path
+            stop
+        endif
+    enddo
 
     ! Setup lattice movers
     call setup_lattice()
@@ -114,6 +116,8 @@ program main
     write(*, '(a, i0)') "[Info][Measurements]      Number of measurements = ", NCONFIG
     write(*, '(a, a, i0)') &
     "[Info][Measurements]      Starting configuration: ", trim(FILENAME), CONFIG_START
+    write(*, '(a, a, i0)') &
+    "[Info][Measurements]      Final configuration:    ", trim(FILENAME), CONFIG_STOP
     write(*, '(a, i0)') "[Info][Measurements]      Measurements per bin = ", CONFIG_PER_BIN
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
