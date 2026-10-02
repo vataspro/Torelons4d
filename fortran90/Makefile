@@ -1,4 +1,4 @@
-FC = gfortran
+FC = mpifort
 ARCH := $(shell uname -m)
 
 ifeq ($(ARCH),x86_64)
@@ -17,7 +17,7 @@ SOURCES := \
 	thermal_lines.f90 \
 	measure_lines_omp.f90 \
 	states_class.f90 \
-	main.f90
+	main_mpi.f90
 
 OBJECTS := $(SOURCES:%.f90=$(BUILD_DIR)/%.o)
 
