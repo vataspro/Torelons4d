@@ -2,9 +2,9 @@ FC = gfortran
 ARCH := $(shell uname -m)
 
 ifeq ($(ARCH),x86_64)
-FFLAGS ?= -O2 -mcmodel=medium -ffree-line-length-none -fopenmp
+FFLAGS ?= -O3 -mcmodel=medium -ffree-line-length-none
 else
-FFLAGS ?= -O2 -ffree-line-length-none -fopenmp
+FFLAGS ?= -O3 -ffree-line-length-none
 endif
 
 BUILD_DIR := build
@@ -15,7 +15,7 @@ SOURCES := \
 	lattice.f90 \
 	read_field_config.f90 \
 	thermal_lines.f90 \
-	here_be_dragons_omp_iddd.f90 \
+	here_be_dragons.f90 \
 	states_class.f90 \
 	main.f90
 
@@ -56,7 +56,7 @@ $(BUILD_DIR)/read_field_config.o: \
 	$(BUILD_DIR)/parameters.o \
 	$(BUILD_DIR)/lattice.o
 
-$(BUILD_DIR)/here_be_dragons_omp_iddd.o: \
+$(BUILD_DIR)/here_be_dragons.o: \
 	$(BUILD_DIR)/parameters.o \
 	$(BUILD_DIR)/lattice.o \
 	$(BUILD_DIR)/thermal_lines.o \
@@ -68,7 +68,7 @@ $(BUILD_DIR)/states_class.o: \
 $(BUILD_DIR)/main.o: \
 	$(BUILD_DIR)/parameters.o \
 	$(BUILD_DIR)/lattice.o \
-	$(BUILD_DIR)/here_be_dragons_omp_iddd.o \
+	$(BUILD_DIR)/here_be_dragons.o \
 	$(BUILD_DIR)/states_class.o
 
 # ----------------------------------------------------------------------
@@ -103,4 +103,3 @@ $(BUILD_DIR):
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET) test_suite exec
-

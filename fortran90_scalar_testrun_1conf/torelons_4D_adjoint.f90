@@ -2495,7 +2495,7 @@ use iso_fortran_env, only : real32, real64, int32
 use correlator_construction_mod, only : pot
 use loop_builder, only : THERML1
 use lattice, only : setup_lattice, get_smeared_gauge_field
-use torelon_parameters, only : p_NCOL => NCOL, p_LX1 => LX1, p_LX2 => LX2, &
+use parameters, only : p_NCOL => NCOL, p_LX1 => LX1, p_LX2 => LX2, &
   & p_LX3 => LX3, p_LX4 => LX4, p_MAX_BLOCKING_LEVEL => MAX_BLOCKING_LEVEL, &
   & p_STAPLE_WEIGHT => STAPLE_WEIGHT, &
   & p_DIAGONAL_STAPLE_WEIGHT => DIAGONAL_STAPLE_WEIGHT, p_TOL_SVD => TOL_SVD, &

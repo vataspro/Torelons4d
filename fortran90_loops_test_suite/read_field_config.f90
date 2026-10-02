@@ -1,6 +1,6 @@
 module read_field_config
-    use torelon_parameters
-    use lattice, only: site_index
+    use iso_fortran_env, only : int8, int32, int64, real32, real64
+    use parameters
     implicit none
 
     contains
@@ -61,37 +61,46 @@ module read_field_config
     subroutine read_gauge_field(gauge_field_filename, gauge_field)
         implicit none
         character(len=*), intent(in) :: gauge_field_filename
-        complex(real64), intent(out) :: gauge_field(:,:,:,:)
+        complex(real32), intent(out) :: gauge_field(:,:,:,:,:,:,:)
 
         integer :: ios
         character(len=256) :: iomsg
 
         integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
-        integer :: t, x, y, z, dir, dir_target, iun, iq, site
+        integer :: t, x, y, z, dir, dir_target, iun, iq
         real(real64) :: plaquette_read
 
         real(real64) :: quaternion(4)
 
         ! Check gauge field variable is the correct size
-        if (size(gauge_field, 1) /= NCOL) then
+        if (size(gauge_field, dim=1) /= NCOL) then
             error stop "gauge_field must have size NCOL in 1st dimension"
-        end if
-        if (size(gauge_field, 2) /= NCOL) then
+        endif
+        if (size(gauge_field, dim=2) /= NCOL) then
             error stop "gauge_field must have size NCOL in 2nd dimension"
-        end if
-        if (size(gauge_field, 3) /= LATTICE_VOLUME) then
-            error stop "gauge_field must have size LATTICE_VOLUME in 3rd dimension"
-        end if
-        if (size(gauge_field, 4) /= 4) then
-            error stop "gauge_field must have size 4 in 4th dimension"
-        end if
+        endif
+        if (size(gauge_field, dim=3) /= LX1) then
+            error stop "gauge_field must have size LX1 in 3rd dimension"
+        endif
+        if (size(gauge_field, dim=4) /= LX2) then
+            error stop "gauge_field must have size LX2 in 4th dimension"
+        endif
+        if (size(gauge_field, dim=5) /= LX3) then
+            error stop "gauge_field must have size LX3 in 5th dimension"
+        endif
+        if (size(gauge_field, dim=6) /= LX4) then
+            error stop "gauge_field must have size LX4 in 6th dimension"
+        endif
+        if (size(gauge_field, dim=7) /= 4) then
+            error stop "gauge_field must have size 4 in 7th dimension"
+        endif
 
         ! Open gauge field file
-        open(newunit=iun, file=gauge_field_filename, access="stream", form="unformatted", &
-        status="old", action="read", iostat=ios, iomsg=iomsg)
+        open(newunit=iun, file=gauge_field_filename, access='stream', form='unformatted', &
+        status='old', action='read', iostat=ios, iomsg=iomsg)
         if (ios /= 0) then
             error stop "Could not open gauge file: " // trim(iomsg)
-        end if
+        endif
 
         ! Read file metadata
         nc_read      = read_be_int32(iun)
@@ -102,19 +111,15 @@ module read_field_config
         plaquette_read = read_be_real64(iun)
 
         ! Output gauge field metadata
-        write(6, "(a, f8.6)") "[I/O][Plaq]    Plaquette value: ", plaquette_read
-        WRITE(6, "(a, i2.1)") "[I/O][Ncol]    Number of Colors:", nc_read
-        WRITE(6, "(a, 4i3.2)") "[I/O][Dim]    T x X x Y x Z=", nt_read, nx_read, ny_read, nz_read
-
+        write(6, '(a, f8.6)') '[I/O][Plaq]    Plaquette value: ', plaquette_read
+        WRITE(6, '(a, i2.1)') '[I/O][Ncol]    Number of Colors:', nc_read
+        WRITE(6, '(a, 4i3.2)') '[I/O][Dim]    T x X x Y x Z=', nt_read, nx_read, ny_read, nz_read
+        
         ! Read gauge field configuration
         do t = 1, LX4
             do x = 1, LX1
                 do y = 1, LX2
                     do z = 1, LX3
-                        ! Get index of site referenced by these coordinates
-                        site = site_index(x, y, z, t)
-
-                        ! Import all links from this site
                         do dir = 1, 4
                             do iq = 1, size(quaternion)
                                 quaternion(iq) = read_be_real64(iun)
@@ -126,19 +131,15 @@ module read_field_config
                                 dir_target = dir-1
                             end if
 
-                            gauge_field(1, 1, site, dir_target) = &
-                            cmplx(real(quaternion(1), kind=real64),real(quaternion(4), kind=real64), &
-                            kind=real64)
-                            gauge_field(1, 2, site, dir_target) = &
-                            cmplx(-real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
-                            kind=real64)
-                            gauge_field(2, 1, site, dir_target) = &
-                            cmplx(real(quaternion(3), kind=real64),real(quaternion(2), kind=real64), &
-                            kind=real64)
-                            gauge_field(2, 2, site, dir_target) = &
-                            cmplx(real(quaternion(1), kind=real64),-real(quaternion(4), kind=real64), &
-                            kind=real64)
-
+                            gauge_field(1, 1, x, y, z, t, dir_target) = &
+                            cmplx(real(quaternion(1), kind=real32),real(quaternion(4), kind=real32))
+                            gauge_field(1, 2, x, y, z, t, dir_target) = &
+                            cmplx(-real(quaternion(3), kind=real32),real(quaternion(2), kind=real32))
+                            gauge_field(2, 1, x, y, z, t, dir_target) = &
+                            cmplx(real(quaternion(3), kind=real32),real(quaternion(2), kind=real32))
+                            gauge_field(2, 2, x, y, z, t, dir_target) = &
+                            cmplx(real(quaternion(1), kind=real32),-real(quaternion(4), kind=real32))
+                            
                         end do
                     end do
                 end do
@@ -146,5 +147,5 @@ module read_field_config
         end do
 
         close(iun)
-    end subroutine read_gauge_field
-end module read_field_config
+    end subroutine
+end module
