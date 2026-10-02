@@ -96,17 +96,7 @@ program main_mpi
             my_t_start = my_t_start + mod(LX4, num_ranks-1)
         endif
         my_t_stop = my_t_start + my_LX4 - 1
-        ! write(*, '(4(a, i0))') "Rank ", my_rank, ":    t_start:    ", my_time_slice_start, "    t_stop:    ", &
-        ! my_time_slice_start + my_LX4 - 1, "    my_LX4:    ", my_LX4
     endif
-
-    ! call mpi_barrier(mpi_comm_world, mpierr)
-
-    ! if (my_rank == 0) then
-    !     do t = 1, LX4
-    !         write(*, '(2(a, i0))') "t = ", t, "    rank = ", rank_lookup_table(t)
-    !     enddo
-    ! endif
 
     ! Setup lattice movers
     call setup_lattice()
