@@ -6,16 +6,16 @@ module here_be_dragons
 
     contains
 
-    subroutine THERML1(gauge_field_blocked, time_slice, blocking_level, lines, momentum_lines)
+    subroutine THERML1(gauge_field_blocked, blocking_level, lines, momentum_lines)
         implicit none
 
         ! Inputs
         complex(real64), intent(in) :: gauge_field_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL) ! UB11
-        integer, intent(in) :: time_slice, blocking_level ! N4, IBLL
+        integer, intent(in) :: blocking_level ! N4, IBLL
 
         ! Outputs
-        complex(real64), intent(inout) :: lines(LX4, MAX_BLOCKING_LEVEL, 235) ! ALINE
-        complex(real64), intent(inout) :: momentum_lines(LX4, MAX_BLOCKING_LEVEL, 2, 2:235) ! ALINEMOM
+        complex(real64), intent(inout) :: lines(MAX_BLOCKING_LEVEL, 235) ! ALINE
+        complex(real64), intent(inout) :: momentum_lines(MAX_BLOCKING_LEVEL, 2, 2:235) ! ALINEMOM
 
         ! Dummy variables
         complex(real64) :: gauge_field(NCOL, NCOL, SLICE_VOLUME, 3) ! UC11
@@ -1466,378 +1466,378 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 1)=csumn*adivn
+        lines(id, 1)=csumn*adivn
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 2)=(csums(1)+csums(2)+csums(3)+csums(4))*adiv1
+        lines(id, 2)=(csums(1)+csums(2)+csums(3)+csums(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 2)=(csumsmom(1,1)+csumsmom(2,1)&
+        momentum_lines(id, 1, 2)=(csumsmom(1,1)+csumsmom(2,1)&
         +csumsmom(3,1)+csumsmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 2)=(csumsmom(1,2)+csumsmom(2,2)&
+        momentum_lines(id, 2, 2)=(csumsmom(1,2)+csumsmom(2,2)&
         +csumsmom(3,2)+csumsmom(4,2))*adiv1
-    !      alinemom2(time_slice, id,3)=(csumsmom(1,3)+csumsmom(2,3)&
+    !      alinemom2(id,3)=(csumsmom(1,3)+csumsmom(2,3)&
     !     &+csumsmom(3,3)+csumsmom(4,3))*adiv1
-    !      alinemom2(time_slice, id,4)=(csumsmom(1,4)+csumsmom(2,4)&
+    !      alinemom2(id,4)=(csumsmom(1,4)+csumsmom(2,4)&
     !     &+csumsmom(3,4)+csumsmom(4,4))*adiv1
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 3)=(csums(1)+giot*csums(2)-csums(3)-giot*csums(4))&
+        lines(id, 3)=(csums(1)+giot*csums(2)-csums(3)-giot*csums(4))&
         *adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 3)=(csumsmom(1,1)+giot*csumsmom(2,1)&
+        momentum_lines(id, 1, 3)=(csumsmom(1,1)+giot*csumsmom(2,1)&
         -csumsmom(3,1)-giot*csumsmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 3)=(csumsmom(1,2)+giot*csumsmom(2,2)&
+        momentum_lines(id, 2, 3)=(csumsmom(1,2)+giot*csumsmom(2,2)&
         -csumsmom(3,2)-giot*csumsmom(4,2))*adiv1
-    !      alinemom3(time_slice, id,3)=(csumsmom(1,3)+giot*csumsmom(2,3)&
+    !      alinemom3(id,3)=(csumsmom(1,3)+giot*csumsmom(2,3)&
     !     &-csumsmom(3,3)-giot*csumsmom(4,3))*adiv1
-    !      alinemom3(time_slice, id,4)=(csumsmom(1,4)+giot*csumsmom(2,4)&
+    !      alinemom3(id,4)=(csumsmom(1,4)+giot*csumsmom(2,4)&
     !     &-csumsmom(3,4)-giot*csumsmom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 4)=(csums(1)-csums(2)+csums(3)-csums(4))*adiv1
+        lines(id, 4)=(csums(1)-csums(2)+csums(3)-csums(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 4)=(csumsmom(1,1)-csumsmom(2,1)&
+        momentum_lines(id, 1, 4)=(csumsmom(1,1)-csumsmom(2,1)&
         +csumsmom(3,1)-csumsmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 4)=(csumsmom(1,2)-csumsmom(2,2)&
+        momentum_lines(id, 2, 4)=(csumsmom(1,2)-csumsmom(2,2)&
         +csumsmom(3,2)-csumsmom(4,2))*adiv1
-    !      alinemom4(time_slice, id,3)=(csumsmom(1,3)-csumsmom(2,3)&
+    !      alinemom4(id,3)=(csumsmom(1,3)-csumsmom(2,3)&
     !     &+csumsmom(3,3)-csumsmom(4,3))*adiv1
-    !      alinemom4(time_slice, id,4)=(csumsmom(1,4)-csumsmom(2,4)&
+    !      alinemom4(id,4)=(csumsmom(1,4)-csumsmom(2,4)&
     !     &+csumsmom(3,4)-csumsmom(4,4))*adiv1
     !**********************************************************************
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 5)=(csum2s(1)+csum2s(2)+csum2s(3)+csum2s(4))*adiv1
+        lines(id, 5)=(csum2s(1)+csum2s(2)+csum2s(3)+csum2s(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 5)=(csum2smom(1,1)+csum2smom(2,1)&
+        momentum_lines(id, 1, 5)=(csum2smom(1,1)+csum2smom(2,1)&
         +csum2smom(3,1)+csum2smom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 5)=(csum2smom(1,2)+csum2smom(2,2)&
+        momentum_lines(id, 2, 5)=(csum2smom(1,2)+csum2smom(2,2)&
         +csum2smom(3,2)+csum2smom(4,2))*adiv1
-    !      alinemom5(time_slice, id,3)=(csum2smom(1,3)+csum2smom(2,3)&
+    !      alinemom5(id,3)=(csum2smom(1,3)+csum2smom(2,3)&
     !     &+csum2smom(3,3)+csum2smom(4,3))*adiv1
-    !      alinemom5(time_slice, id,4)=(csum2smom(1,4)+csum2smom(2,4)&
+    !      alinemom5(id,4)=(csum2smom(1,4)+csum2smom(2,4)&
     !     &+csum2smom(3,4)+csum2smom(4,4))*adiv1
     !***********************************************************************
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 6)=(csum2s(1)+giot*csum2s(2)-csum2s(3)&
+        lines(id, 6)=(csum2s(1)+giot*csum2s(2)-csum2s(3)&
         -giot*csum2s(4))*adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 6)=(csum2smom(1,1)+giot*csum2smom(2,1)&
+        momentum_lines(id, 1, 6)=(csum2smom(1,1)+giot*csum2smom(2,1)&
         -csum2smom(3,1)-giot*csum2smom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 6)=(csum2smom(1,2)+giot*csum2smom(2,2)&
+        momentum_lines(id, 2, 6)=(csum2smom(1,2)+giot*csum2smom(2,2)&
         -csum2smom(3,2)-giot*csum2smom(4,2))*adiv1
-    !      alinemom6(time_slice, id,3)=(csum2smom(1,3)+giot*csum2smom(2,3)&
+    !      alinemom6(id,3)=(csum2smom(1,3)+giot*csum2smom(2,3)&
     !     &-csum2smom(3,3)-giot*csum2smom(4,3))*adiv1
-    !      alinemom6(time_slice, id,4)=(csum2smom(1,4)+giot*csum2smom(2,4)&
+    !      alinemom6(id,4)=(csum2smom(1,4)+giot*csum2smom(2,4)&
     !     &-csum2smom(3,4)-giot*csum2smom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 7)=(csum2s(1)-csum2s(2)+csum2s(3)-csum2s(4))*adiv1
+        lines(id, 7)=(csum2s(1)-csum2s(2)+csum2s(3)-csum2s(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 7)=(csum2smom(1,1)-csum2smom(2,1)&
+        momentum_lines(id, 1, 7)=(csum2smom(1,1)-csum2smom(2,1)&
         +csum2smom(3,1)-csum2smom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 7)=(csum2smom(1,2)-csum2smom(2,2)&
+        momentum_lines(id, 2, 7)=(csum2smom(1,2)-csum2smom(2,2)&
         +csum2smom(3,2)-csum2smom(4,2))*adiv1
-    !      alinemom7(time_slice, id,3)=(csum2smom(1,3)-csum2smom(2,3)&
+    !      alinemom7(id,3)=(csum2smom(1,3)-csum2smom(2,3)&
     !     &+csum2smom(3,3)-csum2smom(4,3))*adiv1
-    !      alinemom7(time_slice, id,4)=(csum2smom(1,4)-csum2smom(2,4)&
+    !      alinemom7(id,4)=(csum2smom(1,4)-csum2smom(2,4)&
     !     &+csum2smom(3,4)-csum2smom(4,4))*adiv1
     !**********************************************************************
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 8)=(csum2ws(1)+csum2ws(2)+csum2ws(3)+csum2ws(4))*adiv1
+        lines(id, 8)=(csum2ws(1)+csum2ws(2)+csum2ws(3)+csum2ws(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 8)=(csum2wsmom(1,1)+csum2wsmom(2,1)&
+        momentum_lines(id, 1, 8)=(csum2wsmom(1,1)+csum2wsmom(2,1)&
         +csum2wsmom(3,1)+csum2wsmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 8)=(csum2wsmom(1,2)+csum2wsmom(2,2)&
+        momentum_lines(id, 2, 8)=(csum2wsmom(1,2)+csum2wsmom(2,2)&
         +csum2wsmom(3,2)+csum2wsmom(4,2))*adiv1
-    !      alinemom8(time_slice, id,3)=(csum2wsmom(1,3)+csum2wsmom(2,3)&
+    !      alinemom8(id,3)=(csum2wsmom(1,3)+csum2wsmom(2,3)&
     !     &+csum2wsmom(3,3)+csum2wsmom(4,3))*adiv1
-    !      alinemom8(time_slice, id,4)=(csum2wsmom(1,4)+csum2wsmom(2,4)&
+    !      alinemom8(id,4)=(csum2wsmom(1,4)+csum2wsmom(2,4)&
     !     &+csum2wsmom(3,4)+csum2wsmom(4,4))*adiv1
     !************************************************************************
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 9)=(csum2ws(1)+giot*csum2ws(2)-csum2ws(3)&
+        lines(id, 9)=(csum2ws(1)+giot*csum2ws(2)-csum2ws(3)&
         -giot*csum2ws(4))*adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 9)=(csum2wsmom(1,1)+giot*csum2wsmom(2,1)&
+        momentum_lines(id, 1, 9)=(csum2wsmom(1,1)+giot*csum2wsmom(2,1)&
         -csum2wsmom(3,1)-giot*csum2wsmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 9)=(csum2wsmom(1,2)+giot*csum2wsmom(2,2)&
+        momentum_lines(id, 2, 9)=(csum2wsmom(1,2)+giot*csum2wsmom(2,2)&
         -csum2wsmom(3,2)-giot*csum2wsmom(4,2))*adiv1
-    !      alinemom9(time_slice, id,3)=(csum2wsmom(1,3)+giot*csum2wsmom(2,3)&
+    !      alinemom9(id,3)=(csum2wsmom(1,3)+giot*csum2wsmom(2,3)&
     !     &-csum2wsmom(3,3)-giot*csum2wsmom(4,3))*adiv1
-    !      alinemom9(time_slice, id,4)=(csum2wsmom(1,4)+giot*csum2wsmom(2,4)&
+    !      alinemom9(id,4)=(csum2wsmom(1,4)+giot*csum2wsmom(2,4)&
     !     &-csum2wsmom(3,4)-giot*csum2wsmom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 10)=(csum2ws(1)-csum2ws(2)+csum2ws(3)-csum2ws(4))*adiv1
+        lines(id, 10)=(csum2ws(1)-csum2ws(2)+csum2ws(3)-csum2ws(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 10)=(csum2wsmom(1,1)-csum2wsmom(2,1)&
+        momentum_lines(id, 1, 10)=(csum2wsmom(1,1)-csum2wsmom(2,1)&
         +csum2wsmom(3,1)-csum2wsmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 10)=(csum2wsmom(1,2)-csum2wsmom(2,2)&
+        momentum_lines(id, 2, 10)=(csum2wsmom(1,2)-csum2wsmom(2,2)&
         +csum2wsmom(3,2)-csum2wsmom(4,2))*adiv1
-    !      alinemom10(time_slice, id,3)=(csum2wsmom(1,3)-csum2wsmom(2,3)&
+    !      alinemom10(id,3)=(csum2wsmom(1,3)-csum2wsmom(2,3)&
     !     &+csum2wsmom(3,3)-csum2wsmom(4,3))*adiv1
-    !      alinemom10(time_slice, id,4)=(csum2wsmom(1,4)-csum2wsmom(2,4)&
+    !      alinemom10(id,4)=(csum2wsmom(1,4)-csum2wsmom(2,4)&
     !     &+csum2wsmom(3,4)-csum2wsmom(4,4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 11)=(csumw(1)+csumw(2)+csumw(3)+csumw(4))*adiv1
+        lines(id, 11)=(csumw(1)+csumw(2)+csumw(3)+csumw(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 11)=(csumwmom(1,1)+csumwmom(2,1)&
+        momentum_lines(id, 1, 11)=(csumwmom(1,1)+csumwmom(2,1)&
         +csumwmom(3,1)+csumwmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 11)=(csumwmom(1,2)+csumwmom(2,2)&
+        momentum_lines(id, 2, 11)=(csumwmom(1,2)+csumwmom(2,2)&
         +csumwmom(3,2)+csumwmom(4,2))*adiv1
-    !      alinemom11(time_slice, id,3)=(csumwmom(1,3)+csumwmom(2,3)&
+    !      alinemom11(id,3)=(csumwmom(1,3)+csumwmom(2,3)&
     !     &+csumwmom(3,3)+csumwmom(4,3))*adiv1
-    !      alinemom11(time_slice, id,4)=(csumwmom(1,4)+csumwmom(2,4)&
+    !      alinemom11(id,4)=(csumwmom(1,4)+csumwmom(2,4)&
     !     &+csumwmom(3,4)+csumwmom(4,4))*adiv1
     !***********************************************************************
     !     j=1, pr=-, q=0
     !***********************************************************************
-        lines(time_slice, id, 12)=(csumw(1)+giot*csumw(2)-csumw(3)&
+        lines(id, 12)=(csumw(1)+giot*csumw(2)-csumw(3)&
         -giot*csumw(4))*adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 12)=(csumwmom(1,1)+giot*csumwmom(2,1)&
+        momentum_lines(id, 1, 12)=(csumwmom(1,1)+giot*csumwmom(2,1)&
         -csumwmom(3,1)-giot*csumwmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 12)=(csumwmom(1,2)+giot*csumwmom(2,2)&
+        momentum_lines(id, 2, 12)=(csumwmom(1,2)+giot*csumwmom(2,2)&
         -csumwmom(3,2)-giot*csumwmom(4,2))*adiv1
-    !      alinemom12(time_slice, id,3)=(csumwmom(1,3)+giot*csumwmom(2,3)&
+    !      alinemom12(id,3)=(csumwmom(1,3)+giot*csumwmom(2,3)&
     !     &-csumwmom(3,3)-giot*csumwmom(4,3))*adiv1
-    !      alinemom12(time_slice, id,4)=(csumwmom(1,4)+giot*csumwmom(2,4)&
+    !      alinemom12(id,4)=(csumwmom(1,4)+giot*csumwmom(2,4)&
     !     &-csumwmom(3,4)-giot*csumwmom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 13)=(csumw(1)-csumw(2)+csumw(3)-csumw(4))*adiv1
+        lines(id, 13)=(csumw(1)-csumw(2)+csumw(3)-csumw(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 13)=(csumwmom(1,1)-csumwmom(2,1)&
+        momentum_lines(id, 1, 13)=(csumwmom(1,1)-csumwmom(2,1)&
         +csumwmom(3,1)-csumwmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 13)=(csumwmom(1,2)-csumwmom(2,2)&
+        momentum_lines(id, 2, 13)=(csumwmom(1,2)-csumwmom(2,2)&
         +csumwmom(3,2)-csumwmom(4,2))*adiv1
-    !      alinemom13(time_slice, id,3)=(csumwmom(1,3)-csumwmom(2,3)&
+    !      alinemom13(id,3)=(csumwmom(1,3)-csumwmom(2,3)&
     !     &+csumwmom(3,3)-csumwmom(4,3))*adiv1
-    !      alinemom13(time_slice, id,4)=(csumwmom(1,4)-csumwmom(2,4)&
+    !      alinemom13(id,4)=(csumwmom(1,4)-csumwmom(2,4)&
     !     &+csumwmom(3,4)-csumwmom(4,4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 14)=(csum2w(1)+csum2w(2)+csum2w(3)+csum2w(4))*adiv1
+        lines(id, 14)=(csum2w(1)+csum2w(2)+csum2w(3)+csum2w(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 14)=(csum2wmom(1,1)+csum2wmom(2,1)&
+        momentum_lines(id, 1, 14)=(csum2wmom(1,1)+csum2wmom(2,1)&
         +csum2wmom(3,1)+csum2wmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 14)=(csum2wmom(1,2)+csum2wmom(2,2)&
+        momentum_lines(id, 2, 14)=(csum2wmom(1,2)+csum2wmom(2,2)&
         +csum2wmom(3,2)+csum2wmom(4,2))*adiv1
-    !      alinemom14(time_slice, id,3)=(csum2wmom(1,3)+csum2wmom(2,3)&
+    !      alinemom14(id,3)=(csum2wmom(1,3)+csum2wmom(2,3)&
     !     &+csum2wmom(3,3)+csum2wmom(4,3))*adiv1
-    !      alinemom14(time_slice, id,4)=(csum2wmom(1,4)+csum2wmom(2,4)&
+    !      alinemom14(id,4)=(csum2wmom(1,4)+csum2wmom(2,4)&
     !     &+csum2wmom(3,4)+csum2wmom(4,4))*adiv1
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 15)=(csum2w(1)+giot*csum2w(2)-csum2w(3)&
+        lines(id, 15)=(csum2w(1)+giot*csum2w(2)-csum2w(3)&
         -giot*csum2w(4))*adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 15)=(csum2wmom(1,1)+giot*csum2wmom(2,1)&
+        momentum_lines(id, 1, 15)=(csum2wmom(1,1)+giot*csum2wmom(2,1)&
         -csum2wmom(3,1)-giot*csum2wmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 15)=(csum2wmom(1,2)+giot*csum2wmom(2,2)&
+        momentum_lines(id, 2, 15)=(csum2wmom(1,2)+giot*csum2wmom(2,2)&
         -csum2wmom(3,2)-giot*csum2wmom(4,2))*adiv1
-    !      alinemom15(time_slice, id,3)=(csum2wmom(1,3)+giot*csum2wmom(2,3)&
+    !      alinemom15(id,3)=(csum2wmom(1,3)+giot*csum2wmom(2,3)&
     !     &-csum2wmom(3,3)-giot*csum2wmom(4,3))*adiv1
-    !      alinemom15(time_slice, id,4)=(csum2wmom(1,4)+giot*csum2wmom(2,4)&
+    !      alinemom15(id,4)=(csum2wmom(1,4)+giot*csum2wmom(2,4)&
     !     &-csum2wmom(3,4)-giot*csum2wmom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 16)=(csum2w(1)-csum2w(2)+csum2w(3)-csum2w(4))*adiv1
+        lines(id, 16)=(csum2w(1)-csum2w(2)+csum2w(3)-csum2w(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 16)=(csum2wmom(1,1)-csum2wmom(2,1)&
+        momentum_lines(id, 1, 16)=(csum2wmom(1,1)-csum2wmom(2,1)&
         +csum2wmom(3,1)-csum2wmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 16)=(csum2wmom(1,2)-csum2wmom(2,2)&
+        momentum_lines(id, 2, 16)=(csum2wmom(1,2)-csum2wmom(2,2)&
         +csum2wmom(3,2)-csum2wmom(4,2))*adiv1
-    !      alinemom16(time_slice, id,3)=(csum2wmom(1,3)-csum2wmom(2,3)&
+    !      alinemom16(id,3)=(csum2wmom(1,3)-csum2wmom(2,3)&
     !     &+csum2wmom(3,3)-csum2wmom(4,3))*adiv1
-    !      alinemom16(time_slice, id,4)=(csum2wmom(1,4)-csum2wmom(2,4)&
+    !      alinemom16(id,4)=(csum2wmom(1,4)-csum2wmom(2,4)&
     !     &+csum2wmom(3,4)-csum2wmom(4,4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 17)=(csum3w(1)+csum3w(2)+csum3w(3)+csum3w(4))*adiv1
+        lines(id, 17)=(csum3w(1)+csum3w(2)+csum3w(3)+csum3w(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 17)=(csum3wmom(1,1)+csum3wmom(2,1)&
+        momentum_lines(id, 1, 17)=(csum3wmom(1,1)+csum3wmom(2,1)&
         +csum3wmom(3,1)+csum3wmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 17)=(csum3wmom(1,2)+csum3wmom(2,2)&
+        momentum_lines(id, 2, 17)=(csum3wmom(1,2)+csum3wmom(2,2)&
         +csum3wmom(3,2)+csum3wmom(4,2))*adiv1
-    !      alinemom17(time_slice, id,3)=(csum3wmom(1,3)+csum3wmom(2,3)&
+    !      alinemom17(id,3)=(csum3wmom(1,3)+csum3wmom(2,3)&
     !     &+csum3wmom(3,3)+csum3wmom(4,3))*adiv1
-    !      alinemom17(time_slice, id,4)=(csum3wmom(1,4)+csum3wmom(2,4)&
+    !      alinemom17(id,4)=(csum3wmom(1,4)+csum3wmom(2,4)&
     !     &+csum3wmom(3,4)+csum3wmom(4,4))*adiv1
     !***********************************************************************
     !     j=1, pr=+ q=0
     !**********************************************************************
-        lines(time_slice, id, 18)=(csum3w(1)+giot*csum3w(2)-csum3w(3)-giot*csum3w(4))&
+        lines(id, 18)=(csum3w(1)+giot*csum3w(2)-csum3w(3)-giot*csum3w(4))&
         *adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 18)=(csum3wmom(1,1)+giot*csum3wmom(2,1)&
+        momentum_lines(id, 1, 18)=(csum3wmom(1,1)+giot*csum3wmom(2,1)&
         -csum3wmom(3,1)-giot*csum3wmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 18)=(csum3wmom(1,2)+giot*csum3wmom(2,2)&
+        momentum_lines(id, 2, 18)=(csum3wmom(1,2)+giot*csum3wmom(2,2)&
         -csum3wmom(3,2)-giot*csum3wmom(4,2))*adiv1
-    !      alinemom18(time_slice, id,3)=(csum3wmom(1,3)+giot*csum3wmom(2,3)&
+    !      alinemom18(id,3)=(csum3wmom(1,3)+giot*csum3wmom(2,3)&
     !     &-csum3wmom(3,3)-giot*csum3wmom(4,3))*adiv1
-    !      alinemom18(time_slice, id,4)=(csum3wmom(1,4)+giot*csum3wmom(2,4)&
+    !      alinemom18(id,4)=(csum3wmom(1,4)+giot*csum3wmom(2,4)&
     !     &-csum3wmom(3,4)-giot*csum3wmom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 19)=(csum3w(1)-csum3w(2)+csum3w(3)-csum3w(4))*adiv1
+        lines(id, 19)=(csum3w(1)-csum3w(2)+csum3w(3)-csum3w(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 19)=(csum3wmom(1,1)-csum3wmom(2,1)&
+        momentum_lines(id, 1, 19)=(csum3wmom(1,1)-csum3wmom(2,1)&
         +csum3wmom(3,1)-csum3wmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 19)=(csum3wmom(1,2)-csum3wmom(2,2)&
+        momentum_lines(id, 2, 19)=(csum3wmom(1,2)-csum3wmom(2,2)&
         +csum3wmom(3,2)-csum3wmom(4,2))*adiv1
-    !      alinemom19(time_slice, id,3)=(csum3wmom(1,3)-csum3wmom(2,3)&
+    !      alinemom19(id,3)=(csum3wmom(1,3)-csum3wmom(2,3)&
     !     &+csum3wmom(3,3)-csum3wmom(4,3))*adiv1
-    !      alinemom19(time_slice, id,4)=(csum3wmom(1,4)-csum3wmom(2,4)&
+    !      alinemom19(id,4)=(csum3wmom(1,4)-csum3wmom(2,4)&
     !     &+csum3wmom(3,4)-csum3wmom(4,4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 20)=(csumup(1)+csumup(2)+csumup(3)+csumup(4))*adiv1
+        lines(id, 20)=(csumup(1)+csumup(2)+csumup(3)+csumup(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 20)=(csumupmom(1,1)+csumupmom(2,1)&
+        momentum_lines(id, 1, 20)=(csumupmom(1,1)+csumupmom(2,1)&
         +csumupmom(3,1)+csumupmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 20)=(csumupmom(1,2)+csumupmom(2,2)&
+        momentum_lines(id, 2, 20)=(csumupmom(1,2)+csumupmom(2,2)&
         +csumupmom(3,2)+csumupmom(4,2))*adiv1
-    !      alinemom20(time_slice, id,3)=(csumupmom(1,3)+csumupmom(2,3)&
+    !      alinemom20(id,3)=(csumupmom(1,3)+csumupmom(2,3)&
     !     &+csumupmom(3,3)+csumupmom(4,3))*adiv1
-    !      alinemom20(time_slice, id,4)=(csumupmom(1,4)+csumupmom(2,4)&
+    !      alinemom20(id,4)=(csumupmom(1,4)+csumupmom(2,4)&
     !     &+csumupmom(3,4)+csumupmom(4,4))*adiv1
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 21)=(csumup(1)+giot*csumup(2)-csumup(3)-giot*csumup(4))&
+        lines(id, 21)=(csumup(1)+giot*csumup(2)-csumup(3)-giot*csumup(4))&
         *adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 21)=(csumupmom(1,1)+giot*csumupmom(2,1)&
+        momentum_lines(id, 1, 21)=(csumupmom(1,1)+giot*csumupmom(2,1)&
         -csumupmom(3,1)-giot*csumupmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 21)=(csumupmom(1,2)+giot*csumupmom(2,2)&
+        momentum_lines(id, 2, 21)=(csumupmom(1,2)+giot*csumupmom(2,2)&
         -csumupmom(3,2)-giot*csumupmom(4,2))*adiv1
-    !      alinemom21(time_slice, id,3)=(csumupmom(1,3)+giot*csumupmom(2,3)&
+    !      alinemom21(id,3)=(csumupmom(1,3)+giot*csumupmom(2,3)&
     !     &-csumupmom(3,3)-giot*csumupmom(4,3))*adiv1
-    !      alinemom21(time_slice, id,4)=(csumupmom(1,4)+giot*csumupmom(2,4)&
+    !      alinemom21(id,4)=(csumupmom(1,4)+giot*csumupmom(2,4)&
     !     &-csumupmom(3,4)-giot*csumupmom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 22)=(csumup(1)-csumup(2)+csumup(3)-csumup(4))*adiv1
+        lines(id, 22)=(csumup(1)-csumup(2)+csumup(3)-csumup(4))*adiv1
     !***********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 22)=(csumupmom(1,1)-csumupmom(2,1)&
+        momentum_lines(id, 1, 22)=(csumupmom(1,1)-csumupmom(2,1)&
         +csumupmom(3,1)-csumupmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 22)=(csumupmom(1,2)-csumupmom(2,2)&
+        momentum_lines(id, 2, 22)=(csumupmom(1,2)-csumupmom(2,2)&
         +csumupmom(3,2)-csumupmom(4,2))*adiv1
-    !      alinemom22(time_slice, id,3)=(csumupmom(1,3)-csumupmom(2,3)&
+    !      alinemom22(id,3)=(csumupmom(1,3)-csumupmom(2,3)&
     !     &+csumupmom(3,3)-csumupmom(4,3))*adiv1
-    !      alinemom22(time_slice, id,4)=(csumupmom(1,4)-csumupmom(2,4)&
+    !      alinemom22(id,4)=(csumupmom(1,4)-csumupmom(2,4)&
     !     &+csumupmom(3,4)-csumupmom(4,4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 23)=(csumud(1)+csumud(2)+csumud(3)+csumud(4))*adiv1
+        lines(id, 23)=(csumud(1)+csumud(2)+csumud(3)+csumud(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 23)=(csumudmom(1,1)+csumudmom(2,1)&
+        momentum_lines(id, 1, 23)=(csumudmom(1,1)+csumudmom(2,1)&
         +csumudmom(3,1)+csumudmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 23)=(csumudmom(1,2)+csumudmom(2,2)&
+        momentum_lines(id, 2, 23)=(csumudmom(1,2)+csumudmom(2,2)&
         +csumudmom(3,2)+csumudmom(4,2))*adiv1
-    !      alinemom23(time_slice, id,3)=(csumudmom(1,3)+csumudmom(2,3)&
+    !      alinemom23(id,3)=(csumudmom(1,3)+csumudmom(2,3)&
     !     &+csumudmom(3,3)+csumudmom(4,3))*adiv1
-    !      alinemom23(time_slice, id,4)=(csumudmom(1,4)+csumudmom(2,4)&
+    !      alinemom23(id,4)=(csumudmom(1,4)+csumudmom(2,4)&
     !     &+csumudmom(3,4)+csumudmom(4,4))*adiv1
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 24)=(csumud(1)+giot*csumud(2)-csumud(3)&
+        lines(id, 24)=(csumud(1)+giot*csumud(2)-csumud(3)&
         -giot*csumud(4))*adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !***********************************************************************
-        momentum_lines(time_slice, id, 1, 24)=(csumudmom(1,1)+giot*csumudmom(2,1)&
+        momentum_lines(id, 1, 24)=(csumudmom(1,1)+giot*csumudmom(2,1)&
         -csumudmom(3,1)-giot*csumudmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 24)=(csumudmom(1,2)+giot*csumudmom(2,2)&
+        momentum_lines(id, 2, 24)=(csumudmom(1,2)+giot*csumudmom(2,2)&
         -csumudmom(3,2)-giot*csumudmom(4,2))*adiv1
-    !      alinemom24(time_slice, id,3)=(csumudmom(1,3)+giot*csumudmom(2,3)&
+    !      alinemom24(id,3)=(csumudmom(1,3)+giot*csumudmom(2,3)&
     !     &-csumudmom(3,3)-giot*csumudmom(4,3))*adiv1
-    !      alinemom24(time_slice, id,4)=(csumudmom(1,4)+giot*csumudmom(2,4)&
+    !      alinemom24(id,4)=(csumudmom(1,4)+giot*csumudmom(2,4)&
     !     &-csumudmom(3,4)-giot*csumudmom(4,4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 25)=(csumud(1)-csumud(2)+csumud(3)-csumud(4))*adiv1
+        lines(id, 25)=(csumud(1)-csumud(2)+csumud(3)-csumud(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
-        momentum_lines(time_slice, id, 1, 25)=(csumudmom(1,1)-csumudmom(2,1)&
+        momentum_lines(id, 1, 25)=(csumudmom(1,1)-csumudmom(2,1)&
         +csumudmom(3,1)-csumudmom(4,1))*adiv1
-        momentum_lines(time_slice, id, 2, 25)=(csumudmom(1,2)-csumudmom(2,2)&
+        momentum_lines(id, 2, 25)=(csumudmom(1,2)-csumudmom(2,2)&
         +csumudmom(3,2)-csumudmom(4,2))*adiv1
-    !      alinemom25(time_slice, id,3)=(csumudmom(1,3)-csumudmom(2,3)&
+    !      alinemom25(id,3)=(csumudmom(1,3)-csumudmom(2,3)&
     !     &+csumudmom(3,3)-csumudmom(4,3))*adiv1
-    !      alinemom25(time_slice, id,4)=(csumudmom(1,4)-csumudmom(2,4)&
+    !      alinemom25(id,4)=(csumudmom(1,4)-csumudmom(2,4)&
     !     &+csumudmom(3,4)-csumudmom(4,4))*adiv1
     !**********************************************************************
     !**********************************************************************
@@ -1845,13 +1845,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 26)=(csumtt1(1)+csumtt1(2)+csumtt1(3)+csumtt1(4)+&
+        lines(id, 26)=(csumtt1(1)+csumtt1(2)+csumtt1(3)+csumtt1(4)+&
         (csumtt1(7)+csumtt1(6)+csumtt1(5)+csumtt1(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 26)=(csumttmom1(1,ik)+csumttmom1(2,ik)&
+        momentum_lines(id, ik, 26)=(csumttmom1(1,ik)+csumttmom1(2,ik)&
         +csumttmom1(3,ik)+csumttmom1(4,ik)+csumttmom1(7,ik)&
         +csumttmom1(6,ik)+csumttmom1(5,ik)&
         +csumttmom1(8,ik))*adiv2
@@ -1859,13 +1859,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 27)=(csumtt1(1)+csumtt1(2)+csumtt1(3)+csumtt1(4)-&
+        lines(id, 27)=(csumtt1(1)+csumtt1(2)+csumtt1(3)+csumtt1(4)-&
         (csumtt1(7)+csumtt1(6)+csumtt1(5)+csumtt1(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 27)=(csumttmom1(1,ik)+csumttmom1(2,ik)&
+        momentum_lines(id, ik, 27)=(csumttmom1(1,ik)+csumttmom1(2,ik)&
         +csumttmom1(3,ik)+csumttmom1(4,ik)-(csumttmom1(7,ik)&
         +csumttmom1(6,ik)+csumttmom1(5,ik)&
         +csumttmom1(8,ik)))*adiv2
@@ -1873,65 +1873,65 @@ module here_be_dragons
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 28)=(csumtt1(1)+giot*csumtt1(2)-csumtt1(3)&
+        lines(id, 28)=(csumtt1(1)+giot*csumtt1(2)-csumtt1(3)&
         -giot*csumtt1(4)+(csumtt1(6)+giot*csumtt1(7)-csumtt1(8)&
         -giot*csumtt1(5)))*adiv2
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 28)=(csumttmom1(1,ik)+giot*csumttmom1(2,ik)&
+        momentum_lines(id, ik, 28)=(csumttmom1(1,ik)+giot*csumttmom1(2,ik)&
         -csumttmom1(3,ik)-giot*csumttmom1(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 29)=(csumtt1(1)+giot*csumtt1(2)-csumtt1(3)&
+        lines(id, 29)=(csumtt1(1)+giot*csumtt1(2)-csumtt1(3)&
         -giot*csumtt1(4)-(csumtt1(6)+giot*csumtt1(7)-csumtt1(8)&
         -giot*csumtt1(5)))*adiv2
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 29)=(csumttmom1(6,ik)+giot*csumttmom1(7,ik)&
+        momentum_lines(id, ik, 29)=(csumttmom1(6,ik)+giot*csumttmom1(7,ik)&
         -csumttmom1(8,ik)-giot*csumttmom1(5,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 30)=(csumtt1(1)-csumtt1(2)+csumtt1(3)-csumtt1(4)+&
+        lines(id, 30)=(csumtt1(1)-csumtt1(2)+csumtt1(3)-csumtt1(4)+&
         csumtt1(7)-csumtt1(6)+csumtt1(5)-csumtt1(8))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 30)=(csumttmom1(1,ik)-csumttmom1(2,ik)&
+        momentum_lines(id, ik, 30)=(csumttmom1(1,ik)-csumttmom1(2,ik)&
         +csumttmom1(3,ik)-csumttmom1(4,ik)+csumttmom1(7,ik)&
         -csumttmom1(6,ik)+csumttmom1(5,ik)-csumttmom1(8,ik))*adiv2
         enddo
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 31)=(csumtt1(1)-csumtt1(2)+csumtt1(3)-csumtt1(4)-&
+        lines(id, 31)=(csumtt1(1)-csumtt1(2)+csumtt1(3)-csumtt1(4)-&
         (csumtt1(7)-csumtt1(6)+csumtt1(5)-csumtt1(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 31)=(csumttmom1(1,ik)-csumttmom1(2,ik)&
+        momentum_lines(id, ik, 31)=(csumttmom1(1,ik)-csumttmom1(2,ik)&
         +csumttmom1(3,ik)-csumttmom1(4,ik)-(csumttmom1(7,ik)&
         -csumttmom1(6,ik)+csumttmom1(5,ik)-csumttmom1(8,ik)))*adiv2
         enddo
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 32)=(csumtt2(1)+csumtt2(2)+csumtt2(3)+csumtt2(4)+&
+        lines(id, 32)=(csumtt2(1)+csumtt2(2)+csumtt2(3)+csumtt2(4)+&
         csumtt2(5)+csumtt2(6)+csumtt2(7)+csumtt2(8))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 32)=(csumttmom2(1,ik)+csumttmom2(2,ik)&
+        momentum_lines(id, ik, 32)=(csumttmom2(1,ik)+csumttmom2(2,ik)&
         +csumttmom2(3,ik)+csumttmom2(4,ik)+csumttmom2(5,ik)&
         +csumttmom2(6,ik)+csumttmom2(7,ik)&
         +csumttmom2(8,ik))*adiv2
@@ -1939,13 +1939,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 33)=(csumtt2(1)+csumtt2(2)+csumtt2(3)+csumtt2(4)-&
+        lines(id, 33)=(csumtt2(1)+csumtt2(2)+csumtt2(3)+csumtt2(4)-&
         (csumtt2(5)+csumtt2(6)+csumtt2(7)+csumtt2(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 33)=(csumttmom2(1,ik)+csumttmom2(2,ik)&
+        momentum_lines(id, ik, 33)=(csumttmom2(1,ik)+csumttmom2(2,ik)&
         +csumttmom2(3,ik)+csumttmom2(4,ik)-(csumttmom2(5,ik)&
         +csumttmom2(6,ik)+csumttmom2(7,ik)&
         +csumttmom2(8,ik)))*adiv2
@@ -1953,39 +1953,39 @@ module here_be_dragons
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 34)=(csumtt2(1)+giot*csumtt2(2)-csumtt2(3)&
+        lines(id, 34)=(csumtt2(1)+giot*csumtt2(2)-csumtt2(3)&
         -giot*csumtt2(4)+(csumtt2(7)+giot*csumtt2(8)-csumtt2(5)&
         -giot*csumtt2(6)))*adiv2
     !***********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 34)=(csumttmom2(1,ik)+giot*csumttmom2(2,ik)&
+        momentum_lines(id, ik, 34)=(csumttmom2(1,ik)+giot*csumttmom2(2,ik)&
         -csumttmom2(3,ik)-giot*csumttmom2(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 35)=(csumtt2(1)+giot*csumtt2(2)-csumtt2(3)&
+        lines(id, 35)=(csumtt2(1)+giot*csumtt2(2)-csumtt2(3)&
         -giot*csumtt2(4)-(csumtt2(7)+giot*csumtt2(8)-csumtt2(5)&
         -giot*csumtt2(6)))*adiv2
     !***********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 35)=(csumttmom2(7,ik)+giot*csumttmom2(8,ik)&
+        momentum_lines(id, ik, 35)=(csumttmom2(7,ik)+giot*csumttmom2(8,ik)&
         -csumttmom2(5,ik)-giot*csumttmom2(6,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 36)=(csumtt2(1)-csumtt2(2)+csumtt2(3)-csumtt2(4)+&
+        lines(id, 36)=(csumtt2(1)-csumtt2(2)+csumtt2(3)-csumtt2(4)+&
         csumtt2(6)-csumtt2(5)+csumtt2(8)-csumtt2(7))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 36)=(csumttmom2(1,ik)-csumttmom2(2,ik)&
+        momentum_lines(id, ik, 36)=(csumttmom2(1,ik)-csumttmom2(2,ik)&
         +csumttmom2(3,ik)-csumttmom2(4,ik)+csumttmom2(6,ik)&
         -csumttmom2(5,ik)+csumttmom2(8,ik)&
         -csumttmom2(7,ik))*adiv2
@@ -1993,13 +1993,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 37)=(csumtt2(1)-csumtt2(2)+csumtt2(3)-csumtt2(4)-&
+        lines(id, 37)=(csumtt2(1)-csumtt2(2)+csumtt2(3)-csumtt2(4)-&
         (csumtt2(6)-csumtt2(5)+csumtt2(8)-csumtt2(7)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 37)=(csumttmom2(1,ik)-csumttmom2(2,ik)&
+        momentum_lines(id, ik, 37)=(csumttmom2(1,ik)-csumttmom2(2,ik)&
         +csumttmom2(3,ik)-csumttmom2(4,ik)-(csumttmom2(6,ik)&
         -csumttmom2(5,ik)+csumttmom2(8,ik)&
         -csumttmom2(7,ik)))*adiv2
@@ -2007,13 +2007,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 38)=(csumtt3(1)+csumtt3(2)+csumtt3(3)+csumtt3(4)+&
+        lines(id, 38)=(csumtt3(1)+csumtt3(2)+csumtt3(3)+csumtt3(4)+&
         csumtt3(5)+csumtt3(6)+csumtt3(7)+csumtt3(8))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 38)=(csumttmom3(1,ik)+csumttmom3(2,ik)&
+        momentum_lines(id, ik, 38)=(csumttmom3(1,ik)+csumttmom3(2,ik)&
         +csumttmom3(3,ik)+csumttmom3(4,ik)+csumttmom3(5,ik)&
         +csumttmom3(6,ik)+csumttmom3(7,ik)&
         +csumttmom3(8,ik))*adiv2
@@ -2021,13 +2021,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 39)=(csumtt3(1)+csumtt3(2)+csumtt3(3)+csumtt3(4)-&
+        lines(id, 39)=(csumtt3(1)+csumtt3(2)+csumtt3(3)+csumtt3(4)-&
         (csumtt3(5)+csumtt3(6)+csumtt3(7)+csumtt3(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 39)=(csumttmom3(1,ik)+csumttmom3(2,ik)&
+        momentum_lines(id, ik, 39)=(csumttmom3(1,ik)+csumttmom3(2,ik)&
         +csumttmom3(3,ik)+csumttmom3(4,ik)-(csumttmom3(5,ik)&
         +csumttmom3(6,ik)+csumttmom3(7,ik)&
         +csumttmom3(8,ik)))*adiv2
@@ -2035,65 +2035,65 @@ module here_be_dragons
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 40)=(csumtt3(1)+giot*csumtt3(2)-csumtt3(3)&
+        lines(id, 40)=(csumtt3(1)+giot*csumtt3(2)-csumtt3(3)&
         -giot*csumtt3(4)+(csumtt3(6)+giot*csumtt3(7)-csumtt3(8)&
         -giot*csumtt3(5)))*adiv2
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 40)=(csumttmom3(1,ik)+giot*csumttmom3(2,ik)&
+        momentum_lines(id, ik, 40)=(csumttmom3(1,ik)+giot*csumttmom3(2,ik)&
         -csumttmom3(3,ik)-giot*csumttmom3(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 41)=(csumtt3(1)+giot*csumtt3(2)-csumtt3(3)&
+        lines(id, 41)=(csumtt3(1)+giot*csumtt3(2)-csumtt3(3)&
         -giot*csumtt3(4)-(csumtt3(6)+giot*csumtt3(7)-csumtt3(8)&
         -giot*csumtt3(5)))*adiv2
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 41)=(csumttmom3(6,ik)+giot*csumttmom3(7,ik)&
+        momentum_lines(id, ik, 41)=(csumttmom3(6,ik)+giot*csumttmom3(7,ik)&
         -csumttmom3(8,ik)-giot*csumttmom3(5,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 42)=(csumtt3(1)-csumtt3(2)+csumtt3(3)-csumtt3(4)+&
+        lines(id, 42)=(csumtt3(1)-csumtt3(2)+csumtt3(3)-csumtt3(4)+&
         (csumtt3(7)-csumtt3(6)+csumtt3(5)-csumtt3(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 42)=(csumttmom3(1,ik)-csumttmom3(2,ik)&
+        momentum_lines(id, ik, 42)=(csumttmom3(1,ik)-csumttmom3(2,ik)&
         +csumttmom3(3,ik)-csumttmom3(4,ik)+(csumttmom3(7,ik)&
         -csumttmom3(6,ik)+csumttmom3(5,ik)-csumttmom3(8,ik)))*adiv2
         enddo
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 43)=(csumtt3(1)-csumtt3(2)+csumtt3(3)-csumtt3(4)-&
+        lines(id, 43)=(csumtt3(1)-csumtt3(2)+csumtt3(3)-csumtt3(4)-&
         (csumtt3(7)-csumtt3(6)+csumtt3(5)-csumtt3(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 43)=(csumttmom3(1,ik)-csumttmom3(2,ik)&
+        momentum_lines(id, ik, 43)=(csumttmom3(1,ik)-csumttmom3(2,ik)&
         +csumttmom3(3,ik)-csumttmom3(4,ik)-(csumttmom3(7,ik)&
         -csumttmom3(6,ik)+csumttmom3(5,ik)-csumttmom3(8,ik)))*adiv2
         enddo
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 44)=(csumtt4(1)+csumtt4(2)+csumtt4(3)+csumtt4(4)+&
+        lines(id, 44)=(csumtt4(1)+csumtt4(2)+csumtt4(3)+csumtt4(4)+&
         csumtt4(5)+csumtt4(6)+csumtt4(7)+csumtt4(8))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 44)=(csumttmom4(1,ik)+csumttmom4(2,ik)&
+        momentum_lines(id, ik, 44)=(csumttmom4(1,ik)+csumttmom4(2,ik)&
         +csumttmom4(3,ik)+csumttmom4(4,ik)+csumttmom4(5,ik)&
         +csumttmom4(6,ik)+csumttmom4(7,ik)&
         +csumttmom4(8,ik))*adiv2
@@ -2101,13 +2101,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 45)=(csumtt4(1)+csumtt4(2)+csumtt4(3)+csumtt4(4)-&
+        lines(id, 45)=(csumtt4(1)+csumtt4(2)+csumtt4(3)+csumtt4(4)-&
         (csumtt4(5)+csumtt4(6)+csumtt4(7)+csumtt4(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 45)=(csumttmom4(1,ik)+csumttmom4(2,ik)&
+        momentum_lines(id, ik, 45)=(csumttmom4(1,ik)+csumttmom4(2,ik)&
         +csumttmom4(3,ik)+csumttmom4(4,ik)-(csumttmom4(5,ik)&
         +csumttmom4(6,ik)+csumttmom4(7,ik)&
         +csumttmom4(8,ik)))*adiv2
@@ -2115,52 +2115,52 @@ module here_be_dragons
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 46)=(csumtt4(1)+giot*csumtt4(2)-csumtt4(3)&
+        lines(id, 46)=(csumtt4(1)+giot*csumtt4(2)-csumtt4(3)&
         -giot*csumtt4(4)+(csumtt4(7)+giot*csumtt4(8)-csumtt4(5)&
         -giot*csumtt4(6)))*adiv2
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 46)=(csumttmom4(1,ik)+giot*csumttmom4(2,ik)&
+        momentum_lines(id, ik, 46)=(csumttmom4(1,ik)+giot*csumttmom4(2,ik)&
         -csumttmom4(3,ik)-giot*csumttmom4(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 47)=(csumtt4(1)+giot*csumtt4(2)-csumtt4(3)&
+        lines(id, 47)=(csumtt4(1)+giot*csumtt4(2)-csumtt4(3)&
         -giot*csumtt4(4)-(csumtt4(7)+giot*csumtt4(8)-csumtt4(5)&
         -giot*csumtt4(6)))*adiv2
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 47)=(csumttmom4(7,ik)+giot*csumttmom4(8,ik)&
+        momentum_lines(id, ik, 47)=(csumttmom4(7,ik)+giot*csumttmom4(8,ik)&
         -csumttmom4(5,ik)-giot*csumttmom4(6,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 48)=(csumtt4(1)-csumtt4(2)+csumtt4(3)-csumtt4(4)+&
+        lines(id, 48)=(csumtt4(1)-csumtt4(2)+csumtt4(3)-csumtt4(4)+&
         csumtt4(8)-csumtt4(7)+csumtt4(6)-csumtt4(5))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 48)=(csumttmom4(1,ik)-csumttmom4(2,ik)&
+        momentum_lines(id, ik, 48)=(csumttmom4(1,ik)-csumttmom4(2,ik)&
         +csumttmom4(3,ik)-csumttmom4(4,ik)+csumttmom4(8,ik)&
         -csumttmom4(7,ik)+csumttmom4(6,ik)-csumttmom4(5,ik))*adiv2
         enddo
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 49)=(csumtt4(1)-csumtt4(2)+csumtt4(3)-csumtt4(4)-&
+        lines(id, 49)=(csumtt4(1)-csumtt4(2)+csumtt4(3)-csumtt4(4)-&
         (csumtt4(8)-csumtt4(7)+csumtt4(6)-csumtt4(5)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 49)=(csumttmom4(1,ik)-csumttmom4(2,ik)&
+        momentum_lines(id, ik, 49)=(csumttmom4(1,ik)-csumttmom4(2,ik)&
         +csumttmom4(3,ik)-csumttmom4(4,ik)-(csumttmom4(8,ik)&
         -csumttmom4(7,ik)+csumttmom4(6,ik)-csumttmom4(5,ik)))*adiv2
         enddo
@@ -2170,35 +2170,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 50)=(csumtt5(1)+csumtt5(2)+csumtt5(3)+csumtt5(4))*adiv1
+        lines(id, 50)=(csumtt5(1)+csumtt5(2)+csumtt5(3)+csumtt5(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 50)=(csumttmom5(1,ik)+csumttmom5(2,ik)&
+        momentum_lines(id, ik, 50)=(csumttmom5(1,ik)+csumttmom5(2,ik)&
         +csumttmom5(3,ik)+csumttmom5(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 51)=(csumtt5(1)+giot*csumtt5(2)-csumtt5(3)&
+        lines(id, 51)=(csumtt5(1)+giot*csumtt5(2)-csumtt5(3)&
         -giot*csumtt5(4))*adiv1
     !***********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 51)=(csumttmom5(1,ik)+giot*csumttmom5(2,ik)&
+        momentum_lines(id, ik, 51)=(csumttmom5(1,ik)+giot*csumttmom5(2,ik)&
         -csumttmom5(3,ik)-giot*csumttmom5(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 52)=(csumtt5(1)-csumtt5(2)+csumtt5(3)-csumtt5(4))*adiv1
+        lines(id, 52)=(csumtt5(1)-csumtt5(2)+csumtt5(3)-csumtt5(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 52)=(csumttmom5(1,ik)-csumttmom5(2,ik)&
+        momentum_lines(id, ik, 52)=(csumttmom5(1,ik)-csumttmom5(2,ik)&
         +csumttmom5(3,ik)-csumttmom5(4,ik))*adiv1
         enddo
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2209,35 +2209,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 53)=(csumtt6(1)+csumtt6(2)+csumtt6(3)+csumtt6(4))*adiv1
+        lines(id, 53)=(csumtt6(1)+csumtt6(2)+csumtt6(3)+csumtt6(4))*adiv1
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 53)=(csumttmom6(1,ik)+csumttmom6(2,ik)&
+        momentum_lines(id, ik, 53)=(csumttmom6(1,ik)+csumttmom6(2,ik)&
         +csumttmom6(3,ik)+csumttmom6(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 54)=(csumtt6(1)+giot*csumtt6(2)-csumtt6(3)&
+        lines(id, 54)=(csumtt6(1)+giot*csumtt6(2)-csumtt6(3)&
         -giot*csumtt6(4))*adiv1
     !***********************************************************************
     !     j=1, q
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 54)=(csumttmom6(1,ik)+giot*csumttmom6(2,ik)&
+        momentum_lines(id, ik, 54)=(csumttmom6(1,ik)+giot*csumttmom6(2,ik)&
         -csumttmom6(3,ik)-giot*csumttmom6(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 55)=(csumtt6(1)-csumtt6(2)+csumtt6(3)-csumtt6(4))*adiv1
+        lines(id, 55)=(csumtt6(1)-csumtt6(2)+csumtt6(3)-csumtt6(4))*adiv1
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 55)=(csumttmom6(1,ik)-csumttmom6(2,ik)&
+        momentum_lines(id, ik, 55)=(csumttmom6(1,ik)-csumttmom6(2,ik)&
         +csumttmom6(3,ik)-csumttmom6(4,ik))*adiv1
         enddo
     !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2248,13 +2248,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 56)=(csumtt7(1)+csumtt7(2)+csumtt7(3)+csumtt7(4)+&
+        lines(id, 56)=(csumtt7(1)+csumtt7(2)+csumtt7(3)+csumtt7(4)+&
         (csumtt7(5)+csumtt7(6)+csumtt7(7)+csumtt7(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 56)=(csumttmom7(1,ik)+csumttmom7(2,ik)&
+        momentum_lines(id, ik, 56)=(csumttmom7(1,ik)+csumttmom7(2,ik)&
         +csumttmom7(3,ik)+csumttmom7(4,ik)+(csumttmom7(5,ik)&
         +csumttmom7(6,ik)+csumttmom7(7,ik)&
         +csumttmom7(8,ik)))*adiv2
@@ -2262,13 +2262,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 57)=(csumtt7(1)+csumtt7(2)+csumtt7(3)+csumtt7(4)-&
+        lines(id, 57)=(csumtt7(1)+csumtt7(2)+csumtt7(3)+csumtt7(4)-&
         (csumtt7(5)+csumtt7(6)+csumtt7(7)+csumtt7(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 57)=(csumttmom7(1,ik)+csumttmom7(2,ik)&
+        momentum_lines(id, ik, 57)=(csumttmom7(1,ik)+csumttmom7(2,ik)&
         +csumttmom7(3,ik)+csumttmom7(4,ik)-(csumttmom7(5,ik)&
         +csumttmom7(6,ik)+csumttmom7(7,ik)&
         +csumttmom7(8,ik)))*adiv2
@@ -2276,39 +2276,39 @@ module here_be_dragons
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 58)=(csumtt7(1)+giot*csumtt7(2)-csumtt7(3)&
+        lines(id, 58)=(csumtt7(1)+giot*csumtt7(2)-csumtt7(3)&
         -giot*csumtt7(4)+&
         (csumtt7(7)+giot*csumtt7(8)-csumtt7(5)-giot*csumtt7(6)))*adiv2
     !***********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 58)=(csumttmom7(1,ik)+giot*csumttmom7(2,ik)&
+        momentum_lines(id, ik, 58)=(csumttmom7(1,ik)+giot*csumttmom7(2,ik)&
         -csumttmom7(3,ik)-giot*csumttmom7(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 59)=(csumtt7(1)+giot*csumtt7(2)-csumtt7(3)&
+        lines(id, 59)=(csumtt7(1)+giot*csumtt7(2)-csumtt7(3)&
         -giot*csumtt7(4)-&
         (csumtt7(7)+giot*csumtt7(8)-csumtt7(5)-giot*csumtt7(6)))*adiv2
     !***********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 59)=(csumttmom7(7,ik)+giot*csumttmom7(8,ik)&
+        momentum_lines(id, ik, 59)=(csumttmom7(7,ik)+giot*csumttmom7(8,ik)&
         -csumttmom7(5,ik)-giot*csumttmom7(6,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 60)=(csumtt7(1)-csumtt7(2)+csumtt7(3)-csumtt7(4)+&
+        lines(id, 60)=(csumtt7(1)-csumtt7(2)+csumtt7(3)-csumtt7(4)+&
         (csumtt7(8)-csumtt7(7)+csumtt7(6)-csumtt7(5)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 60)=(csumttmom7(1,ik)-csumttmom7(2,ik)&
+        momentum_lines(id, ik, 60)=(csumttmom7(1,ik)-csumttmom7(2,ik)&
         +csumttmom7(3,ik)-csumttmom7(4,ik)+(csumttmom7(8,ik)&
         -csumttmom7(7,ik)+csumttmom7(6,ik)&
         -csumttmom7(5,ik)))*adiv2
@@ -2316,13 +2316,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 61)=(csumtt7(1)-csumtt7(2)+csumtt7(3)-csumtt7(4)-&
+        lines(id, 61)=(csumtt7(1)-csumtt7(2)+csumtt7(3)-csumtt7(4)-&
         (csumtt7(8)-csumtt7(7)+csumtt7(6)-csumtt7(5)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 61)=(csumttmom7(1,ik)-csumttmom7(2,ik)&
+            momentum_lines(id, ik, 61)=(csumttmom7(1,ik)-csumttmom7(2,ik)&
         +csumttmom7(3,ik)-csumttmom7(4,ik)-(csumttmom7(8,ik)&
         -csumttmom7(7,ik)+csumttmom7(6,ik)&
         -csumttmom7(5,ik)))*adiv2
@@ -2335,13 +2335,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 62)=(csumtt8(1)+csumtt8(2)+csumtt8(3)+csumtt8(4)&
+        lines(id, 62)=(csumtt8(1)+csumtt8(2)+csumtt8(3)+csumtt8(4)&
         +(csumtt8(5)+csumtt8(6)+csumtt8(7)+csumtt8(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 62)=(csumttmom8(1,ik)+csumttmom8(2,ik)&
+            momentum_lines(id, ik, 62)=(csumttmom8(1,ik)+csumttmom8(2,ik)&
         +csumttmom8(3,ik)+csumttmom8(4,ik)+(csumttmom8(5,ik)&
         +csumttmom8(6,ik)+csumttmom8(7,ik)&
         +csumttmom8(8,ik)))*adiv2
@@ -2349,13 +2349,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 63)=(csumtt8(1)+csumtt8(2)+csumtt8(3)+csumtt8(4)&
+        lines(id, 63)=(csumtt8(1)+csumtt8(2)+csumtt8(3)+csumtt8(4)&
         -(csumtt8(5)+csumtt8(6)+csumtt8(7)+csumtt8(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 63)=(csumttmom8(1,ik)+csumttmom8(2,ik)&
+            momentum_lines(id, ik, 63)=(csumttmom8(1,ik)+csumttmom8(2,ik)&
         +csumttmom8(3,ik)+csumttmom8(4,ik)-(csumttmom8(5,ik)&
         +csumttmom8(6,ik)+csumttmom8(7,ik)&
         +csumttmom8(8,ik)))*adiv2
@@ -2363,37 +2363,37 @@ module here_be_dragons
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 64)=(csumtt8(1)+giot*csumtt8(2)-csumtt8(3)&
+        lines(id, 64)=(csumtt8(1)+giot*csumtt8(2)-csumtt8(3)&
         -giot*csumtt8(4))*adiv1
     !***********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 64)=(csumttmom8(1,ik)+giot*csumttmom8(2,ik)&
+            momentum_lines(id, ik, 64)=(csumttmom8(1,ik)+giot*csumttmom8(2,ik)&
         -csumttmom8(3,ik)-giot*csumttmom8(4,ik))*adiv1
         enddo
     !***********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 65)=(csumtt8(7)+giot*csumtt8(6)-csumtt8(5)&
+        lines(id, 65)=(csumtt8(7)+giot*csumtt8(6)-csumtt8(5)&
         -giot*csumtt8(8))*adiv1
     !***********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 65)=(csumttmom8(7,ik)+giot*csumttmom8(6,ik)&
+            momentum_lines(id, ik, 65)=(csumttmom8(7,ik)+giot*csumttmom8(6,ik)&
         -csumttmom8(5,ik)-giot*csumttmom8(8,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 66)=(csumtt8(1)-csumtt8(2)+csumtt8(3)-csumtt8(4)&
+        lines(id, 66)=(csumtt8(1)-csumtt8(2)+csumtt8(3)-csumtt8(4)&
         +(csumtt8(5)-csumtt8(6)+csumtt8(7)-csumtt8(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 66)=(csumttmom8(1,ik)-csumttmom8(2,ik)&
+            momentum_lines(id, ik, 66)=(csumttmom8(1,ik)-csumttmom8(2,ik)&
         +csumttmom8(3,ik)-csumttmom8(4,ik)+(csumttmom8(5,ik)&
         -csumttmom8(6,ik)+csumttmom8(7,ik)&
         -csumttmom8(8,ik)))*adiv2
@@ -2401,13 +2401,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 67)=(csumtt8(1)-csumtt8(2)+csumtt8(3)-csumtt8(4)&
+        lines(id, 67)=(csumtt8(1)-csumtt8(2)+csumtt8(3)-csumtt8(4)&
         -(csumtt8(5)-csumtt8(6)+csumtt8(7)-csumtt8(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 67)=(csumttmom8(1,ik)-csumttmom8(2,ik)&
+            momentum_lines(id, ik, 67)=(csumttmom8(1,ik)-csumttmom8(2,ik)&
         +csumttmom8(3,ik)-csumttmom8(4,ik)-(csumttmom8(5,ik)&
         -csumttmom8(6,ik)+csumttmom8(7,ik)&
         -csumttmom8(8,ik)))*adiv2
@@ -2421,13 +2421,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 68)=(csumtt9(1)+csumtt9(2)+csumtt9(3)+csumtt9(4)+&
+        lines(id, 68)=(csumtt9(1)+csumtt9(2)+csumtt9(3)+csumtt9(4)+&
         (csumtt9(5)+csumtt9(6)+csumtt9(7)+csumtt9(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 68)=(csumttmom9(1,ik)+csumttmom9(2,ik)+&
+            momentum_lines(id, ik, 68)=(csumttmom9(1,ik)+csumttmom9(2,ik)+&
         csumttmom9(3,ik)+csumttmom9(4,ik)&
         +(csumttmom9(5,ik)+csumttmom9(6,ik)+csumttmom9(7,ik)&
         +csumttmom9(8,ik)))*adiv2
@@ -2439,13 +2439,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 69)=(csumtt9(1)+csumtt9(2)+csumtt9(3)+csumtt9(4)&
+        lines(id, 69)=(csumtt9(1)+csumtt9(2)+csumtt9(3)+csumtt9(4)&
         -(csumtt9(5)+csumtt9(6)+csumtt9(7)+csumtt9(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 69)=(csumttmom9(1,ik)+csumttmom9(2,ik)+&
+            momentum_lines(id, ik, 69)=(csumttmom9(1,ik)+csumttmom9(2,ik)+&
         csumttmom9(3,ik)+csumttmom9(4,ik)&
         -(csumttmom9(5,ik)+csumttmom9(6,ik)+csumttmom9(7,ik)&
         +csumttmom9(8,ik)))*adiv2
@@ -2453,39 +2453,39 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 70)=(csumtt9(1)+giot*csumtt9(2)-csumtt9(3)&
+        lines(id, 70)=(csumtt9(1)+giot*csumtt9(2)-csumtt9(3)&
         -giot*csumtt9(4)+(csumtt9(7)+giot*csumtt9(8)-csumtt9(5)&
         -giot*csumtt9(6)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 70)=(csumttmom9(1,ik)+giot*csumttmom9(2,ik)&
+            momentum_lines(id, ik, 70)=(csumttmom9(1,ik)+giot*csumttmom9(2,ik)&
         -csumttmom9(3,ik)-giot*csumttmom9(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 71)=(csumtt9(1)+giot*csumtt9(2)-csumtt9(3)&
+        lines(id, 71)=(csumtt9(1)+giot*csumtt9(2)-csumtt9(3)&
         -giot*csumtt9(4)-(csumtt9(7)+giot*csumtt9(8)-csumtt9(5)&
         -giot*csumtt9(6)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 71)=(csumttmom9(7,ik)+giot*csumttmom9(8,ik)&
+            momentum_lines(id, ik, 71)=(csumttmom9(7,ik)+giot*csumttmom9(8,ik)&
         -csumttmom9(5,ik)-giot*csumttmom9(6,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 72)=(csumtt9(1)-csumtt9(2)+csumtt9(3)-csumtt9(4)&
+        lines(id, 72)=(csumtt9(1)-csumtt9(2)+csumtt9(3)-csumtt9(4)&
         +(csumtt9(7)-csumtt9(6)+csumtt9(5)-csumtt9(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 72)=(csumttmom9(1,ik)-csumttmom9(2,ik)&
+            momentum_lines(id, ik, 72)=(csumttmom9(1,ik)-csumttmom9(2,ik)&
         +csumttmom9(3,ik)-csumttmom9(4,ik)&
         +(csumttmom9(7,ik)-csumttmom9(6,ik)+csumttmom9(5,ik)&
         -csumttmom9(8,ik)))*adiv2
@@ -2493,13 +2493,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0 !here!
     !**********************************************************************
-        lines(time_slice, id, 73)=(csumtt9(1)-csumtt9(2)+csumtt9(3)-csumtt9(4)&
+        lines(id, 73)=(csumtt9(1)-csumtt9(2)+csumtt9(3)-csumtt9(4)&
         -(csumtt9(7)-csumtt9(6)+csumtt9(5)-csumtt9(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 73)=(csumttmom9(1,ik)-csumttmom9(2,ik)&
+            momentum_lines(id, ik, 73)=(csumttmom9(1,ik)-csumttmom9(2,ik)&
         +csumttmom9(3,ik)-csumttmom9(4,ik)&
         -(csumttmom9(7,ik)-csumttmom9(6,ik)+csumttmom9(5,ik)&
         -csumttmom9(8,ik)))*adiv2
@@ -2511,13 +2511,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 74)=(csumtt10(1)+csumtt10(2)+csumtt10(3)+csumtt10(4)&
+        lines(id, 74)=(csumtt10(1)+csumtt10(2)+csumtt10(3)+csumtt10(4)&
         +(csumtt10(5)+csumtt10(6)+csumtt10(7)+csumtt10(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 74)=(csumttmom10(1,ik)+csumttmom10(2,ik)&
+            momentum_lines(id, ik, 74)=(csumttmom10(1,ik)+csumttmom10(2,ik)&
         +csumttmom10(3,ik)+csumttmom10(4,ik)&
         +(csumttmom10(5,ik)+csumttmom10(6,ik)+csumttmom10(7,ik)&
         +csumttmom10(8,ik)))*adiv2
@@ -2525,13 +2525,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 75)=(csumtt10(1)+csumtt10(2)+csumtt10(3)+csumtt10(4)&
+        lines(id, 75)=(csumtt10(1)+csumtt10(2)+csumtt10(3)+csumtt10(4)&
         -(csumtt10(5)+csumtt10(6)+csumtt10(7)+csumtt10(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 75)=(csumttmom10(1,ik)+csumttmom10(2,ik)&
+            momentum_lines(id, ik, 75)=(csumttmom10(1,ik)+csumttmom10(2,ik)&
         +csumttmom10(3,ik)+csumttmom10(4,ik)&
         -(csumttmom10(5,ik)+csumttmom10(6,ik)+csumttmom10(7,ik)&
         +csumttmom10(8,ik)))*adiv2
@@ -2539,39 +2539,39 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 76)=(csumtt10(1)+giot*csumtt10(2)-csumtt10(3)&
+        lines(id, 76)=(csumtt10(1)+giot*csumtt10(2)-csumtt10(3)&
         -giot*csumtt10(4)+(csumtt10(7)+giot*csumtt10(6)-csumtt10(5)&
         -giot*csumtt10(8)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 76)=(csumttmom10(1,ik)+giot*csumttmom10(2,ik)&
+            momentum_lines(id, ik, 76)=(csumttmom10(1,ik)+giot*csumttmom10(2,ik)&
         -csumttmom10(3,ik)-giot*csumttmom10(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 77)=(csumtt10(1)+giot*csumtt10(2)-csumtt10(3)&
+        lines(id, 77)=(csumtt10(1)+giot*csumtt10(2)-csumtt10(3)&
         -giot*csumtt10(4)-(csumtt10(7)+giot*csumtt10(6)-csumtt10(5)&
         -giot*csumtt10(8)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 77)=(csumttmom10(7,ik)+giot*csumttmom10(6,ik)&
+            momentum_lines(id, ik, 77)=(csumttmom10(7,ik)+giot*csumttmom10(6,ik)&
         -csumttmom10(5,ik)-giot*csumttmom10(8,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 78)=(csumtt10(1)-csumtt10(2)+csumtt10(3)-csumtt10(4)&
+        lines(id, 78)=(csumtt10(1)-csumtt10(2)+csumtt10(3)-csumtt10(4)&
         +(csumtt10(5)-csumtt10(6)+csumtt10(7)-csumtt10(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 78)=(csumttmom10(1,ik)-csumttmom10(2,ik)&
+            momentum_lines(id, ik, 78)=(csumttmom10(1,ik)-csumttmom10(2,ik)&
         +csumttmom10(3,ik)-csumttmom10(4,ik)&
         +(csumttmom10(5,ik)-csumttmom10(6,ik)+csumttmom10(7,ik)&
         -csumttmom10(8,ik)))*adiv2
@@ -2579,13 +2579,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 79)=(csumtt10(1)-csumtt10(2)+csumtt10(3)-csumtt10(4)&
+        lines(id, 79)=(csumtt10(1)-csumtt10(2)+csumtt10(3)-csumtt10(4)&
         -(csumtt10(5)-csumtt10(6)+csumtt10(7)-csumtt10(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 79)=(csumttmom10(1,ik)-csumttmom10(2,ik)&
+            momentum_lines(id, ik, 79)=(csumttmom10(1,ik)-csumttmom10(2,ik)&
         +csumttmom10(3,ik)-csumttmom10(4,ik)&
         -(csumttmom10(5,ik)-csumttmom10(6,ik)+csumttmom10(7,ik)&
         -csumttmom10(8,ik)))*adiv2
@@ -2596,13 +2596,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 80)=(csumtt11(1)+csumtt11(2)+csumtt11(3)+csumtt11(4)&
+        lines(id, 80)=(csumtt11(1)+csumtt11(2)+csumtt11(3)+csumtt11(4)&
         +(csumtt11(5)+csumtt11(6)+csumtt11(7)+csumtt11(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 80)=(csumttmom11(1,ik)+csumttmom11(2,ik)&
+            momentum_lines(id, ik, 80)=(csumttmom11(1,ik)+csumttmom11(2,ik)&
         +csumttmom11(3,ik)+csumttmom11(4,ik)&
         +(csumttmom11(5,ik)+csumttmom11(6,ik)+csumttmom11(7,ik)&
         +csumttmom11(8,ik)))*adiv2
@@ -2610,13 +2610,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 81)=(csumtt11(1)+csumtt11(2)+csumtt11(3)+csumtt11(4)&
+        lines(id, 81)=(csumtt11(1)+csumtt11(2)+csumtt11(3)+csumtt11(4)&
         -(csumtt11(5)+csumtt11(6)+csumtt11(7)+csumtt11(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 81)=(csumttmom11(1,ik)+csumttmom11(2,ik)&
+            momentum_lines(id, ik, 81)=(csumttmom11(1,ik)+csumttmom11(2,ik)&
         +csumttmom11(3,ik)+csumttmom11(4,ik)&
         -(csumttmom11(5,ik)+csumttmom11(6,ik)+csumttmom11(7,ik)&
         +csumttmom11(8,ik)))*adiv2
@@ -2624,37 +2624,37 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 82)=(csumtt11(1)+giot*csumtt11(2)-csumtt11(3)&
+        lines(id, 82)=(csumtt11(1)+giot*csumtt11(2)-csumtt11(3)&
         -giot*csumtt11(4))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 82)=(csumttmom11(1,ik)+giot*csumttmom11(2,ik)&
+            momentum_lines(id, ik, 82)=(csumttmom11(1,ik)+giot*csumttmom11(2,ik)&
         -csumttmom11(3,ik)-giot*csumttmom11(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 83)=(csumtt11(7)+giot*csumtt11(6)-csumtt11(5)&
+        lines(id, 83)=(csumtt11(7)+giot*csumtt11(6)-csumtt11(5)&
         -giot*csumtt11(8))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 83)=(csumttmom11(7,ik)+giot*csumttmom11(6,ik)&
+            momentum_lines(id, ik, 83)=(csumttmom11(7,ik)+giot*csumttmom11(6,ik)&
         -csumttmom11(5,ik)-giot*csumttmom11(8,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 84)=(csumtt11(1)-csumtt11(2)+csumtt11(3)-csumtt11(4)&
+        lines(id, 84)=(csumtt11(1)-csumtt11(2)+csumtt11(3)-csumtt11(4)&
         +(csumtt11(5)-csumtt11(6)+csumtt11(7)-csumtt11(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 84)=(csumttmom11(1,ik)-csumttmom11(2,ik)&
+            momentum_lines(id, ik, 84)=(csumttmom11(1,ik)-csumttmom11(2,ik)&
         +csumttmom11(3,ik)-csumttmom11(4,ik)&
         +(csumttmom11(5,ik)-csumttmom11(6,ik)+csumttmom11(7,ik)&
         -csumttmom11(8,ik)))*adiv2
@@ -2662,13 +2662,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 85)=(csumtt11(1)-csumtt11(2)+csumtt11(3)-csumtt11(4)&
+        lines(id, 85)=(csumtt11(1)-csumtt11(2)+csumtt11(3)-csumtt11(4)&
         -(csumtt11(5)-csumtt11(6)+csumtt11(7)-csumtt11(8)))*adiv2
     !c**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 85)=(csumttmom11(1,ik)-csumttmom11(2,ik)&
+            momentum_lines(id, ik, 85)=(csumttmom11(1,ik)-csumttmom11(2,ik)&
         +csumttmom11(3,ik)-csumttmom11(4,ik)&
         -(csumttmom11(5,ik)-csumttmom11(6,ik)+csumttmom11(7,ik)&
         -csumttmom11(8,ik)))*adiv2
@@ -2681,7 +2681,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 86)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        lines(id, 86)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
         +(csumtt12(5)+csumtt12(6)+csumtt12(7)+csumtt12(8))&
         +(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
         +(csumtt12(13)+csumtt12(14)+csumtt12(15)+csumtt12(16)))*adiv3
@@ -2689,7 +2689,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 86)=(csumttmom12(1,ik)+csumttmom12(2,ik)&
+            momentum_lines(id, ik, 86)=(csumttmom12(1,ik)+csumttmom12(2,ik)&
         +csumttmom12(3,ik)+csumttmom12(4,ik)&
         +(csumttmom12(9,ik)+csumttmom12(10,ik)+csumttmom12(11,ik)&
         +csumttmom12(12,ik)))*adiv2
@@ -2697,7 +2697,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 87)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        lines(id, 87)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
         +(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
         -(csumtt12(7)+csumtt12(8)+csumtt12(5)+csumtt12(6))&
         -(csumtt12(15)+csumtt12(16)+csumtt12(13)+csumtt12(14)))*adiv3
@@ -2705,14 +2705,14 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 87)=(csumttmom12(7,ik)+csumttmom12(8,ik)&
+            momentum_lines(id, ik, 87)=(csumttmom12(7,ik)+csumttmom12(8,ik)&
         +csumttmom12(5,ik)+csumttmom12(6,ik)+(csumttmom12(15,ik)&
         +csumttmom12(16,ik)+csumttmom12(13,ik)+csumttmom12(14,ik)))*adiv2
         enddo
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 88)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        lines(id, 88)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
         -(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
         +(csumtt12(7)+csumtt12(8)+csumtt12(5)+csumtt12(6))&
         -(csumtt12(15)+csumtt12(16)+csumtt12(13)+csumtt12(14)))*adiv3
@@ -2720,14 +2720,14 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 88)=(csumttmom12(1,ik)+csumttmom12(2,ik)&
+            momentum_lines(id, ik, 88)=(csumttmom12(1,ik)+csumttmom12(2,ik)&
         +csumttmom12(3,ik)+csumttmom12(4,ik)-(csumttmom12(9,ik)&
         +csumttmom12(10,ik)+csumttmom12(11,ik)+csumttmom12(12,ik)))*adiv2
         enddo
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 89)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
+        lines(id, 89)=(csumtt12(1)+csumtt12(2)+csumtt12(3)+csumtt12(4)&
         -(csumtt12(9)+csumtt12(10)+csumtt12(11)+csumtt12(12))&
         -(csumtt12(7)+csumtt12(8)+csumtt12(5)+csumtt12(6))&
         +(csumtt12(15)+csumtt12(16)+csumtt12(13)+csumtt12(14)))*adiv3
@@ -2735,14 +2735,14 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 89)=(csumttmom12(7,ik)+csumttmom12(8,ik)&
+            momentum_lines(id, ik, 89)=(csumttmom12(7,ik)+csumttmom12(8,ik)&
         +csumttmom12(5,ik)+csumttmom12(6,ik)-(csumttmom12(15,ik)&
         +csumttmom12(16,ik)+csumttmom12(13,ik)+csumttmom12(14,ik)))*adiv2
         enddo
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 90)=(csumtt12(1)+giot*csumtt12(2)-csumtt12(3)&
+        lines(id, 90)=(csumtt12(1)+giot*csumtt12(2)-csumtt12(3)&
         -giot*csumtt12(4)&
         +(csumtt12(7)+giot*csumtt12(8)-csumtt12(5)-giot*csumtt12(6))&
         )*adiv2
@@ -2750,13 +2750,13 @@ module here_be_dragons
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 90)=(csumttmom12(1,ik)+giot*csumttmom12(2,ik)&
+            momentum_lines(id, ik, 90)=(csumttmom12(1,ik)+giot*csumttmom12(2,ik)&
         -csumttmom12(3,ik)-giot*csumttmom12(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 91)=(csumtt12(9)+giot*csumtt12(10)-csumtt12(11)&
+        lines(id, 91)=(csumtt12(9)+giot*csumtt12(10)-csumtt12(11)&
         -giot*csumtt12(12)&
         +(csumtt12(15)+giot*csumtt12(16)-csumtt12(13)-giot*csumtt12(14))&
         )*adiv2
@@ -2764,13 +2764,13 @@ module here_be_dragons
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 91)=(csumttmom12(9,ik)+giot*csumttmom12(10,ik)&
+            momentum_lines(id, ik, 91)=(csumttmom12(9,ik)+giot*csumttmom12(10,ik)&
         -csumttmom12(11,ik)-giot*csumttmom12(12,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 92)=(csumtt12(1)+giot*csumtt12(2)-csumtt12(3)&
+        lines(id, 92)=(csumtt12(1)+giot*csumtt12(2)-csumtt12(3)&
         -giot*csumtt12(4)&
         -(csumtt12(7)+giot*csumtt12(8)-csumtt12(5)-giot*csumtt12(6))&
         )*adiv2
@@ -2778,13 +2778,13 @@ module here_be_dragons
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 92)=(csumttmom12(7,ik)+giot*csumttmom12(8,ik)&
+            momentum_lines(id, ik, 92)=(csumttmom12(7,ik)+giot*csumttmom12(8,ik)&
         -csumttmom12(5,ik)-giot*csumttmom12(6,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 93)=(csumtt12(9)+giot*csumtt12(10)-csumtt12(11)&
+        lines(id, 93)=(csumtt12(9)+giot*csumtt12(10)-csumtt12(11)&
         -giot*csumtt12(12)&
         -(csumtt12(15)+giot*csumtt12(16)-csumtt12(13)-giot*csumtt12(14))&
         )*adiv2
@@ -2792,14 +2792,14 @@ module here_be_dragons
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 93)=(csumttmom12(15,ik)&
+            momentum_lines(id, ik, 93)=(csumttmom12(15,ik)&
         +giot*csumttmom12(16,ik)&
         -csumttmom12(13,ik)-giot*csumttmom12(14,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 94)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        lines(id, 94)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
         +(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
         +(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
         +(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
@@ -2807,7 +2807,7 @@ module here_be_dragons
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 94)=(csumttmom12(1,ik)-csumttmom12(2,ik)&
+            momentum_lines(id, ik, 94)=(csumttmom12(1,ik)-csumttmom12(2,ik)&
         +csumttmom12(3,ik)-csumttmom12(4,ik)&
         +(csumttmom12(9,ik)-csumttmom12(10,ik)+csumttmom12(11,ik)&
         -csumttmom12(12,ik)))*adiv2
@@ -2815,7 +2815,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 95)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        lines(id, 95)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
         +(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
         -(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
         -(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
@@ -2823,7 +2823,7 @@ module here_be_dragons
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 95)=(csumttmom12(7,ik)-csumttmom12(8,ik)&
+            momentum_lines(id, ik, 95)=(csumttmom12(7,ik)-csumttmom12(8,ik)&
         +csumttmom12(5,ik)-csumttmom12(6,ik)+(csumttmom12(15,ik)&
         -csumttmom12(16,ik)+csumttmom12(13,ik)-csumttmom12(14,ik))&
         )*adiv2
@@ -2831,7 +2831,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 96)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        lines(id, 96)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
         -(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
         +(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
         -(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
@@ -2839,7 +2839,7 @@ module here_be_dragons
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 96)=(csumttmom12(1,ik)-csumttmom12(2,ik)&
+            momentum_lines(id, ik, 96)=(csumttmom12(1,ik)-csumttmom12(2,ik)&
         +csumttmom12(3,ik)-csumttmom12(4,ik)-(csumttmom12(9,ik)&
         -csumttmom12(10,ik)+csumttmom12(11,ik)-csumttmom12(12,ik))&
         )*adiv2
@@ -2847,7 +2847,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 97)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
+        lines(id, 97)=(csumtt12(1)-csumtt12(2)+csumtt12(3)-csumtt12(4)&
         -(csumtt12(9)-csumtt12(10)+csumtt12(11)-csumtt12(12))&
         -(csumtt12(7)-csumtt12(8)+csumtt12(5)-csumtt12(6))&
         +(csumtt12(15)-csumtt12(16)+csumtt12(13)-csumtt12(14)))*adiv3
@@ -2855,7 +2855,7 @@ module here_be_dragons
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 97)=(csumttmom12(7,ik)-csumttmom12(8,ik)&
+            momentum_lines(id, ik, 97)=(csumttmom12(7,ik)-csumttmom12(8,ik)&
         +csumttmom12(5,ik)-csumttmom12(6,ik)-(csumttmom12(15,ik)&
         -csumttmom12(16,ik)+csumttmom12(13,ik)-csumttmom12(14,ik))&
         )*adiv2
@@ -2868,13 +2868,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 98)=(csumtt13(1)+csumtt13(2)+csumtt13(3)+csumtt13(4)+&
+        lines(id, 98)=(csumtt13(1)+csumtt13(2)+csumtt13(3)+csumtt13(4)+&
         csumtt13(5)+csumtt13(6)+csumtt13(7)+csumtt13(8))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 98)=(csumttmom13(1,ik)+csumttmom13(2,ik)&
+            momentum_lines(id, ik, 98)=(csumttmom13(1,ik)+csumttmom13(2,ik)&
         +csumttmom13(3,ik)+csumttmom13(4,ik)+csumttmom13(5,ik)&
         +csumttmom13(6,ik)+csumttmom13(7,ik)&
         +csumttmom13(8,ik))*adiv2
@@ -2882,13 +2882,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 99)=(csumtt13(1)+csumtt13(2)+csumtt13(3)+csumtt13(4)&
+        lines(id, 99)=(csumtt13(1)+csumtt13(2)+csumtt13(3)+csumtt13(4)&
         -(csumtt13(5)+csumtt13(6)+csumtt13(7)+csumtt13(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 99)=(csumttmom13(1,ik)+csumttmom13(2,ik)&
+        momentum_lines(id, ik, 99)=(csumttmom13(1,ik)+csumttmom13(2,ik)&
         +csumttmom13(3,ik)+csumttmom13(4,ik)-(csumttmom13(5,ik)&
         +csumttmom13(6,ik)+csumttmom13(7,ik)&
         +csumttmom13(8,ik)))*adiv2
@@ -2896,20 +2896,20 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 100)=(csumtt13(1)+giot*csumtt13(2)-csumtt13(3)&
+        lines(id, 100)=(csumtt13(1)+giot*csumtt13(2)-csumtt13(3)&
         -giot*csumtt13(4)+(csumtt13(7)+giot*csumtt13(8)-csumtt13(5)&
         -giot*csumtt13(6)))*adiv2
     !**********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 100)=(csumttmom13(1,ik)+giot*csumttmom13(2,ik)&
+        momentum_lines(id, ik, 100)=(csumttmom13(1,ik)+giot*csumttmom13(2,ik)&
         -csumttmom13(3,ik)-giot*csumttmom13(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 101)=(csumtt13(1)+giot*csumtt13(2)-csumtt13(3)&
+        lines(id, 101)=(csumtt13(1)+giot*csumtt13(2)-csumtt13(3)&
         -giot*csumtt13(4)&
         -(csumtt13(7)+giot*csumtt13(8)-csumtt13(5)&
         -giot*csumtt13(6)))*adiv2
@@ -2917,19 +2917,19 @@ module here_be_dragons
     !     j=1, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 101)=(csumttmom13(7,ik)+giot*csumttmom13(8,ik)&
+        momentum_lines(id, ik, 101)=(csumttmom13(7,ik)+giot*csumttmom13(8,ik)&
         -csumttmom13(5,ik)-giot*csumttmom13(6,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 102)=(csumtt13(1)-csumtt13(2)+csumtt13(3)-csumtt13(4)+&
+        lines(id, 102)=(csumtt13(1)-csumtt13(2)+csumtt13(3)-csumtt13(4)+&
         csumtt13(6)-csumtt13(5)+csumtt13(8)-csumtt13(7))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 102)=(csumttmom13(1,ik)-csumttmom13(2,ik)&
+        momentum_lines(id, ik, 102)=(csumttmom13(1,ik)-csumttmom13(2,ik)&
         +csumttmom13(3,ik)-csumttmom13(4,ik)+csumttmom13(6,ik)&
         -csumttmom13(5,ik)+csumttmom13(8,ik)&
         -csumttmom13(7,ik))*adiv2
@@ -2937,13 +2937,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 103)=(csumtt13(1)-csumtt13(2)+csumtt13(3)-csumtt13(4)&
+        lines(id, 103)=(csumtt13(1)-csumtt13(2)+csumtt13(3)-csumtt13(4)&
         -(csumtt13(6)-csumtt13(5)+csumtt13(8)-csumtt13(7)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 103)=(csumttmom13(1,ik)-csumttmom13(2,ik)&
+        momentum_lines(id, ik, 103)=(csumttmom13(1,ik)-csumttmom13(2,ik)&
         +csumttmom13(3,ik)-csumttmom13(4,ik)-(csumttmom13(6,ik)&
         -csumttmom13(5,ik)+csumttmom13(8,ik)&
         -csumttmom13(7,ik)))*adiv2
@@ -2954,13 +2954,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 104)=(csumtt14(1)+csumtt14(2)+csumtt14(3)+csumtt14(4)+&
+        lines(id, 104)=(csumtt14(1)+csumtt14(2)+csumtt14(3)+csumtt14(4)+&
         csumtt14(5)+csumtt14(6)+csumtt14(7)+csumtt14(8))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=0
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 104)=(csumttmom14(1,ik)+csumttmom14(2,ik)&
+        momentum_lines(id, ik, 104)=(csumttmom14(1,ik)+csumttmom14(2,ik)&
         +csumttmom14(3,ik)+csumttmom14(4,ik)+csumttmom14(5,ik)&
         +csumttmom14(6,ik)+csumttmom14(7,ik)&
         +csumttmom14(8,ik))*adiv2
@@ -2968,13 +2968,13 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 105)=(csumtt14(1)+csumtt14(2)+csumtt14(3)+csumtt14(4)-&
+        lines(id, 105)=(csumtt14(1)+csumtt14(2)+csumtt14(3)+csumtt14(4)-&
         (csumtt14(5)+csumtt14(6)+csumtt14(7)+csumtt14(8)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 105)=(csumttmom14(1,ik)+csumttmom14(2,ik)&
+        momentum_lines(id, ik, 105)=(csumttmom14(1,ik)+csumttmom14(2,ik)&
         +csumttmom14(3,ik)+csumttmom14(4,ik)-(csumttmom14(5,ik)&
         +csumttmom14(6,ik)+csumttmom14(7,ik)&
         +csumttmom14(8,ik)))*adiv2
@@ -2982,52 +2982,52 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 106)=(csumtt14(1)+giot*csumtt14(2)-csumtt14(3)&
+        lines(id, 106)=(csumtt14(1)+giot*csumtt14(2)-csumtt14(3)&
         -giot*csumtt14(4)+(csumtt14(6)+giot*csumtt14(7)-csumtt14(8)&
         -giot*csumtt14(5)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 106)=(csumttmom14(1,ik)+giot*csumttmom14(2,ik)&
+        momentum_lines(id, ik, 106)=(csumttmom14(1,ik)+giot*csumttmom14(2,ik)&
         -csumttmom14(3,ik)-giot*csumttmom14(4,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 107)=(csumtt14(1)+giot*csumtt14(2)-csumtt14(3)&
+        lines(id, 107)=(csumtt14(1)+giot*csumtt14(2)-csumtt14(3)&
         -giot*csumtt14(4)-(csumtt14(6)+giot*csumtt14(7)-csumtt14(8)&
         -giot*csumtt14(5)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 107)=(csumttmom14(6,ik)+giot*csumttmom14(7,ik)&
+            momentum_lines(id, ik, 107)=(csumttmom14(6,ik)+giot*csumttmom14(7,ik)&
         -csumttmom14(8,ik)-giot*csumttmom14(5,ik))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 108)=(csumtt14(1)-csumtt14(2)+csumtt14(3)-csumtt14(4)+&
+        lines(id, 108)=(csumtt14(1)-csumtt14(2)+csumtt14(3)-csumtt14(4)+&
         (csumtt14(7)-csumtt14(6)+csumtt14(5)-csumtt14(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-            momentum_lines(time_slice, id, ik, 108)=(csumttmom14(1,ik)-csumttmom14(2,ik)&
+            momentum_lines(id, ik, 108)=(csumttmom14(1,ik)-csumttmom14(2,ik)&
         +csumttmom14(3,ik)-csumttmom14(4,ik)+(csumttmom14(7,ik)&
         -csumttmom14(6,ik)+csumttmom14(5,ik)-csumttmom14(8,ik)))*adiv2
         enddo
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 109)=(csumtt14(1)-csumtt14(2)+csumtt14(3)-csumtt14(4)-&
+        lines(id, 109)=(csumtt14(1)-csumtt14(2)+csumtt14(3)-csumtt14(4)-&
         (csumtt14(7)-csumtt14(6)+csumtt14(5)-csumtt14(8)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2,3,4
     !**********************************************************************
         do ik=1,2
-        momentum_lines(time_slice, id, ik, 109)=(csumttmom14(1,ik)-csumttmom14(2,ik)&
+        momentum_lines(id, ik, 109)=(csumttmom14(1,ik)-csumttmom14(2,ik)&
         +csumttmom14(3,ik)-csumttmom14(4,ik)-(csumttmom14(7,ik)&
         -csumttmom14(6,ik)+csumttmom14(5,ik)-csumttmom14(8,ik)))*adiv2
         enddo
@@ -3038,77 +3038,77 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 110)=sum(csumplq8(:,1))*adiv2
+        lines(id, 110)=sum(csumplq8(:,1))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 110)=(csumplqmom8(1,ik,1)+csumplqmom8(2,ik,1)&
+            momentum_lines(id, ik, 110)=(csumplqmom8(1,ik,1)+csumplqmom8(2,ik,1)&
         +csumplqmom8(3,ik,1)+csumplqmom8(4,ik,1)+csumplqmom8(5,ik,1)&
         +csumplqmom8(6,ik,1)+csumplqmom8(7,ik,1)+csumplqmom8(8,ik,1))*adiv2
         enddo
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 111)=(csumplq8(1,1)+csumplq8(2,1)+csumplq8(3,1)+csumplq8(4,1)&
+        lines(id, 111)=(csumplq8(1,1)+csumplq8(2,1)+csumplq8(3,1)+csumplq8(4,1)&
         -csumplq8(5,1)-csumplq8(6,1)-csumplq8(7,1)-csumplq8(8,1))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 111)=(csumplqmom8(1,ik,1)+csumplqmom8(2,ik,1)&
+            momentum_lines(id, ik, 111)=(csumplqmom8(1,ik,1)+csumplqmom8(2,ik,1)&
         +csumplqmom8(3,ik,1)+csumplqmom8(4,ik,1)-csumplqmom8(5,ik,1)&
         -csumplqmom8(6,ik,1)-csumplqmom8(7,ik,1)-csumplqmom8(8,ik,1))*adiv2
         enddo
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 112)=(csumplq8(1,1)+giot*csumplq8(2,1)-csumplq8(3,1)&
+        lines(id, 112)=(csumplq8(1,1)+giot*csumplq8(2,1)-csumplq8(3,1)&
         -giot*csumplq8(4,1)&
         +(csumplq8(6,1)+giot*csumplq8(5,1)-csumplq8(8,1)-giot*csumplq8(7,1)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 112)=(csumplqmom8(1,ik,1)+giot*csumplqmom8(2,ik,1)&
+            momentum_lines(id, ik, 112)=(csumplqmom8(1,ik,1)+giot*csumplqmom8(2,ik,1)&
         -csumplqmom8(3,ik,1)-giot*csumplqmom8(4,ik,1))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 113)=(csumplq8(1,1)+giot*csumplq8(2,1)-csumplq8(3,1)&
+        lines(id, 113)=(csumplq8(1,1)+giot*csumplq8(2,1)-csumplq8(3,1)&
         -giot*csumplq8(4,1)&
         -(csumplq8(6,1)+giot*csumplq8(5,1)-csumplq8(8,1)-giot*csumplq8(7,1)))*adiv2
     !**********************************************************************
     !     j=1, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 113)=(csumplqmom8(6,ik,1)+giot*csumplqmom8(5,ik,1)&
+            momentum_lines(id, ik, 113)=(csumplqmom8(6,ik,1)+giot*csumplqmom8(5,ik,1)&
         -csumplqmom8(8,ik,1)-giot*csumplqmom8(7,ik,1))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 114)=(csumplq8(1,1)-csumplq8(2,1)+csumplq8(3,1)-csumplq8(4,1)&
+        lines(id, 114)=(csumplq8(1,1)-csumplq8(2,1)+csumplq8(3,1)-csumplq8(4,1)&
         +csumplq8(5,1)-csumplq8(6,1)+csumplq8(7,1)-csumplq8(8,1))*adiv2
     !**********************************************************************
     !     j=2, pr=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 114)=(csumplqmom8(1,ik,1)-csumplqmom8(2,ik,1)&
+            momentum_lines(id, ik, 114)=(csumplqmom8(1,ik,1)-csumplqmom8(2,ik,1)&
         +csumplqmom8(3,ik,1)-csumplqmom8(4,ik,1)+csumplqmom8(5,ik,1)&
         -csumplqmom8(6,ik,1)+csumplqmom8(7,ik,1)-csumplqmom8(8,ik,1))*adiv2
         enddo
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 115)=(csumplq8(1,1)-csumplq8(2,1)+csumplq8(3,1)-csumplq8(4,1)&
+        lines(id, 115)=(csumplq8(1,1)-csumplq8(2,1)+csumplq8(3,1)-csumplq8(4,1)&
         -(csumplq8(5,1)-csumplq8(6,1)+csumplq8(7,1)-csumplq8(8,1)))*adiv2
     !**********************************************************************
     !     j=2, pr=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 115)=(csumplqmom8(1,ik,1)-csumplqmom8(2,ik,1)&
+            momentum_lines(id, ik, 115)=(csumplqmom8(1,ik,1)-csumplqmom8(2,ik,1)&
         +csumplqmom8(3,ik,1)-csumplqmom8(4,ik,1)-(csumplqmom8(5,ik,1)&
         -csumplqmom8(6,ik,1)+csumplqmom8(7,ik,1)-csumplqmom8(8,ik,1)))*adiv2
         enddo
@@ -3120,46 +3120,46 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 116)=(csumplq8(1,2)+csumplq8(2,2)+csumplq8(3,2)+csumplq8(4,2)&
+        lines(id, 116)=(csumplq8(1,2)+csumplq8(2,2)+csumplq8(3,2)+csumplq8(4,2)&
         +csumplq8(5,2)+csumplq8(6,2)+csumplq8(7,2)+csumplq8(8,2))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 116)=(csumplqmom8(1,ik,2)+csumplqmom8(2,ik,2)&
+            momentum_lines(id, ik, 116)=(csumplqmom8(1,ik,2)+csumplqmom8(2,ik,2)&
         +csumplqmom8(3,ik,2)+csumplqmom8(4,ik,2)+csumplqmom8(5,ik,2)&
         +csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)+csumplqmom8(8,ik,2))*adiv2
         enddo
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 117)=(csumplq8(1,2)+csumplq8(2,2)+csumplq8(3,2)+csumplq8(4,2)&
+        lines(id, 117)=(csumplq8(1,2)+csumplq8(2,2)+csumplq8(3,2)+csumplq8(4,2)&
         -(csumplq8(5,2)+csumplq8(6,2)+csumplq8(7,2)+csumplq8(8,2)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 117)=(csumplqmom8(1,ik,2)+csumplqmom8(2,ik,2)&
+            momentum_lines(id, ik, 117)=(csumplqmom8(1,ik,2)+csumplqmom8(2,ik,2)&
         +csumplqmom8(3,ik,2)+csumplqmom8(4,ik,2)-(csumplqmom8(5,ik,2)&
         +csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)+csumplqmom8(8,ik,2)))*adiv2
         enddo
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 118)=(csumplq8(1,2)+giot*csumplq8(2,2)-csumplq8(3,2)&
+        lines(id, 118)=(csumplq8(1,2)+giot*csumplq8(2,2)-csumplq8(3,2)&
         -giot*csumplq8(4,2)&
         +csumplq8(6,2)+giot*csumplq8(5,2)-csumplq8(8,2)-giot*csumplq8(7,2))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 118)=(csumplqmom8(1,ik,2)+giot*csumplqmom8(2,ik,2)&
+            momentum_lines(id, ik, 118)=(csumplqmom8(1,ik,2)+giot*csumplqmom8(2,ik,2)&
         -csumplqmom8(3,ik,2)-giot*csumplqmom8(4,ik,2))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 119)=(csumplq8(1,2)+giot*csumplq8(2,2)-csumplq8(3,2)&
+        lines(id, 119)=(csumplq8(1,2)+giot*csumplq8(2,2)-csumplq8(3,2)&
         -giot*csumplq8(4,2)&
         -(csumplq8(6,2)+giot*csumplq8(5,2)-csumplq8(8,2)-giot*csumplq8(7,2)))&
         *adiv2
@@ -3167,32 +3167,32 @@ module here_be_dragons
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 119)=(csumplqmom8(6,ik,2)+giot*csumplqmom8(5,ik,2)&
+            momentum_lines(id, ik, 119)=(csumplqmom8(6,ik,2)+giot*csumplqmom8(5,ik,2)&
         -csumplqmom8(8,ik,2)-giot*csumplqmom8(7,ik,2))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 120)=(csumplq8(1,2)-csumplq8(2,2)+csumplq8(3,2)-csumplq8(4,2)&
+        lines(id, 120)=(csumplq8(1,2)-csumplq8(2,2)+csumplq8(3,2)-csumplq8(4,2)&
         +csumplq8(5,2)-csumplq8(6,2)+csumplq8(7,2)-csumplq8(8,2))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 120)=(csumplqmom8(1,ik,2)-csumplqmom8(2,ik,2)&
+            momentum_lines(id, ik, 120)=(csumplqmom8(1,ik,2)-csumplqmom8(2,ik,2)&
         +csumplqmom8(3,ik,2)-csumplqmom8(4,ik,2)+csumplqmom8(5,ik,2)&
         -csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)-csumplqmom8(8,ik,2))*adiv2
         enddo
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 121)=(csumplq8(1,2)-csumplq8(2,2)+csumplq8(3,2)-csumplq8(4,2)&
+        lines(id, 121)=(csumplq8(1,2)-csumplq8(2,2)+csumplq8(3,2)-csumplq8(4,2)&
         -(csumplq8(5,2)-csumplq8(6,2)+csumplq8(7,2)-csumplq8(8,2)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 121)=(csumplqmom8(1,ik,2)-csumplqmom8(2,ik,2)&
+            momentum_lines(id, ik, 121)=(csumplqmom8(1,ik,2)-csumplqmom8(2,ik,2)&
         +csumplqmom8(3,ik,2)-csumplqmom8(4,ik,2)-(csumplqmom8(5,ik,2)&
         -csumplqmom8(6,ik,2)+csumplqmom8(7,ik,2)-csumplqmom8(8,ik,2)))*adiv2
         enddo
@@ -3202,14 +3202,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 122)=(csumplq8(1,3)+csumplq8(2,3)+csumplq8(3,3)&
+        lines(id, 122)=(csumplq8(1,3)+csumplq8(2,3)+csumplq8(3,3)&
         +csumplq8(4,3)+(csumplq8(5,3)+csumplq8(6,3)+csumplq8(7,3)&
         +csumplq8(8,3)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 122)=(csumplqmom8(1,ik,3)+csumplqmom8(2,ik,3)&
+            momentum_lines(id, ik, 122)=(csumplqmom8(1,ik,3)+csumplqmom8(2,ik,3)&
         +csumplqmom8(3,ik,3)+csumplqmom8(4,ik,3)&
         +(csumplqmom8(5,ik,3)+csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
         +csumplqmom8(8,ik,3)))*adiv2
@@ -3217,14 +3217,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 123)=(csumplq8(1,3)+csumplq8(2,3)+csumplq8(3,3)&
+        lines(id, 123)=(csumplq8(1,3)+csumplq8(2,3)+csumplq8(3,3)&
         +csumplq8(4,3)-(csumplq8(5,3)+csumplq8(6,3)+csumplq8(7,3)&
         +csumplq8(8,3)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 123)=(csumplqmom8(1,ik,3)+csumplqmom8(2,ik,3)&
+            momentum_lines(id, ik, 123)=(csumplqmom8(1,ik,3)+csumplqmom8(2,ik,3)&
         +csumplqmom8(3,ik,3)+csumplqmom8(4,ik,3)&
         -(csumplqmom8(5,ik,3)+csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
         +csumplqmom8(8,ik,3)))*adiv2
@@ -3232,38 +3232,38 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 124)=(csumplq8(1,3)+giot*csumplq8(2,3)-csumplq8(3,3)&
+        lines(id, 124)=(csumplq8(1,3)+giot*csumplq8(2,3)-csumplq8(3,3)&
         -giot*csumplq8(4,3))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 124)=(csumplqmom8(1,ik,3)+giot*csumplqmom8(2,ik,3)&
+            momentum_lines(id, ik, 124)=(csumplqmom8(1,ik,3)+giot*csumplqmom8(2,ik,3)&
         -csumplqmom8(3,ik,3)-giot*csumplqmom8(4,ik,3))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 125)=(csumplq8(7,3)+giot*csumplq8(6,3)-csumplq8(5,3)&
+        lines(id, 125)=(csumplq8(7,3)+giot*csumplq8(6,3)-csumplq8(5,3)&
         -giot*csumplq8(8,3))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 125)=(csumplqmom8(7,ik,3)+giot*csumplqmom8(6,ik,3)&
+            momentum_lines(id, ik, 125)=(csumplqmom8(7,ik,3)+giot*csumplqmom8(6,ik,3)&
         -csumplqmom8(5,ik,3)-giot*csumplqmom8(8,ik,3))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 126)=(csumplq8(1,3)-csumplq8(2,3)+csumplq8(3,3)&
+        lines(id, 126)=(csumplq8(1,3)-csumplq8(2,3)+csumplq8(3,3)&
         -csumplq8(4,3)+(csumplq8(5,3)-csumplq8(6,3)+csumplq8(7,3)&
         -csumplq8(8,3)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 126)=(csumplqmom8(1,ik,3)-csumplqmom8(2,ik,3)&
+            momentum_lines(id, ik, 126)=(csumplqmom8(1,ik,3)-csumplqmom8(2,ik,3)&
         +csumplqmom8(3,ik,3)-csumplqmom8(4,ik,3)&
         +(csumplqmom8(5,ik,3)-csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
         -csumplqmom8(8,ik,3)))*adiv2
@@ -3271,14 +3271,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 127)=(csumplq8(1,3)-csumplq8(2,3)+csumplq8(3,3)&
+        lines(id, 127)=(csumplq8(1,3)-csumplq8(2,3)+csumplq8(3,3)&
         -csumplq8(4,3)-(csumplq8(5,3)-csumplq8(6,3)+csumplq8(7,3)&
         -csumplq8(8,3)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 127)=(csumplqmom8(1,ik,3)-csumplqmom8(2,ik,3)&
+            momentum_lines(id, ik, 127)=(csumplqmom8(1,ik,3)-csumplqmom8(2,ik,3)&
         +csumplqmom8(3,ik,3)-csumplqmom8(4,ik,3)&
         -(csumplqmom8(5,ik,3)-csumplqmom8(6,ik,3)+csumplqmom8(7,ik,3)&
         -csumplqmom8(8,ik,3)))*adiv2
@@ -3289,14 +3289,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 128)=(csumplq8(1,4)+csumplq8(2,4)+csumplq8(3,4)&
+        lines(id, 128)=(csumplq8(1,4)+csumplq8(2,4)+csumplq8(3,4)&
         +csumplq8(4,4)+(csumplq8(5,4)+csumplq8(6,4)+csumplq8(7,4)&
         +csumplq8(8,4)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 128)=(csumplqmom8(1,ik,4)+csumplqmom8(2,ik,4)&
+            momentum_lines(id, ik, 128)=(csumplqmom8(1,ik,4)+csumplqmom8(2,ik,4)&
         +csumplqmom8(3,ik,4)+csumplqmom8(4,ik,4)&
         +(csumplqmom8(5,ik,4)+csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
         +csumplqmom8(8,ik,4)))*adiv2
@@ -3304,14 +3304,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 129)=(csumplq8(1,4)+csumplq8(2,4)+csumplq8(3,4)&
+        lines(id, 129)=(csumplq8(1,4)+csumplq8(2,4)+csumplq8(3,4)&
         +csumplq8(4,4)-(csumplq8(5,4)+csumplq8(6,4)+csumplq8(7,4)&
         +csumplq8(8,4)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 129)=(csumplqmom8(1,ik,4)+csumplqmom8(2,ik,4)&
+            momentum_lines(id, ik, 129)=(csumplqmom8(1,ik,4)+csumplqmom8(2,ik,4)&
         +csumplqmom8(3,ik,4)+csumplqmom8(4,ik,4)&
         -(csumplqmom8(5,ik,4)+csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
         +csumplqmom8(8,ik,4)))*adiv2
@@ -3319,38 +3319,38 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 130)=(csumplq8(1,4)+giot*csumplq8(2,4)-csumplq8(3,4)&
+        lines(id, 130)=(csumplq8(1,4)+giot*csumplq8(2,4)-csumplq8(3,4)&
         -giot*csumplq8(4,4))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 130)=(csumplqmom8(1,ik,4)+giot*csumplqmom8(2,ik,4)&
+            momentum_lines(id, ik, 130)=(csumplqmom8(1,ik,4)+giot*csumplqmom8(2,ik,4)&
         -csumplqmom8(3,ik,4)-giot*csumplqmom8(4,ik,4))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 131)=(csumplq8(7,4)+giot*csumplq8(6,4)-csumplq8(5,4)&
+        lines(id, 131)=(csumplq8(7,4)+giot*csumplq8(6,4)-csumplq8(5,4)&
         -giot*csumplq8(8,4))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 131)=(csumplqmom8(7,ik,4)+giot*csumplqmom8(6,ik,4)&
+            momentum_lines(id, ik, 131)=(csumplqmom8(7,ik,4)+giot*csumplqmom8(6,ik,4)&
         -csumplqmom8(5,ik,4)-giot*csumplqmom8(8,ik,4))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 132)=(csumplq8(1,4)-csumplq8(2,4)+csumplq8(3,4)&
+        lines(id, 132)=(csumplq8(1,4)-csumplq8(2,4)+csumplq8(3,4)&
         -csumplq8(4,4)+(csumplq8(5,4)-csumplq8(6,4)+csumplq8(7,4)&
         -csumplq8(8,4)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 132)=(csumplqmom8(1,ik,4)-csumplqmom8(2,ik,4)&
+            momentum_lines(id, ik, 132)=(csumplqmom8(1,ik,4)-csumplqmom8(2,ik,4)&
         +csumplqmom8(3,ik,4)-csumplqmom8(4,ik,4)&
         +(csumplqmom8(5,ik,4)-csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
         -csumplqmom8(8,ik,4)))*adiv2
@@ -3358,14 +3358,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 133)=(csumplq8(1,4)-csumplq8(2,4)+csumplq8(3,4)&
+        lines(id, 133)=(csumplq8(1,4)-csumplq8(2,4)+csumplq8(3,4)&
         -csumplq8(4,4)-(csumplq8(5,4)-csumplq8(6,4)+csumplq8(7,4)&
         -csumplq8(8,4)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 133)=(csumplqmom8(1,ik,4)-csumplqmom8(2,ik,4)&
+            momentum_lines(id, ik, 133)=(csumplqmom8(1,ik,4)-csumplqmom8(2,ik,4)&
         +csumplqmom8(3,ik,4)-csumplqmom8(4,ik,4)&
         -(csumplqmom8(5,ik,4)-csumplqmom8(6,ik,4)+csumplqmom8(7,ik,4)&
         -csumplqmom8(8,ik,4)))*adiv2
@@ -3377,14 +3377,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 134)=(csumplq8(1,5)+csumplq8(2,5)+csumplq8(3,5)&
+        lines(id, 134)=(csumplq8(1,5)+csumplq8(2,5)+csumplq8(3,5)&
         +csumplq8(4,5)+(csumplq8(5,5)+csumplq8(6,5)+csumplq8(7,5)&
         +csumplq8(8,5)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 134)=(csumplqmom8(1,ik,5)+csumplqmom8(2,ik,5)&
+            momentum_lines(id, ik, 134)=(csumplqmom8(1,ik,5)+csumplqmom8(2,ik,5)&
         +csumplqmom8(3,ik,5)+csumplqmom8(4,ik,5)&
         +(csumplqmom8(5,ik,5)+csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
         +csumplqmom8(8,ik,5)))*adiv2
@@ -3392,14 +3392,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 135)=(csumplq8(1,5)+csumplq8(2,5)+csumplq8(3,5)&
+        lines(id, 135)=(csumplq8(1,5)+csumplq8(2,5)+csumplq8(3,5)&
         +csumplq8(4,5)-(csumplq8(5,5)+csumplq8(6,5)+csumplq8(7,5)&
         +csumplq8(8,5)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 135)=(csumplqmom8(1,ik,5)+csumplqmom8(2,ik,5)&
+            momentum_lines(id, ik, 135)=(csumplqmom8(1,ik,5)+csumplqmom8(2,ik,5)&
         +csumplqmom8(3,ik,5)+csumplqmom8(4,ik,5)&
         -(csumplqmom8(5,ik,5)+csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
         +csumplqmom8(8,ik,5)))*adiv2
@@ -3407,38 +3407,38 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 136)=(csumplq8(1,5)+giot*csumplq8(2,5)-csumplq8(3,5)&
+        lines(id, 136)=(csumplq8(1,5)+giot*csumplq8(2,5)-csumplq8(3,5)&
         -giot*csumplq8(4,5))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 136)=(csumplqmom8(1,ik,5)+giot*csumplqmom8(2,ik,5)&
+            momentum_lines(id, ik, 136)=(csumplqmom8(1,ik,5)+giot*csumplqmom8(2,ik,5)&
         -csumplqmom8(3,ik,5)-giot*csumplqmom8(4,ik,5))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 137)=(csumplq8(7,5)+giot*csumplq8(6,5)-csumplq8(5,5)&
+        lines(id, 137)=(csumplq8(7,5)+giot*csumplq8(6,5)-csumplq8(5,5)&
         -giot*csumplq8(8,5))*adiv1
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 137)=(csumplqmom8(7,ik,5)+giot*csumplqmom8(6,ik,5)&
+            momentum_lines(id, ik, 137)=(csumplqmom8(7,ik,5)+giot*csumplqmom8(6,ik,5)&
         -csumplqmom8(5,ik,5)-giot*csumplqmom8(8,ik,5))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 138)=(csumplq8(1,5)-csumplq8(2,5)+csumplq8(3,5)&
+        lines(id, 138)=(csumplq8(1,5)-csumplq8(2,5)+csumplq8(3,5)&
         -csumplq8(4,5)+(csumplq8(5,5)-csumplq8(6,5)+csumplq8(7,5)&
         -csumplq8(8,5)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 138)=(csumplqmom8(1,ik,5)-csumplqmom8(2,ik,5)&
+            momentum_lines(id, ik, 138)=(csumplqmom8(1,ik,5)-csumplqmom8(2,ik,5)&
         +csumplqmom8(3,ik,5)-csumplqmom8(4,ik,5)&
         +(csumplqmom8(5,ik,5)-csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
         -csumplqmom8(8,ik,5)))*adiv2
@@ -3446,14 +3446,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 139)=(csumplq8(1,5)-csumplq8(2,5)+csumplq8(3,5)&
+        lines(id, 139)=(csumplq8(1,5)-csumplq8(2,5)+csumplq8(3,5)&
         -csumplq8(4,5)-(csumplq8(5,5)-csumplq8(6,5)+csumplq8(7,5)&
         -csumplq8(8,5)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 139)=(csumplqmom8(1,ik,5)-csumplqmom8(2,ik,5)&
+            momentum_lines(id, ik, 139)=(csumplqmom8(1,ik,5)-csumplqmom8(2,ik,5)&
         +csumplqmom8(3,ik,5)-csumplqmom8(4,ik,5)&
         -(csumplqmom8(5,ik,5)-csumplqmom8(6,ik,5)+csumplqmom8(7,ik,5)&
         -csumplqmom8(8,ik,5)))*adiv2
@@ -3465,14 +3465,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 140)=(csumplq8(1,6)+csumplq8(2,6)+csumplq8(3,6)&
+        lines(id, 140)=(csumplq8(1,6)+csumplq8(2,6)+csumplq8(3,6)&
         +csumplq8(4,6)+(csumplq8(5,6)+csumplq8(6,6)+csumplq8(7,6)&
         +csumplq8(8,6)))*adiv2
     !**********************************************************************
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 140)=(csumplqmom8(1,ik,6)+csumplqmom8(2,ik,6)&
+            momentum_lines(id, ik, 140)=(csumplqmom8(1,ik,6)+csumplqmom8(2,ik,6)&
         +csumplqmom8(3,ik,6)+csumplqmom8(4,ik,6)&
         +(csumplqmom8(5,ik,6)+csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
         +csumplqmom8(8,ik,6)))*adiv2
@@ -3480,14 +3480,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 141)=(csumplq8(1,6)+csumplq8(2,6)+csumplq8(3,6)&
+        lines(id, 141)=(csumplq8(1,6)+csumplq8(2,6)+csumplq8(3,6)&
         +csumplq8(4,6)-(csumplq8(5,6)+csumplq8(6,6)+csumplq8(7,6)&
             +csumplq8(8,6)))*adiv2
     !**********************************************************************
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 141)=(csumplqmom8(1,ik,6)+csumplqmom8(2,ik,6)&
+            momentum_lines(id, ik, 141)=(csumplqmom8(1,ik,6)+csumplqmom8(2,ik,6)&
         +csumplqmom8(3,ik,6)+csumplqmom8(4,ik,6)&
         -(csumplqmom8(5,ik,6)+csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
         +csumplqmom8(8,ik,6)))*adiv2
@@ -3495,40 +3495,40 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 142)=(csumplq8(1,6)+giot*csumplq8(2,6)-csumplq8(3,6)&
+        lines(id, 142)=(csumplq8(1,6)+giot*csumplq8(2,6)-csumplq8(3,6)&
         -giot*csumplq8(4,6)+(csumplq8(8,6)+giot*csumplq8(7,6)-csumplq8(6,6)&
         -giot*csumplq8(5,6)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 142)=(csumplqmom8(1,ik,6)+giot*csumplqmom8(2,ik,6)&
+            momentum_lines(id, ik, 142)=(csumplqmom8(1,ik,6)+giot*csumplqmom8(2,ik,6)&
         -csumplqmom8(3,ik,6)-giot*csumplqmom8(4,ik,6))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 143)=(csumplq8(1,6)+giot*csumplq8(2,6)-csumplq8(3,6)&
+        lines(id, 143)=(csumplq8(1,6)+giot*csumplq8(2,6)-csumplq8(3,6)&
         -giot*csumplq8(4,6)-(csumplq8(8,6)+giot*csumplq8(7,6)-csumplq8(6,6)&
         -giot*csumplq8(5,6)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 143)=(csumplqmom8(8,ik,6)+giot*csumplqmom8(7,ik,6)&
+            momentum_lines(id, ik, 143)=(csumplqmom8(8,ik,6)+giot*csumplqmom8(7,ik,6)&
         -csumplqmom8(6,ik,6)-giot*csumplqmom8(5,ik,6))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 144)=(csumplq8(1,6)-csumplq8(2,6)+csumplq8(3,6)&
+        lines(id, 144)=(csumplq8(1,6)-csumplq8(2,6)+csumplq8(3,6)&
         -csumplq8(4,6)+(csumplq8(5,6)-csumplq8(6,6)+csumplq8(7,6)&
         -csumplq8(8,6)))*adiv2
     !**********************************************************************
     !     j=2, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 144)=(csumplqmom8(1,ik,6)-csumplqmom8(2,ik,6)&
+            momentum_lines(id, ik, 144)=(csumplqmom8(1,ik,6)-csumplqmom8(2,ik,6)&
         +csumplqmom8(3,ik,6)-csumplqmom8(4,ik,6)&
         +(csumplqmom8(5,ik,6)-csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
         -csumplqmom8(8,ik,6)))*adiv2
@@ -3536,14 +3536,14 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 145)=(csumplq8(1,6)-csumplq8(2,6)+csumplq8(3,6)&
+        lines(id, 145)=(csumplq8(1,6)-csumplq8(2,6)+csumplq8(3,6)&
         -csumplq8(4,6)-(csumplq8(5,6)-csumplq8(6,6)+csumplq8(7,6)&
         -csumplq8(8,6)))*adiv2
     !**********************************************************************
     !     j=2, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 145)=(csumplqmom8(1,ik,6)-csumplqmom8(2,ik,6)&
+            momentum_lines(id, ik, 145)=(csumplqmom8(1,ik,6)-csumplqmom8(2,ik,6)&
         +csumplqmom8(3,ik,6)-csumplqmom8(4,ik,6)&
         -(csumplqmom8(5,ik,6)-csumplqmom8(6,ik,6)+csumplqmom8(7,ik,6)&
         -csumplqmom8(8,ik,6)))*adiv2
@@ -3555,7 +3555,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 146)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 146)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
         +csumplq16(4,7)&
         +(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
         +(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
@@ -3564,7 +3564,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 146)=(csumplqmom16(1,ik,7)+csumplqmom16(2,ik,7)&
+            momentum_lines(id, ik, 146)=(csumplqmom16(1,ik,7)+csumplqmom16(2,ik,7)&
         +csumplqmom16(3,ik,7)+csumplqmom16(4,ik,7)&
         +(csumplqmom16(9,ik,7)+csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
         +csumplqmom16(12,ik,7)))*adiv2
@@ -3572,7 +3572,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 147)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 147)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
         +csumplq16(4,7)&
         -(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
         +(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
@@ -3581,7 +3581,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 147)=(csumplqmom16(5,ik,7)+csumplqmom16(6,ik,7)&
+            momentum_lines(id, ik, 147)=(csumplqmom16(5,ik,7)+csumplqmom16(6,ik,7)&
         +csumplqmom16(7,ik,7)+csumplqmom16(8,ik,7)&
         +(csumplqmom16(13,ik,7)+csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
         +csumplqmom16(16,ik,7)))*adiv2
@@ -3589,7 +3589,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 148)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 148)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
         +csumplq16(4,7)&
         +(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
         -(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
@@ -3598,7 +3598,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 148)=(csumplqmom16(1,ik,7)+csumplqmom16(2,ik,7)&
+            momentum_lines(id, ik, 148)=(csumplqmom16(1,ik,7)+csumplqmom16(2,ik,7)&
         +csumplqmom16(3,ik,7)+csumplqmom16(4,ik,7)&
         -(csumplqmom16(9,ik,7)+csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
         +csumplqmom16(12,ik,7)))*adiv2
@@ -3606,7 +3606,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 149)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 149)=(csumplq16(1,7)+csumplq16(2,7)+csumplq16(3,7)&
         +csumplq16(4,7)&
         -(csumplq16(5,7)+csumplq16(6,7)+csumplq16(7,7)+csumplq16(8,7))&
         -(csumplq16(9,7)+csumplq16(10,7)+csumplq16(11,7)+csumplq16(12,7))&
@@ -3615,7 +3615,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 149)=(csumplqmom16(5,ik,7)+csumplqmom16(6,ik,7)&
+            momentum_lines(id, ik, 149)=(csumplqmom16(5,ik,7)+csumplqmom16(6,ik,7)&
         +csumplqmom16(7,ik,7)+csumplqmom16(8,ik,7)&
         -(csumplqmom16(13,ik,7)+csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
         +csumplqmom16(16,ik,7)))*adiv2
@@ -3623,33 +3623,33 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 150)=(csumplq16(1,7)+giot*csumplq16(2,7)-csumplq16(3,7)&
+        lines(id, 150)=(csumplq16(1,7)+giot*csumplq16(2,7)-csumplq16(3,7)&
         -giot*csumplq16(4,7)+(csumplq16(5,7)+giot*csumplq16(6,7)-csumplq16(7,7)&
         -giot*csumplq16(8,7)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 150)=(csumplqmom16(1,ik,7)+giot*csumplqmom16(2,ik,7)&
+            momentum_lines(id, ik, 150)=(csumplqmom16(1,ik,7)+giot*csumplqmom16(2,ik,7)&
         -csumplqmom16(3,ik,7)-giot*csumplqmom16(4,ik,7))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 151)=(csumplq16(1,7)+giot*csumplq16(2,7)-csumplq16(3,7)&
+        lines(id, 151)=(csumplq16(1,7)+giot*csumplq16(2,7)-csumplq16(3,7)&
         -giot*csumplq16(4,7)-(csumplq16(5,7)+giot*csumplq16(6,7)-csumplq16(7,7)&
         -giot*csumplq16(8,7)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 151)=(csumplqmom16(5,ik,7)+giot*csumplqmom16(6,ik,7)&
+            momentum_lines(id, ik, 151)=(csumplqmom16(5,ik,7)+giot*csumplqmom16(6,ik,7)&
         -csumplqmom16(7,ik,7)-giot*csumplqmom16(8,ik,7))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 152)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 152)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
         -csumplq16(4,7)&
         +(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
         +(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
@@ -3658,7 +3658,7 @@ module here_be_dragons
     !     j=2, pp=+, q
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 152)=(csumplqmom16(1,ik,7)-csumplqmom16(2,ik,7)&
+            momentum_lines(id, ik, 152)=(csumplqmom16(1,ik,7)-csumplqmom16(2,ik,7)&
         +csumplqmom16(3,ik,7)-csumplqmom16(4,ik,7)&
         +(csumplqmom16(9,ik,7)-csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
         -csumplqmom16(12,ik,7)))*adiv2
@@ -3666,7 +3666,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 153)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 153)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
         -csumplq16(4,7)&
         -(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
         +(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
@@ -3675,7 +3675,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 153)=(csumplqmom16(5,ik,7)-csumplqmom16(6,ik,7)&
+            momentum_lines(id, ik, 153)=(csumplqmom16(5,ik,7)-csumplqmom16(6,ik,7)&
         +csumplqmom16(7,ik,7)-csumplqmom16(8,ik,7)&
         +(csumplqmom16(13,ik,7)-csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
         -csumplqmom16(16,ik,7)))*adiv2
@@ -3683,7 +3683,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 154)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 154)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
         -csumplq16(4,7)&
         +(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
         -(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
@@ -3692,7 +3692,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 154)=(csumplqmom16(1,ik,7)-csumplqmom16(2,ik,7)&
+            momentum_lines(id, ik, 154)=(csumplqmom16(1,ik,7)-csumplqmom16(2,ik,7)&
         +csumplqmom16(3,ik,7)-csumplqmom16(4,ik,7)&
         -(csumplqmom16(9,ik,7)-csumplqmom16(10,ik,7)+csumplqmom16(11,ik,7)&
         -csumplqmom16(12,ik,7)))*adiv2
@@ -3700,7 +3700,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 155)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
+        lines(id, 155)=(csumplq16(1,7)-csumplq16(2,7)+csumplq16(3,7)&
         -csumplq16(4,7)&
         -(csumplq16(5,7)-csumplq16(6,7)+csumplq16(7,7)-csumplq16(8,7))&
         -(csumplq16(9,7)-csumplq16(10,7)+csumplq16(11,7)-csumplq16(12,7))&
@@ -3709,7 +3709,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 155)=(csumplqmom16(5,ik,7)-csumplqmom16(6,ik,7)&
+            momentum_lines(id, ik, 155)=(csumplqmom16(5,ik,7)-csumplqmom16(6,ik,7)&
         +csumplqmom16(7,ik,7)-csumplqmom16(8,ik,7)&
         -(csumplqmom16(13,ik,7)-csumplqmom16(14,ik,7)+csumplqmom16(15,ik,7)&
         -csumplqmom16(16,ik,7)))*adiv2
@@ -3721,7 +3721,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 156)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 156)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
         +csumplq16(4,8)&
         +(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
         +(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
@@ -3730,7 +3730,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 156)=(csumplqmom16(1,ik,8)+csumplqmom16(2,ik,8)&
+            momentum_lines(id, ik, 156)=(csumplqmom16(1,ik,8)+csumplqmom16(2,ik,8)&
         +csumplqmom16(3,ik,8)+csumplqmom16(4,ik,8)&
         +(csumplqmom16(9,ik,8)+csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
         +csumplqmom16(12,ik,8)))*adiv2
@@ -3738,7 +3738,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 157)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 157)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
         +csumplq16(4,8)&
         -(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
         +(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
@@ -3747,7 +3747,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 157)=(csumplqmom16(5,ik,8)+csumplqmom16(6,ik,8)&
+            momentum_lines(id, ik, 157)=(csumplqmom16(5,ik,8)+csumplqmom16(6,ik,8)&
         +csumplqmom16(7,ik,8)+csumplqmom16(8,ik,8)&
         +(csumplqmom16(13,ik,8)+csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
         +csumplqmom16(16,ik,8)))*adiv2
@@ -3755,7 +3755,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 158)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 158)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
         +csumplq16(4,8)&
         +(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
         -(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
@@ -3764,7 +3764,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 158)=(csumplqmom16(1,ik,8)+csumplqmom16(2,ik,8)&
+            momentum_lines(id, ik, 158)=(csumplqmom16(1,ik,8)+csumplqmom16(2,ik,8)&
         +csumplqmom16(3,ik,8)+csumplqmom16(4,ik,8)&
         -(csumplqmom16(9,ik,8)+csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
         +csumplqmom16(12,ik,8)))*adiv2
@@ -3772,7 +3772,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 159)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 159)=(csumplq16(1,8)+csumplq16(2,8)+csumplq16(3,8)&
         +csumplq16(4,8)&
         -(csumplq16(5,8)+csumplq16(6,8)+csumplq16(7,8)+csumplq16(8,8))&
         -(csumplq16(9,8)+csumplq16(10,8)+csumplq16(11,8)+csumplq16(12,8))&
@@ -3781,7 +3781,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 159)=(csumplqmom16(5,ik,8)+csumplqmom16(6,ik,8)&
+            momentum_lines(id, ik, 159)=(csumplqmom16(5,ik,8)+csumplqmom16(6,ik,8)&
         +csumplqmom16(7,ik,8)+csumplqmom16(8,ik,8)&
         -(csumplqmom16(13,ik,8)+csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
         +csumplqmom16(16,ik,8)))*adiv2
@@ -3789,33 +3789,33 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 160)=(csumplq16(1,8)+giot*csumplq16(2,8)-csumplq16(3,8)&
+        lines(id, 160)=(csumplq16(1,8)+giot*csumplq16(2,8)-csumplq16(3,8)&
         -giot*csumplq16(4,8)+(csumplq16(5,8)+giot*csumplq16(6,8)-csumplq16(7,8)&
         -giot*csumplq16(8,8)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 160)=(csumplqmom16(1,ik,8)+giot*csumplqmom16(2,ik,8)&
+            momentum_lines(id, ik, 160)=(csumplqmom16(1,ik,8)+giot*csumplqmom16(2,ik,8)&
         -csumplqmom16(3,ik,8)-giot*csumplqmom16(4,ik,8))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 161)=(csumplq16(1,8)+giot*csumplq16(2,8)-csumplq16(3,8)&
+        lines(id, 161)=(csumplq16(1,8)+giot*csumplq16(2,8)-csumplq16(3,8)&
         -giot*csumplq16(4,8)-(csumplq16(5,8)+giot*csumplq16(6,8)-csumplq16(7,8)&
         -giot*csumplq16(8,8)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 161)=(csumplqmom16(5,ik,8)+giot*csumplqmom16(6,ik,8)&
+            momentum_lines(id, ik, 161)=(csumplqmom16(5,ik,8)+giot*csumplqmom16(6,ik,8)&
         -csumplqmom16(7,ik,8)-giot*csumplqmom16(8,ik,8))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 162)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 162)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
         -csumplq16(4,8)&
         +(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
         +(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
@@ -3824,7 +3824,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 162)=(csumplqmom16(1,ik,8)-csumplqmom16(2,ik,8)&
+            momentum_lines(id, ik, 162)=(csumplqmom16(1,ik,8)-csumplqmom16(2,ik,8)&
         +csumplqmom16(3,ik,8)-csumplqmom16(4,ik,8)&
         +(csumplqmom16(9,ik,8)-csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
         -csumplqmom16(12,ik,8)))*adiv2
@@ -3832,7 +3832,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 163)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 163)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
         -csumplq16(4,8)&
         -(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
         +(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
@@ -3841,7 +3841,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 163)=(csumplqmom16(5,ik,8)-csumplqmom16(6,ik,8)&
+            momentum_lines(id, ik, 163)=(csumplqmom16(5,ik,8)-csumplqmom16(6,ik,8)&
         +csumplqmom16(7,ik,8)-csumplqmom16(8,ik,8)&
         +(csumplqmom16(13,ik,8)-csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
         -csumplqmom16(16,ik,8)))*adiv2
@@ -3849,7 +3849,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 164)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 164)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
         -csumplq16(4,8)&
         +(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
         -(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
@@ -3858,7 +3858,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 164)=(csumplqmom16(1,ik,8)-csumplqmom16(2,ik,8)&
+            momentum_lines(id, ik, 164)=(csumplqmom16(1,ik,8)-csumplqmom16(2,ik,8)&
         +csumplqmom16(3,ik,8)-csumplqmom16(4,ik,8)&
         -(csumplqmom16(9,ik,8)-csumplqmom16(10,ik,8)+csumplqmom16(11,ik,8)&
         -csumplqmom16(12,ik,8)))*adiv2
@@ -3866,7 +3866,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 165)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
+        lines(id, 165)=(csumplq16(1,8)-csumplq16(2,8)+csumplq16(3,8)&
         -csumplq16(4,8)&
         -(csumplq16(5,8)-csumplq16(6,8)+csumplq16(7,8)-csumplq16(8,8))&
         -(csumplq16(9,8)-csumplq16(10,8)+csumplq16(11,8)-csumplq16(12,8))&
@@ -3875,7 +3875,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 165)=(csumplqmom16(5,ik,8)-csumplqmom16(6,ik,8)&
+            momentum_lines(id, ik, 165)=(csumplqmom16(5,ik,8)-csumplqmom16(6,ik,8)&
         +csumplqmom16(7,ik,8)-csumplqmom16(8,ik,8)&
         -(csumplqmom16(13,ik,8)-csumplqmom16(14,ik,8)+csumplqmom16(15,ik,8)&
         -csumplqmom16(16,ik,8)))*adiv2
@@ -3887,7 +3887,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 166)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 166)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
         +csumplq16(4,9)&
         +(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
         +(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
@@ -3896,7 +3896,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 166)=(csumplqmom16(1,ik,9)+csumplqmom16(2,ik,9)&
+            momentum_lines(id, ik, 166)=(csumplqmom16(1,ik,9)+csumplqmom16(2,ik,9)&
         +csumplqmom16(3,ik,9)+csumplqmom16(4,ik,9)&
         +(csumplqmom16(9,ik,9)+csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
         +csumplqmom16(12,ik,9)))*adiv2
@@ -3904,7 +3904,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 167)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 167)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
         +csumplq16(4,9)&
         -(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
         +(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
@@ -3913,7 +3913,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 167)=(csumplqmom16(5,ik,9)+csumplqmom16(6,ik,9)&
+            momentum_lines(id, ik, 167)=(csumplqmom16(5,ik,9)+csumplqmom16(6,ik,9)&
         +csumplqmom16(7,ik,9)+csumplqmom16(8,ik,9)&
         +(csumplqmom16(13,ik,9)+csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
         +csumplqmom16(16,ik,9)))*adiv2
@@ -3921,7 +3921,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 168)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 168)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
         +csumplq16(4,9)&
         +(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
         -(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
@@ -3930,7 +3930,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 168)=(csumplqmom16(1,ik,9)+csumplqmom16(2,ik,9)&
+            momentum_lines(id, ik, 168)=(csumplqmom16(1,ik,9)+csumplqmom16(2,ik,9)&
         +csumplqmom16(3,ik,9)+csumplqmom16(4,ik,9)&
         -(csumplqmom16(9,ik,9)+csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
         +csumplqmom16(12,ik,9)))*adiv2
@@ -3938,7 +3938,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 169)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 169)=(csumplq16(1,9)+csumplq16(2,9)+csumplq16(3,9)&
         +csumplq16(4,9)&
         -(csumplq16(5,9)+csumplq16(6,9)+csumplq16(7,9)+csumplq16(8,9))&
         -(csumplq16(9,9)+csumplq16(10,9)+csumplq16(11,9)+csumplq16(12,9))&
@@ -3947,7 +3947,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 169)=(csumplqmom16(5,ik,9)+csumplqmom16(6,ik,9)&
+            momentum_lines(id, ik, 169)=(csumplqmom16(5,ik,9)+csumplqmom16(6,ik,9)&
         +csumplqmom16(7,ik,9)+csumplqmom16(8,ik,9)&
         -(csumplqmom16(13,ik,9)+csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
         +csumplqmom16(16,ik,9)))*adiv2
@@ -3955,33 +3955,33 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 170)=(csumplq16(1,9)+giot*csumplq16(2,9)-csumplq16(3,9)&
+        lines(id, 170)=(csumplq16(1,9)+giot*csumplq16(2,9)-csumplq16(3,9)&
         -giot*csumplq16(4,9)+(csumplq16(5,9)+giot*csumplq16(6,9)-csumplq16(7,9)&
         -giot*csumplq16(8,9)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 170)=(csumplqmom16(1,ik,9)+giot*csumplqmom16(2,ik,9)&
+            momentum_lines(id, ik, 170)=(csumplqmom16(1,ik,9)+giot*csumplqmom16(2,ik,9)&
         -csumplqmom16(3,ik,9)-giot*csumplqmom16(4,ik,9))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 171)=(csumplq16(1,9)+giot*csumplq16(2,9)-csumplq16(3,9)&
+        lines(id, 171)=(csumplq16(1,9)+giot*csumplq16(2,9)-csumplq16(3,9)&
         -giot*csumplq16(4,9)-(csumplq16(5,9)+giot*csumplq16(6,9)-csumplq16(7,9)&
         -giot*csumplq16(8,9)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 171)=(csumplqmom16(5,ik,9)+giot*csumplqmom16(6,ik,9)&
+            momentum_lines(id, ik, 171)=(csumplqmom16(5,ik,9)+giot*csumplqmom16(6,ik,9)&
         -csumplqmom16(7,ik,9)-giot*csumplqmom16(8,ik,9))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 172)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 172)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
         -csumplq16(4,9)&
         +(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
         +(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
@@ -3990,7 +3990,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 172)=(csumplqmom16(1,ik,9)-csumplqmom16(2,ik,9)&
+            momentum_lines(id, ik, 172)=(csumplqmom16(1,ik,9)-csumplqmom16(2,ik,9)&
         +csumplqmom16(3,ik,9)-csumplqmom16(4,ik,9)&
         +(csumplqmom16(9,ik,9)-csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
         -csumplqmom16(12,ik,9)))*adiv2
@@ -3998,7 +3998,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 173)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 173)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
         -csumplq16(4,9)&
         -(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
         +(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
@@ -4007,7 +4007,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 173)=(csumplqmom16(5,ik,9)-csumplqmom16(6,ik,9)&
+            momentum_lines(id, ik, 173)=(csumplqmom16(5,ik,9)-csumplqmom16(6,ik,9)&
         +csumplqmom16(7,ik,9)-csumplqmom16(8,ik,9)&
         +(csumplqmom16(13,ik,9)-csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
         -csumplqmom16(16,ik,9)))*adiv2
@@ -4015,7 +4015,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 174)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 174)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
         -csumplq16(4,9)&
         +(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
         -(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
@@ -4024,7 +4024,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 174)=(csumplqmom16(1,ik,9)-csumplqmom16(2,ik,9)&
+            momentum_lines(id, ik, 174)=(csumplqmom16(1,ik,9)-csumplqmom16(2,ik,9)&
         +csumplqmom16(3,ik,9)-csumplqmom16(4,ik,9)&
         -(csumplqmom16(9,ik,9)-csumplqmom16(10,ik,9)+csumplqmom16(11,ik,9)&
         -csumplqmom16(12,ik,9)))*adiv2
@@ -4032,7 +4032,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 175)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
+        lines(id, 175)=(csumplq16(1,9)-csumplq16(2,9)+csumplq16(3,9)&
         -csumplq16(4,9)&
         -(csumplq16(5,9)-csumplq16(6,9)+csumplq16(7,9)-csumplq16(8,9))&
         -(csumplq16(9,9)-csumplq16(10,9)+csumplq16(11,9)-csumplq16(12,9))&
@@ -4041,7 +4041,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 175)=(csumplqmom16(5,ik,9)-csumplqmom16(6,ik,9)&
+            momentum_lines(id, ik, 175)=(csumplqmom16(5,ik,9)-csumplqmom16(6,ik,9)&
         +csumplqmom16(7,ik,9)-csumplqmom16(8,ik,9)&
         -(csumplqmom16(13,ik,9)-csumplqmom16(14,ik,9)+csumplqmom16(15,ik,9)&
         -csumplqmom16(16,ik,9)))*adiv2
@@ -4053,7 +4053,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 176)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 176)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
         +csumplq16(4,10)&
         +(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
         +(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
@@ -4062,7 +4062,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 176)=(csumplqmom16(1,ik,10)+csumplqmom16(2,ik,10)&
+            momentum_lines(id, ik, 176)=(csumplqmom16(1,ik,10)+csumplqmom16(2,ik,10)&
         +csumplqmom16(3,ik,10)+csumplqmom16(4,ik,10)&
         +(csumplqmom16(9,ik,10)+csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
         +csumplqmom16(12,ik,10)))*adiv2
@@ -4070,7 +4070,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 177)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 177)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
         +csumplq16(4,10)&
         -(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
         +(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
@@ -4079,7 +4079,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 177)=(csumplqmom16(5,ik,10)+csumplqmom16(6,ik,10)&
+            momentum_lines(id, ik, 177)=(csumplqmom16(5,ik,10)+csumplqmom16(6,ik,10)&
         +csumplqmom16(7,ik,10)+csumplqmom16(8,ik,10)&
         +(csumplqmom16(13,ik,10)+csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
         +csumplqmom16(16,ik,10)))*adiv2
@@ -4087,7 +4087,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 178)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 178)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
         +csumplq16(4,10)&
         +(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
         -(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
@@ -4096,7 +4096,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 178)=(csumplqmom16(1,ik,10)+csumplqmom16(2,ik,10)&
+            momentum_lines(id, ik, 178)=(csumplqmom16(1,ik,10)+csumplqmom16(2,ik,10)&
         +csumplqmom16(3,ik,10)+csumplqmom16(4,ik,10)&
         -(csumplqmom16(9,ik,10)+csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
         +csumplqmom16(12,ik,10)))*adiv2
@@ -4104,7 +4104,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 179)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 179)=(csumplq16(1,10)+csumplq16(2,10)+csumplq16(3,10)&
         +csumplq16(4,10)&
         -(csumplq16(5,10)+csumplq16(6,10)+csumplq16(7,10)+csumplq16(8,10))&
         -(csumplq16(9,10)+csumplq16(10,10)+csumplq16(11,10)+csumplq16(12,10))&
@@ -4113,7 +4113,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 179)=(csumplqmom16(5,ik,10)+csumplqmom16(6,ik,10)&
+            momentum_lines(id, ik, 179)=(csumplqmom16(5,ik,10)+csumplqmom16(6,ik,10)&
         +csumplqmom16(7,ik,10)+csumplqmom16(8,ik,10)&
         -(csumplqmom16(13,ik,10)+csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
         +csumplqmom16(16,ik,10)))*adiv2
@@ -4121,35 +4121,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 180)=(csumplq16(1,10)+giot*csumplq16(2,10)-csumplq16(3,10)&
+        lines(id, 180)=(csumplq16(1,10)+giot*csumplq16(2,10)-csumplq16(3,10)&
         -giot*csumplq16(4,10)+(csumplq16(5,10)+giot*csumplq16(6,10)-csumplq16(7,10)&
         -giot*csumplq16(8,10)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 180)=(csumplqmom16(1,ik,10)&
+            momentum_lines(id, ik, 180)=(csumplqmom16(1,ik,10)&
         +giot*csumplqmom16(2,ik,10)&
         -csumplqmom16(3,ik,10)-giot*csumplqmom16(4,ik,10))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 181)=(csumplq16(1,10)+giot*csumplq16(2,10)-csumplq16(3,10)&
+        lines(id, 181)=(csumplq16(1,10)+giot*csumplq16(2,10)-csumplq16(3,10)&
         -giot*csumplq16(4,10)-(csumplq16(5,10)+giot*csumplq16(6,10)-csumplq16(7,10)&
         -giot*csumplq16(8,10)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 181)=(csumplqmom16(5,ik,10)&
+            momentum_lines(id, ik, 181)=(csumplqmom16(5,ik,10)&
         +giot*csumplqmom16(6,ik,10)&
         -csumplqmom16(7,ik,10)-giot*csumplqmom16(8,ik,10))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 182)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 182)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
         -csumplq16(4,10)&
         +(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
         +(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
@@ -4158,7 +4158,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 182)=(csumplqmom16(1,ik,10)-csumplqmom16(2,ik,10)&
+            momentum_lines(id, ik, 182)=(csumplqmom16(1,ik,10)-csumplqmom16(2,ik,10)&
         +csumplqmom16(3,ik,10)-csumplqmom16(4,ik,10)&
         +(csumplqmom16(9,ik,10)-csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
         -csumplqmom16(12,ik,10)))*adiv2
@@ -4166,7 +4166,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 183)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 183)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
         -csumplq16(4,10)&
         -(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
         +(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
@@ -4175,7 +4175,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 183)=(csumplqmom16(5,ik,10)-csumplqmom16(6,ik,10)&
+            momentum_lines(id, ik, 183)=(csumplqmom16(5,ik,10)-csumplqmom16(6,ik,10)&
         +csumplqmom16(7,ik,10)-csumplqmom16(8,ik,10)&
         +(csumplqmom16(13,ik,10)-csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
         -csumplqmom16(16,ik,10)))*adiv2
@@ -4183,7 +4183,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 184)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 184)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
         -csumplq16(4,10)&
         +(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
         -(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
@@ -4192,7 +4192,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 184)=(csumplqmom16(1,ik,10)-csumplqmom16(2,ik,10)&
+            momentum_lines(id, ik, 184)=(csumplqmom16(1,ik,10)-csumplqmom16(2,ik,10)&
         +csumplqmom16(3,ik,10)-csumplqmom16(4,ik,10)&
         -(csumplqmom16(9,ik,10)-csumplqmom16(10,ik,10)+csumplqmom16(11,ik,10)&
         -csumplqmom16(12,ik,10)))*adiv2
@@ -4200,7 +4200,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 185)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
+        lines(id, 185)=(csumplq16(1,10)-csumplq16(2,10)+csumplq16(3,10)&
         -csumplq16(4,10)&
         -(csumplq16(5,10)-csumplq16(6,10)+csumplq16(7,10)-csumplq16(8,10))&
         -(csumplq16(9,10)-csumplq16(10,10)+csumplq16(11,10)-csumplq16(12,10))&
@@ -4209,7 +4209,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 185)=(csumplqmom16(5,ik,10)-csumplqmom16(6,ik,10)&
+            momentum_lines(id, ik, 185)=(csumplqmom16(5,ik,10)-csumplqmom16(6,ik,10)&
         +csumplqmom16(7,ik,10)-csumplqmom16(8,ik,10)&
         -(csumplqmom16(13,ik,10)-csumplqmom16(14,ik,10)+csumplqmom16(15,ik,10)&
         -csumplqmom16(16,ik,10)))*adiv2
@@ -4221,7 +4221,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 186)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 186)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
         +csumplq16(4,11)&
         +(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
         +(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
@@ -4230,7 +4230,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 186)=(csumplqmom16(1,ik,11)+csumplqmom16(2,ik,11)&
+            momentum_lines(id, ik, 186)=(csumplqmom16(1,ik,11)+csumplqmom16(2,ik,11)&
         +csumplqmom16(3,ik,11)+csumplqmom16(4,ik,11)&
         +(csumplqmom16(9,ik,11)+csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
         +csumplqmom16(12,ik,11)))*adiv2
@@ -4238,7 +4238,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 187)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 187)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
         +csumplq16(4,11)&
         -(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
         +(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
@@ -4247,7 +4247,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 187)=(csumplqmom16(5,ik,11)+csumplqmom16(6,ik,11)&
+            momentum_lines(id, ik, 187)=(csumplqmom16(5,ik,11)+csumplqmom16(6,ik,11)&
         +csumplqmom16(7,ik,11)+csumplqmom16(8,ik,11)&
         +(csumplqmom16(13,ik,11)+csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
         +csumplqmom16(16,ik,11)))*adiv2
@@ -4255,7 +4255,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 188)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 188)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
         +csumplq16(4,11)&
         +(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
         -(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
@@ -4264,7 +4264,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 188)=(csumplqmom16(1,ik,11)+csumplqmom16(2,ik,11)&
+            momentum_lines(id, ik, 188)=(csumplqmom16(1,ik,11)+csumplqmom16(2,ik,11)&
         +csumplqmom16(3,ik,11)+csumplqmom16(4,ik,11)&
         -(csumplqmom16(9,ik,11)+csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
         +csumplqmom16(12,ik,11)))*adiv2
@@ -4272,7 +4272,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 189)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 189)=(csumplq16(1,11)+csumplq16(2,11)+csumplq16(3,11)&
         +csumplq16(4,11)&
         -(csumplq16(5,11)+csumplq16(6,11)+csumplq16(7,11)+csumplq16(8,11))&
         -(csumplq16(9,11)+csumplq16(10,11)+csumplq16(11,11)+csumplq16(12,11))&
@@ -4281,7 +4281,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 189)=(csumplqmom16(5,ik,11)+csumplqmom16(6,ik,11)&
+            momentum_lines(id, ik, 189)=(csumplqmom16(5,ik,11)+csumplqmom16(6,ik,11)&
         +csumplqmom16(7,ik,11)+csumplqmom16(8,ik,11)&
         -(csumplqmom16(13,ik,11)+csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
         +csumplqmom16(16,ik,11)))*adiv2
@@ -4289,35 +4289,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 190)=(csumplq16(1,11)+giot*csumplq16(2,11)-csumplq16(3,11)&
+        lines(id, 190)=(csumplq16(1,11)+giot*csumplq16(2,11)-csumplq16(3,11)&
         -giot*csumplq16(4,11)+(csumplq16(5,11)+giot*csumplq16(6,11)-csumplq16(7,11)&
         -giot*csumplq16(8,11)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 190)=(csumplqmom16(1,ik,11)&
+            momentum_lines(id, ik, 190)=(csumplqmom16(1,ik,11)&
         +giot*csumplqmom16(2,ik,11)&
         -csumplqmom16(3,ik,11)-giot*csumplqmom16(4,ik,11))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 191)=(csumplq16(1,11)+giot*csumplq16(2,11)-csumplq16(3,11)&
+        lines(id, 191)=(csumplq16(1,11)+giot*csumplq16(2,11)-csumplq16(3,11)&
         -giot*csumplq16(4,11)-(csumplq16(5,11)+giot*csumplq16(6,11)-csumplq16(7,11)&
         -giot*csumplq16(8,11)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 191)=(csumplqmom16(5,ik,11)&
+            momentum_lines(id, ik, 191)=(csumplqmom16(5,ik,11)&
         +giot*csumplqmom16(6,ik,11)&
         -csumplqmom16(7,ik,11)-giot*csumplqmom16(8,ik,11))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 192)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 192)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
         -csumplq16(4,11)&
         +(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
         +(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
@@ -4326,7 +4326,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 192)=(csumplqmom16(1,ik,11)-csumplqmom16(2,ik,11)&
+            momentum_lines(id, ik, 192)=(csumplqmom16(1,ik,11)-csumplqmom16(2,ik,11)&
         +csumplqmom16(3,ik,11)-csumplqmom16(4,ik,11)&
         +(csumplqmom16(9,ik,11)-csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
         -csumplqmom16(12,ik,11)))*adiv2
@@ -4334,7 +4334,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 193)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 193)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
         -csumplq16(4,11)&
         -(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
         +(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
@@ -4343,7 +4343,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 193)=(csumplqmom16(5,ik,11)-csumplqmom16(6,ik,11)&
+            momentum_lines(id, ik, 193)=(csumplqmom16(5,ik,11)-csumplqmom16(6,ik,11)&
         +csumplqmom16(7,ik,11)-csumplqmom16(8,ik,11)&
         +(csumplqmom16(13,ik,11)-csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
         -csumplqmom16(16,ik,11)))*adiv2
@@ -4351,7 +4351,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 194)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 194)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
         -csumplq16(4,11)&
         +(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
         -(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
@@ -4360,7 +4360,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 194)=(csumplqmom16(1,ik,11)-csumplqmom16(2,ik,11)&
+            momentum_lines(id, ik, 194)=(csumplqmom16(1,ik,11)-csumplqmom16(2,ik,11)&
         +csumplqmom16(3,ik,11)-csumplqmom16(4,ik,11)&
         -(csumplqmom16(9,ik,11)-csumplqmom16(10,ik,11)+csumplqmom16(11,ik,11)&
         -csumplqmom16(12,ik,11)))*adiv2
@@ -4368,7 +4368,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 195)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
+        lines(id, 195)=(csumplq16(1,11)-csumplq16(2,11)+csumplq16(3,11)&
         -csumplq16(4,11)&
         -(csumplq16(5,11)-csumplq16(6,11)+csumplq16(7,11)-csumplq16(8,11))&
         -(csumplq16(9,11)-csumplq16(10,11)+csumplq16(11,11)-csumplq16(12,11))&
@@ -4377,7 +4377,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 195)=(csumplqmom16(5,ik,11)-csumplqmom16(6,ik,11)&
+            momentum_lines(id, ik, 195)=(csumplqmom16(5,ik,11)-csumplqmom16(6,ik,11)&
         +csumplqmom16(7,ik,11)-csumplqmom16(8,ik,11)&
         -(csumplqmom16(13,ik,11)-csumplqmom16(14,ik,11)+csumplqmom16(15,ik,11)&
         -csumplqmom16(16,ik,11)))*adiv2
@@ -4389,7 +4389,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 196)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 196)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
         +csumplq16(4,12)&
         +(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
         +(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
@@ -4398,7 +4398,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 196)=(csumplqmom16(1,ik,12)+csumplqmom16(2,ik,12)&
+            momentum_lines(id, ik, 196)=(csumplqmom16(1,ik,12)+csumplqmom16(2,ik,12)&
         +csumplqmom16(3,ik,12)+csumplqmom16(4,ik,12)&
         +(csumplqmom16(9,ik,12)+csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
         +csumplqmom16(12,ik,12)))*adiv2
@@ -4406,7 +4406,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 197)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 197)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
         +csumplq16(4,12)&
         -(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
         +(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
@@ -4415,7 +4415,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 197)=(csumplqmom16(5,ik,12)+csumplqmom16(6,ik,12)&
+            momentum_lines(id, ik, 197)=(csumplqmom16(5,ik,12)+csumplqmom16(6,ik,12)&
         +csumplqmom16(7,ik,12)+csumplqmom16(8,ik,12)&
         +(csumplqmom16(13,ik,12)+csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
         +csumplqmom16(16,ik,12)))*adiv2
@@ -4423,7 +4423,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 198)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 198)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
         +csumplq16(4,12)&
         +(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
         -(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
@@ -4432,7 +4432,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 198)=(csumplqmom16(1,ik,12)+csumplqmom16(2,ik,12)&
+            momentum_lines(id, ik, 198)=(csumplqmom16(1,ik,12)+csumplqmom16(2,ik,12)&
         +csumplqmom16(3,ik,12)+csumplqmom16(4,ik,12)&
         -(csumplqmom16(9,ik,12)+csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
         +csumplqmom16(12,ik,12)))*adiv2
@@ -4440,7 +4440,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 199)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 199)=(csumplq16(1,12)+csumplq16(2,12)+csumplq16(3,12)&
         +csumplq16(4,12)&
         -(csumplq16(5,12)+csumplq16(6,12)+csumplq16(7,12)+csumplq16(8,12))&
         -(csumplq16(9,12)+csumplq16(10,12)+csumplq16(11,12)+csumplq16(12,12))&
@@ -4449,7 +4449,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 199)=(csumplqmom16(5,ik,12)+csumplqmom16(6,ik,12)&
+            momentum_lines(id, ik, 199)=(csumplqmom16(5,ik,12)+csumplqmom16(6,ik,12)&
         +csumplqmom16(7,ik,12)+csumplqmom16(8,ik,12)&
         -(csumplqmom16(13,ik,12)+csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
         +csumplqmom16(16,ik,12)))*adiv2
@@ -4457,35 +4457,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 200)=(csumplq16(1,12)+giot*csumplq16(2,12)-csumplq16(3,12)&
+        lines(id, 200)=(csumplq16(1,12)+giot*csumplq16(2,12)-csumplq16(3,12)&
         -giot*csumplq16(4,12)+(csumplq16(5,12)+giot*csumplq16(6,12)-csumplq16(7,12)&
         -giot*csumplq16(8,12)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 200)=(csumplqmom16(1,ik,12)&
+            momentum_lines(id, ik, 200)=(csumplqmom16(1,ik,12)&
         +giot*csumplqmom16(2,ik,12)&
         -csumplqmom16(3,ik,12)-giot*csumplqmom16(4,ik,12))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 201)=(csumplq16(1,12)+giot*csumplq16(2,12)-csumplq16(3,12)&
+        lines(id, 201)=(csumplq16(1,12)+giot*csumplq16(2,12)-csumplq16(3,12)&
         -giot*csumplq16(4,12)-(csumplq16(5,12)+giot*csumplq16(6,12)-csumplq16(7,12)&
         -giot*csumplq16(8,12)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 201)=(csumplqmom16(5,ik,12)&
+            momentum_lines(id, ik, 201)=(csumplqmom16(5,ik,12)&
         +giot*csumplqmom16(6,ik,12)&
         -csumplqmom16(7,ik,12)-giot*csumplqmom16(8,ik,12))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 202)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 202)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
         -csumplq16(4,12)&
         +(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
         +(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
@@ -4494,7 +4494,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 202)=(csumplqmom16(1,ik,12)-csumplqmom16(2,ik,12)&
+            momentum_lines(id, ik, 202)=(csumplqmom16(1,ik,12)-csumplqmom16(2,ik,12)&
         +csumplqmom16(3,ik,12)-csumplqmom16(4,ik,12)&
         +(csumplqmom16(9,ik,12)-csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
         -csumplqmom16(12,ik,12)))*adiv2
@@ -4502,7 +4502,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 203)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 203)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
         -csumplq16(4,12)&
         -(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
         +(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
@@ -4511,7 +4511,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 203)=(csumplqmom16(5,ik,12)-csumplqmom16(6,ik,12)&
+            momentum_lines(id, ik, 203)=(csumplqmom16(5,ik,12)-csumplqmom16(6,ik,12)&
         +csumplqmom16(7,ik,12)-csumplqmom16(8,ik,12)&
         +(csumplqmom16(13,ik,12)-csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
         -csumplqmom16(16,ik,12)))*adiv2
@@ -4519,7 +4519,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 204)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 204)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
         -csumplq16(4,12)&
         +(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
         -(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
@@ -4528,7 +4528,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 204)=(csumplqmom16(1,ik,12)-csumplqmom16(2,ik,12)&
+            momentum_lines(id, ik, 204)=(csumplqmom16(1,ik,12)-csumplqmom16(2,ik,12)&
         +csumplqmom16(3,ik,12)-csumplqmom16(4,ik,12)&
         -(csumplqmom16(9,ik,12)-csumplqmom16(10,ik,12)+csumplqmom16(11,ik,12)&
         -csumplqmom16(12,ik,12)))*adiv2
@@ -4536,7 +4536,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 205)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
+        lines(id, 205)=(csumplq16(1,12)-csumplq16(2,12)+csumplq16(3,12)&
         -csumplq16(4,12)&
         -(csumplq16(5,12)-csumplq16(6,12)+csumplq16(7,12)-csumplq16(8,12))&
         -(csumplq16(9,12)-csumplq16(10,12)+csumplq16(11,12)-csumplq16(12,12))&
@@ -4545,7 +4545,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 205)=(csumplqmom16(5,ik,12)-csumplqmom16(6,ik,12)&
+            momentum_lines(id, ik, 205)=(csumplqmom16(5,ik,12)-csumplqmom16(6,ik,12)&
         +csumplqmom16(7,ik,12)-csumplqmom16(8,ik,12)&
         -(csumplqmom16(13,ik,12)-csumplqmom16(14,ik,12)+csumplqmom16(15,ik,12)&
         -csumplqmom16(16,ik,12)))*adiv2
@@ -4557,7 +4557,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 206)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 206)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
         +csumplq16(4,13)&
         +(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
         +(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
@@ -4566,7 +4566,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 206)=(csumplqmom16(1,ik,13)+csumplqmom16(2,ik,13)&
+            momentum_lines(id, ik, 206)=(csumplqmom16(1,ik,13)+csumplqmom16(2,ik,13)&
         +csumplqmom16(3,ik,13)+csumplqmom16(4,ik,13)&
         +(csumplqmom16(9,ik,13)+csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
         +csumplqmom16(12,ik,13)))*adiv2
@@ -4574,7 +4574,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 207)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 207)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
         +csumplq16(4,13)&
         -(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
         +(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
@@ -4583,7 +4583,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 207)=(csumplqmom16(5,ik,13)+csumplqmom16(6,ik,13)&
+            momentum_lines(id, ik, 207)=(csumplqmom16(5,ik,13)+csumplqmom16(6,ik,13)&
         +csumplqmom16(7,ik,13)+csumplqmom16(8,ik,13)&
         +(csumplqmom16(13,ik,13)+csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
         +csumplqmom16(16,ik,13)))*adiv2
@@ -4591,7 +4591,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 208)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 208)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
         +csumplq16(4,13)&
         +(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
         -(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
@@ -4600,7 +4600,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 208)=(csumplqmom16(1,ik,13)+csumplqmom16(2,ik,13)&
+            momentum_lines(id, ik, 208)=(csumplqmom16(1,ik,13)+csumplqmom16(2,ik,13)&
         +csumplqmom16(3,ik,13)+csumplqmom16(4,ik,13)&
         -(csumplqmom16(9,ik,13)+csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
         +csumplqmom16(12,ik,13)))*adiv2
@@ -4608,7 +4608,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 209)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 209)=(csumplq16(1,13)+csumplq16(2,13)+csumplq16(3,13)&
         +csumplq16(4,13)&
         -(csumplq16(5,13)+csumplq16(6,13)+csumplq16(7,13)+csumplq16(8,13))&
         -(csumplq16(9,13)+csumplq16(10,13)+csumplq16(11,13)+csumplq16(12,13))&
@@ -4617,7 +4617,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 209)=(csumplqmom16(5,ik,13)+csumplqmom16(6,ik,13)&
+            momentum_lines(id, ik, 209)=(csumplqmom16(5,ik,13)+csumplqmom16(6,ik,13)&
         +csumplqmom16(7,ik,13)+csumplqmom16(8,ik,13)&
         -(csumplqmom16(13,ik,13)+csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
         +csumplqmom16(16,ik,13)))*adiv2
@@ -4625,35 +4625,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 210)=(csumplq16(1,13)+giot*csumplq16(2,13)-csumplq16(3,13)&
+        lines(id, 210)=(csumplq16(1,13)+giot*csumplq16(2,13)-csumplq16(3,13)&
         -giot*csumplq16(4,13)+(csumplq16(5,13)+giot*csumplq16(6,13)-csumplq16(7,13)&
         -giot*csumplq16(8,13)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 210)=(csumplqmom16(1,ik,13)&
+            momentum_lines(id, ik, 210)=(csumplqmom16(1,ik,13)&
         +giot*csumplqmom16(2,ik,13)&
         -csumplqmom16(3,ik,13)-giot*csumplqmom16(4,ik,13))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 211)=(csumplq16(1,13)+giot*csumplq16(2,13)-csumplq16(3,13)&
+        lines(id, 211)=(csumplq16(1,13)+giot*csumplq16(2,13)-csumplq16(3,13)&
         -giot*csumplq16(4,13)-(csumplq16(5,13)+giot*csumplq16(6,13)-csumplq16(7,13)&
         -giot*csumplq16(8,13)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 211)=(csumplqmom16(5,ik,13)&
+            momentum_lines(id, ik, 211)=(csumplqmom16(5,ik,13)&
         +giot*csumplqmom16(6,ik,13)&
         -csumplqmom16(7,ik,13)-giot*csumplqmom16(8,ik,13))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 212)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 212)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
         -csumplq16(4,13)&
         +(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
         +(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
@@ -4662,7 +4662,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 212)=(csumplqmom16(1,ik,13)-csumplqmom16(2,ik,13)&
+            momentum_lines(id, ik, 212)=(csumplqmom16(1,ik,13)-csumplqmom16(2,ik,13)&
         +csumplqmom16(3,ik,13)-csumplqmom16(4,ik,13)&
         +(csumplqmom16(9,ik,13)-csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
         -csumplqmom16(12,ik,13)))*adiv2
@@ -4670,7 +4670,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 213)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 213)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
         -csumplq16(4,13)&
         -(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
         +(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
@@ -4679,7 +4679,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 213)=(csumplqmom16(5,ik,13)-csumplqmom16(6,ik,13)&
+            momentum_lines(id, ik, 213)=(csumplqmom16(5,ik,13)-csumplqmom16(6,ik,13)&
         +csumplqmom16(7,ik,13)-csumplqmom16(8,ik,13)&
         +(csumplqmom16(13,ik,13)-csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
         -csumplqmom16(16,ik,13)))*adiv2
@@ -4687,7 +4687,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 214)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 214)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
         -csumplq16(4,13)&
         +(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
         -(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
@@ -4696,7 +4696,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 214)=(csumplqmom16(1,ik,13)-csumplqmom16(2,ik,13)&
+            momentum_lines(id, ik, 214)=(csumplqmom16(1,ik,13)-csumplqmom16(2,ik,13)&
         +csumplqmom16(3,ik,13)-csumplqmom16(4,ik,13)&
         -(csumplqmom16(9,ik,13)-csumplqmom16(10,ik,13)+csumplqmom16(11,ik,13)&
         -csumplqmom16(12,ik,13)))*adiv2
@@ -4704,7 +4704,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 215)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
+        lines(id, 215)=(csumplq16(1,13)-csumplq16(2,13)+csumplq16(3,13)&
         -csumplq16(4,13)&
         -(csumplq16(5,13)-csumplq16(6,13)+csumplq16(7,13)-csumplq16(8,13))&
         -(csumplq16(9,13)-csumplq16(10,13)+csumplq16(11,13)-csumplq16(12,13))&
@@ -4713,7 +4713,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 215)=(csumplqmom16(5,ik,13)-csumplqmom16(6,ik,13)&
+            momentum_lines(id, ik, 215)=(csumplqmom16(5,ik,13)-csumplqmom16(6,ik,13)&
         +csumplqmom16(7,ik,13)-csumplqmom16(8,ik,13)&
         -(csumplqmom16(13,ik,13)-csumplqmom16(14,ik,13)+csumplqmom16(15,ik,13)&
         -csumplqmom16(16,ik,13)))*adiv2
@@ -4725,7 +4725,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 216)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 216)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
         +csumplq16(4,14)&
         +(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
         +(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
@@ -4734,7 +4734,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 216)=(csumplqmom16(1,ik,14)+csumplqmom16(2,ik,14)&
+            momentum_lines(id, ik, 216)=(csumplqmom16(1,ik,14)+csumplqmom16(2,ik,14)&
         +csumplqmom16(3,ik,14)+csumplqmom16(4,ik,14)&
         +(csumplqmom16(9,ik,14)+csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
         +csumplqmom16(12,ik,14)))*adiv2
@@ -4742,7 +4742,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 217)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 217)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
         +csumplq16(4,14)&
         -(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
         +(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
@@ -4751,7 +4751,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 217)=(csumplqmom16(5,ik,14)+csumplqmom16(6,ik,14)&
+            momentum_lines(id, ik, 217)=(csumplqmom16(5,ik,14)+csumplqmom16(6,ik,14)&
         +csumplqmom16(7,ik,14)+csumplqmom16(8,ik,14)&
         +(csumplqmom16(13,ik,14)+csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
         +csumplqmom16(16,ik,14)))*adiv2
@@ -4759,7 +4759,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 218)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 218)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
         +csumplq16(4,14)&
         +(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
         -(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
@@ -4768,7 +4768,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 218)=(csumplqmom16(1,ik,14)+csumplqmom16(2,ik,14)&
+            momentum_lines(id, ik, 218)=(csumplqmom16(1,ik,14)+csumplqmom16(2,ik,14)&
         +csumplqmom16(3,ik,14)+csumplqmom16(4,ik,14)&
         -(csumplqmom16(9,ik,14)+csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
         +csumplqmom16(12,ik,14)))*adiv2
@@ -4776,7 +4776,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 219)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 219)=(csumplq16(1,14)+csumplq16(2,14)+csumplq16(3,14)&
         +csumplq16(4,14)&
         -(csumplq16(5,14)+csumplq16(6,14)+csumplq16(7,14)+csumplq16(8,14))&
         -(csumplq16(9,14)+csumplq16(10,14)+csumplq16(11,14)+csumplq16(12,14))&
@@ -4785,7 +4785,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 219)=(csumplqmom16(5,ik,14)+csumplqmom16(6,ik,14)&
+            momentum_lines(id, ik, 219)=(csumplqmom16(5,ik,14)+csumplqmom16(6,ik,14)&
         +csumplqmom16(7,ik,14)+csumplqmom16(8,ik,14)&
         -(csumplqmom16(13,ik,14)+csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
         +csumplqmom16(16,ik,14)))*adiv2
@@ -4793,35 +4793,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 220)=(csumplq16(1,14)+giot*csumplq16(2,14)-csumplq16(3,14)&
+        lines(id, 220)=(csumplq16(1,14)+giot*csumplq16(2,14)-csumplq16(3,14)&
         -giot*csumplq16(4,14)+(csumplq16(5,14)+giot*csumplq16(6,14)-csumplq16(7,14)&
         -giot*csumplq16(8,14)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 220)=(csumplqmom16(1,ik,14)&
+            momentum_lines(id, ik, 220)=(csumplqmom16(1,ik,14)&
         +giot*csumplqmom16(2,ik,14)&
         -csumplqmom16(3,ik,14)-giot*csumplqmom16(4,ik,14))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 221)=(csumplq16(1,14)+giot*csumplq16(2,14)-csumplq16(3,14)&
+        lines(id, 221)=(csumplq16(1,14)+giot*csumplq16(2,14)-csumplq16(3,14)&
         -giot*csumplq16(4,14)-(csumplq16(5,14)+giot*csumplq16(6,14)-csumplq16(7,14)&
         -giot*csumplq16(8,14)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 221)=(csumplqmom16(5,ik,14)&
+            momentum_lines(id, ik, 221)=(csumplqmom16(5,ik,14)&
         +giot*csumplqmom16(6,ik,14)&
         -csumplqmom16(7,ik,14)-giot*csumplqmom16(8,ik,14))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 222)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 222)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
         -csumplq16(4,14)&
         +(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
         +(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
@@ -4830,7 +4830,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 222)=(csumplqmom16(1,ik,14)-csumplqmom16(2,ik,14)&
+            momentum_lines(id, ik, 222)=(csumplqmom16(1,ik,14)-csumplqmom16(2,ik,14)&
         +csumplqmom16(3,ik,14)-csumplqmom16(4,ik,14)&
         +(csumplqmom16(9,ik,14)-csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
         -csumplqmom16(12,ik,14)))*adiv2
@@ -4838,7 +4838,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 223)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 223)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
         -csumplq16(4,14)&
         -(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
         +(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
@@ -4847,7 +4847,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 223)=(csumplqmom16(5,ik,14)-csumplqmom16(6,ik,14)&
+            momentum_lines(id, ik, 223)=(csumplqmom16(5,ik,14)-csumplqmom16(6,ik,14)&
         +csumplqmom16(7,ik,14)-csumplqmom16(8,ik,14)&
         +(csumplqmom16(13,ik,14)-csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
         -csumplqmom16(16,ik,14)))*adiv2
@@ -4855,7 +4855,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 224)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 224)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
         -csumplq16(4,14)&
         +(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
         -(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
@@ -4864,7 +4864,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 224)=(csumplqmom16(1,ik,14)-csumplqmom16(2,ik,14)&
+            momentum_lines(id, ik, 224)=(csumplqmom16(1,ik,14)-csumplqmom16(2,ik,14)&
         +csumplqmom16(3,ik,14)-csumplqmom16(4,ik,14)&
         -(csumplqmom16(9,ik,14)-csumplqmom16(10,ik,14)+csumplqmom16(11,ik,14)&
         -csumplqmom16(12,ik,14)))*adiv2
@@ -4872,7 +4872,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 225)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
+        lines(id, 225)=(csumplq16(1,14)-csumplq16(2,14)+csumplq16(3,14)&
         -csumplq16(4,14)&
         -(csumplq16(5,14)-csumplq16(6,14)+csumplq16(7,14)-csumplq16(8,14))&
         -(csumplq16(9,14)-csumplq16(10,14)+csumplq16(11,14)-csumplq16(12,14))&
@@ -4881,7 +4881,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 225)=(csumplqmom16(5,ik,14)-csumplqmom16(6,ik,14)&
+            momentum_lines(id, ik, 225)=(csumplqmom16(5,ik,14)-csumplqmom16(6,ik,14)&
         +csumplqmom16(7,ik,14)-csumplqmom16(8,ik,14)&
         -(csumplqmom16(13,ik,14)-csumplqmom16(14,ik,14)+csumplqmom16(15,ik,14)&
         -csumplqmom16(16,ik,14)))*adiv2
@@ -4893,7 +4893,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 226)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 226)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
         +csumplq16(4,15)&
         +(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
         +(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
@@ -4902,7 +4902,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 226)=(csumplqmom16(1,ik,15)+csumplqmom16(2,ik,15)&
+            momentum_lines(id, ik, 226)=(csumplqmom16(1,ik,15)+csumplqmom16(2,ik,15)&
         +csumplqmom16(3,ik,15)+csumplqmom16(4,ik,15)&
         +(csumplqmom16(9,ik,15)+csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
         +csumplqmom16(12,ik,15)))*adiv2
@@ -4910,7 +4910,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 227)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 227)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
         +csumplq16(4,15)&
         -(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
         +(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
@@ -4919,7 +4919,7 @@ module here_be_dragons
     !     j=0, pp=+, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 227)=(csumplqmom16(5,ik,15)+csumplqmom16(6,ik,15)&
+            momentum_lines(id, ik, 227)=(csumplqmom16(5,ik,15)+csumplqmom16(6,ik,15)&
         +csumplqmom16(7,ik,15)+csumplqmom16(8,ik,15)&
         +(csumplqmom16(13,ik,15)+csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
         +csumplqmom16(16,ik,15)))*adiv2
@@ -4927,7 +4927,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 228)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 228)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
         +csumplq16(4,15)&
         +(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
         -(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
@@ -4936,7 +4936,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 228)=(csumplqmom16(1,ik,15)+csumplqmom16(2,ik,15)&
+            momentum_lines(id, ik, 228)=(csumplqmom16(1,ik,15)+csumplqmom16(2,ik,15)&
         +csumplqmom16(3,ik,15)+csumplqmom16(4,ik,15)&
         -(csumplqmom16(9,ik,15)+csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
         +csumplqmom16(12,ik,15)))*adiv2
@@ -4944,7 +4944,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=0, pp=-, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 229)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 229)=(csumplq16(1,15)+csumplq16(2,15)+csumplq16(3,15)&
         +csumplq16(4,15)&
         -(csumplq16(5,15)+csumplq16(6,15)+csumplq16(7,15)+csumplq16(8,15))&
         -(csumplq16(9,15)+csumplq16(10,15)+csumplq16(11,15)+csumplq16(12,15))&
@@ -4953,7 +4953,7 @@ module here_be_dragons
     !     j=0, pp=-, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 229)=(csumplqmom16(5,ik,15)+csumplqmom16(6,ik,15)&
+            momentum_lines(id, ik, 229)=(csumplqmom16(5,ik,15)+csumplqmom16(6,ik,15)&
         +csumplqmom16(7,ik,15)+csumplqmom16(8,ik,15)&
         -(csumplqmom16(13,ik,15)+csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
         +csumplqmom16(16,ik,15)))*adiv2
@@ -4961,35 +4961,35 @@ module here_be_dragons
     !**********************************************************************
     !     j=1, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 230)=(csumplq16(1,15)+giot*csumplq16(2,15)-csumplq16(3,15)&
+        lines(id, 230)=(csumplq16(1,15)+giot*csumplq16(2,15)-csumplq16(3,15)&
         -giot*csumplq16(4,15)+(csumplq16(5,15)+giot*csumplq16(6,15)-csumplq16(7,15)&
         -giot*csumplq16(8,15)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 230)=(csumplqmom16(1,ik,15)&
+            momentum_lines(id, ik, 230)=(csumplqmom16(1,ik,15)&
         +giot*csumplqmom16(2,ik,15)&
         -csumplqmom16(3,ik,15)-giot*csumplqmom16(4,ik,15))*adiv1
         enddo
     !**********************************************************************
     !     j=1, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 231)=(csumplq16(1,15)+giot*csumplq16(2,15)-csumplq16(3,15)&
+        lines(id, 231)=(csumplq16(1,15)+giot*csumplq16(2,15)-csumplq16(3,15)&
         -giot*csumplq16(4,15)-(csumplq16(5,15)+giot*csumplq16(6,15)-csumplq16(7,15)&
         -giot*csumplq16(8,15)))*adiv2
     !**********************************************************************
     !     j=1, q=1,2  here!
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 231)=(csumplqmom16(5,ik,15)&
+            momentum_lines(id, ik, 231)=(csumplqmom16(5,ik,15)&
         +giot*csumplqmom16(6,ik,15)&
         -csumplqmom16(7,ik,15)-giot*csumplqmom16(8,ik,15))*adiv1
         enddo
     !**********************************************************************
     !     j=2, pp=+, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 232)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 232)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
         -csumplq16(4,15)&
         +(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
         +(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
@@ -4998,7 +4998,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 232)=(csumplqmom16(1,ik,15)-csumplqmom16(2,ik,15)&
+            momentum_lines(id, ik, 232)=(csumplqmom16(1,ik,15)-csumplqmom16(2,ik,15)&
         +csumplqmom16(3,ik,15)-csumplqmom16(4,ik,15)&
         +(csumplqmom16(9,ik,15)-csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
         -csumplqmom16(12,ik,15)))*adiv2
@@ -5006,7 +5006,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=+, pr=-, q=0
     !**********************************************************************
-        lines(time_slice, id, 233)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 233)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
         -csumplq16(4,15)&
         -(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
         +(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
@@ -5015,7 +5015,7 @@ module here_be_dragons
     !     j=2, pp=+, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 233)=(csumplqmom16(5,ik,15)-csumplqmom16(6,ik,15)&
+            momentum_lines(id, ik, 233)=(csumplqmom16(5,ik,15)-csumplqmom16(6,ik,15)&
         +csumplqmom16(7,ik,15)-csumplqmom16(8,ik,15)&
         +(csumplqmom16(13,ik,15)-csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
         -csumplqmom16(16,ik,15)))*adiv2
@@ -5023,7 +5023,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=+, q=0
     !**********************************************************************
-        lines(time_slice, id, 234)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 234)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
         -csumplq16(4,15)&
         +(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
         -(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
@@ -5032,7 +5032,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 234)=(csumplqmom16(1,ik,15)-csumplqmom16(2,ik,15)&
+            momentum_lines(id, ik, 234)=(csumplqmom16(1,ik,15)-csumplqmom16(2,ik,15)&
         +csumplqmom16(3,ik,15)-csumplqmom16(4,ik,15)&
         -(csumplqmom16(9,ik,15)-csumplqmom16(10,ik,15)+csumplqmom16(11,ik,15)&
         -csumplqmom16(12,ik,15)))*adiv2
@@ -5040,7 +5040,7 @@ module here_be_dragons
     !**********************************************************************
     !     j=2, pp=-, pr=-, q=0  test
     !**********************************************************************
-        lines(time_slice, id, 235)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
+        lines(id, 235)=(csumplq16(1,15)-csumplq16(2,15)+csumplq16(3,15)&
         -csumplq16(4,15)&
         -(csumplq16(5,15)-csumplq16(6,15)+csumplq16(7,15)-csumplq16(8,15))&
         -(csumplq16(9,15)-csumplq16(10,15)+csumplq16(11,15)-csumplq16(12,15))&
@@ -5049,7 +5049,7 @@ module here_be_dragons
     !     j=2, pp=-, q=0
     !**********************************************************************
         do ik=1, 2
-            momentum_lines(time_slice, id, ik, 235)=(csumplqmom16(5,ik,15)-csumplqmom16(6,ik,15)&
+            momentum_lines(id, ik, 235)=(csumplqmom16(5,ik,15)-csumplqmom16(6,ik,15)&
         +csumplqmom16(7,ik,15)-csumplqmom16(8,ik,15)&
         -(csumplqmom16(13,ik,15)-csumplqmom16(14,ik,15)+csumplqmom16(15,ik,15)&
         -csumplqmom16(16,ik,15)))*adiv2
