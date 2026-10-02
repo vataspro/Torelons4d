@@ -55,8 +55,8 @@ program main
     ! Allocate variables
     allocate(gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4), &
     gauge_field_slice_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL))
-    allocate(lines(LX4, MAX_BLOCKING_LEVEL, 235), &
-    momentum_lines(LX4, MAX_BLOCKING_LEVEL, 2, 2:235))
+    allocate(lines(MAX_BLOCKING_LEVEL, 235, LX4), &
+    momentum_lines(MAX_BLOCKING_LEVEL, 2, 2:235, LX4))
 
     ! Initialise states
     call states(1)%init(0, 1, 1, 38*MAX_BLOCKING_LEVEL) ! J=0, PP=+, PR=+
@@ -181,7 +181,7 @@ program main
             ! Measure thermal lines over all blocking levels
             do blocking_level = 1, MAX_BLOCKING_LEVEL
                 call cpu_time(start)
-                call THERML1(gauge_field_slice_blocked, blocking_level, lines(t,:,:), momentum_lines(t,:,:,:))
+                call THERML1(gauge_field_slice_blocked, blocking_level, lines(:,:,t), momentum_lines(:,:,:,t))
                 call cpu_time(finish)
                 avg_runtime_measurement = avg_runtime_measurement + (finish - start)
             enddo
