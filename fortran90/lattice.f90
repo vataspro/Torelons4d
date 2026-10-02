@@ -135,18 +135,6 @@ module lattice
                 move = lattice_pointers_blocked_down(site, abs(direction), blocking_level)
             endif
         else
-            ! Site must belong to the lattice and direction must point in 4d
-            if (site > LATTICE_VOLUME .or. site < 1) then
-                write(*, '(a, a, i0)') "site must be on the lattice in move function without ", &
-                "blocking_level argument present, therefore must be in the range 1 to ", LATTICE_VOLUME
-            endif
-            if (abs(direction) > 4 .or. direction  == 0) then
-                write(*, '(a, a)') "direction must be spatial or temporal in move function without ", &
-                "blocking_level argument present, therefore must be less than or equal to 4"
-                stop
-            endif
-
-        else
             ! Return unblocked neighbour
             if (direction > 0) then
                 move = lattice_pointers_up(site, direction)
