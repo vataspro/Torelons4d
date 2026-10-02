@@ -225,7 +225,7 @@ program main
     avg_runtime_blocking
     write(*, '(a, f0.2)') &
     "[Info][Runtimes]                     Average runtime for measuring lines on a configuration    ", &
-    avg_runtime_loading
+    avg_runtime_measurement
     write(*, '(a, f0.2)') &
     "[Info][Runtimes]                     Average runtime for updating vevs and correlators    ", avg_runtime_correlation
     write(*, '(a)') " *"

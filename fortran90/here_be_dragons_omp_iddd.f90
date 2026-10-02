@@ -458,9 +458,10 @@ module here_be_dragons
                     ! Every operator writes to the accumulators; many operators share
                     ! a rotation/reflection slot, so all sums need OpenMP reductions.
                     do iddd = 1, 337 !new!
-                        ! Keep each operator in its own symmetry channel, including the
-                        ! short-loop fallback when it does not fit at this blocking level.
-                        ieee = ieee_of(iddd)
+                        ! The serial routine leaves IEEE unchanged for a short-loop
+                        ! fallback. Its final successfully evaluated operator sets it to 16.
+                        ! Carry that channel forward explicitly to preserve its projection.
+                        if (iddd == 1) ieee = 16
                         m2 = mn
                         A11 = cmplx(0.0, 0.0, kind=real64)
                         do ic = 1,NCOL
@@ -517,7 +518,16 @@ module here_be_dragons
                                 continue
                             endif
 
-                            if (lcnt(ids) >= ico) then
+                            ! Match the updated serial kernel: a short loop falls back to
+                            ! the undeformed Polyakov segment; fitting operators get their
+                            ! requested extra length after the operator shape is built.
+                            if (lcnt(ids) < ico) then
+                                A11 = LIN0
+                                M2 = ML
+                            else
+                                ! The serial operator cases assign IEEE only when the full
+                                ! operator is calculated; fallback operators retain its last value.
+                                ieee = ieee_of(iddd)
                                 ! Select operator to calculate
                                 select case(iddd)
                                 case(1)
@@ -1196,11 +1206,6 @@ module here_be_dragons
                                     call loop_337(m2, m3, A11, ids, gauge_field_blocked)
                                 end select
                             !******************************************************************C
-                            ! If the operator does not fit in this blocking level (more than once)
-                            elseif (lcnt(ids) < ico) then
-                                A11 = LIN0
-                                M2=ML
-                            else
                                 if (ico == 1) then
                                     C11 = matmul(A11, LIN1)
                                     A11 = C11
