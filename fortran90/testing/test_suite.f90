@@ -37,7 +37,7 @@ program test_suite
     logical :: gauge_field_loaded
 
     ! Read parameters from input file
-    call initialise_parameters("parameter_file.txt")
+    call initialise_parameters("parameter_file_local.txt")
 
     ! Check parameters are correct
     call check_parameters()
@@ -57,6 +57,9 @@ program test_suite
 
     ! Test loading of gauge field
     call check_success(test_read_gauge_field)
+
+    ! Test loading gauge field slices
+    call check_success(test_read_gauge_field_slice)
 
     ! Test unitarisation procedure
     call check_success(test_unitarise_SVD)
@@ -293,6 +296,44 @@ program test_suite
         end if
         print *, ""
     end subroutine test_read_gauge_field
+
+    ! Test loading of single time slice
+    subroutine test_read_gauge_field_slice(ierr)
+        implicit none
+        logical, intent(out) :: ierr
+
+        complex(real64) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
+        integer :: t
+        character(len=16) :: file_config_id
+        character(len=256) :: directory
+
+        ierr = .true.
+
+        ! Load gauge field into memory
+        call load_gauge_field()
+
+        ! Set directory path
+        write(file_config_id, "(i0)") CONFIG_START
+        directory=trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
+
+        ! Load each time slice into memory and compare with full gauge field
+        do t = 1, LX4
+            ! Load gauge field time slice
+            call read_gauge_field_slice(trim(directory), gauge_field_slice, t)
+
+            ! Compare with time slice of full gauge field
+            ierr = all(abs(&
+            gauge_field_slice - gauge_field(:,:,(t-1)*SLICE_VOLUME+1 : t*SLICE_VOLUME, 1:3)) < epsilon(1.0d0))
+            if (.not.ierr) exit
+        enddo
+
+        if (ierr) then
+            write(*, '(a)') "read_gauge_field_slice test PASSED"
+        else
+            write(*, '(a)') "read_gauge_field_slice test FAILED"
+        endif
+        print *, ""
+    end subroutine
 
     ! Test unitarisation function
     subroutine test_unitarise_SVD(ierr)
