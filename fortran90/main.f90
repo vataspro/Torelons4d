@@ -1,5 +1,4 @@
 program main
-    use mpi_f08
     use torelon_parameters
     use lattice
     use read_field_config
@@ -9,9 +8,6 @@ program main
     implicit none
 
     ! ---------------------------------------- Initialise variables ---------------------------------------- !
-
-    ! Parallelisation variables
-    integer :: my_rank, num_ranks, mpierr
 
     ! File access variables
     logical :: file_exists
@@ -39,13 +35,6 @@ program main
 
     ! ----------------------------------------- Set up calculation ----------------------------------------- !
 
-    ! Initialise MPI
-    call mpi_init(mpierr)
-
-    ! Get this rank number and number of ranks
-    call mpi_comm_rank(mpi_comm_world, my_rank, mpierr)
-    call mpi_comm_size(mpi_comm_world, num_ranks, mpierr)
-
     ! Load all parameters from file
     call initialise_parameters("parameters.txt")
 
@@ -63,17 +52,12 @@ program main
     ! Setup lattice movers
     call setup_lattice()
 
-    !!! Calculate how many time slices should be given to each MPI rank
-
-    !!! Lines and momentum lines should only have indices for the number of time slices on each rank -> modify THERML1 accordingly
-
     ! Allocate variables
     allocate(gauge_field(NCOL, NCOL, LATTICE_VOLUME, 4), &
     gauge_field_slice_blocked(NCOL, NCOL, SLICE_VOLUME, 3, MAX_BLOCKING_LEVEL))
     allocate(lines(LX4, MAX_BLOCKING_LEVEL, 235), &
     momentum_lines(LX4, MAX_BLOCKING_LEVEL, 2, 2:235))
 
-    !!! States only need to be initialised on rank 0
     ! Initialise states
     call states(1)%init(0, 1, 1, 38*MAX_BLOCKING_LEVEL) ! J=0, PP=+, PR=+
     call states(2)%init(0, 1, -1, 10*MAX_BLOCKING_LEVEL) ! J=0, PP=+, PR=-
@@ -169,8 +153,6 @@ program main
     avg_runtime_measurement = 0.0
     avg_runtime_correlation = 0.0
 
-    !!! Perform first measurement, then use a non-blocking gather -> wait after blocking of next configuration. Rank 0 then calculates correlation functions from previous measurement.
-
     ! Conduct main iteration over configurations
     bin_index = 0
     do config = CONFIG_START, CONFIG_STOP, CONFIG_STEP
@@ -180,8 +162,6 @@ program main
         ! Set directory of file
         write(file_config_id, "(i0)") config
         file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
-
-        !!! Load gauge field on each time slice only
 
         ! Load gauge field
         call cpu_time(start)
