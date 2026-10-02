@@ -106,6 +106,19 @@ module read_field_config
         WRITE(6, "(a, i2.1)") "[I/O][Ncol]    Number of Colors:", nc_read
         WRITE(6, "(a, 4i3.2)") "[I/O][Dim]    T x X x Y x Z=", nt_read, nx_read, ny_read, nz_read
 
+        ! Check read values of parameters are the same as those passed to the program
+        ! Check number of colours
+        if (nc_read /= NCOL) &
+        error stop "NCOL in gauge configuration different from calculation parameters"
+        if (nx_read /= LX1) &
+        error stop "LX1 in gauge configuration different from calculation parameters"
+        if (ny_read /= LX2) &
+        error stop "LX2 in gauge configuration different from calculation parameters"
+        if (nz_read /= LX3) &
+        error stop "LX3 in gauge configuration different from calculation parameters"
+        if (nt_read /= LX4) &
+        error stop "LX4 in gauge configuration different from calculation parameters"
+
         ! Read gauge field configuration
         do t = 1, LX4
             do x = 1, LX1
