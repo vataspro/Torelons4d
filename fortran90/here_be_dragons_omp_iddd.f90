@@ -269,24 +269,76 @@ module here_be_dragons
         call get_square_pulses(gauge_field_blocked, ku)
         call get_plaquettes(gauge_field_blocked, ku)
 
-        site = 0 ! Initial lattice point
-        do site_ku = 1, ls(ku) ! LX direction
-            ! Assign momentum phases
+        ! One team processes the full slice. Each thread accumulates private partial
+        ! sums over many sites; OpenMP combines them once at loop completion.
+        !$omp parallel do default(shared) schedule(static) &
+        !$omp&   private(site_ku, site_ju, site_iu, ix, mn, phase, pf, &
+        !$omp&      iloop, i, ic, nc, ig, idg, mu, irem, li, ico, ieee, iddd, &
+        !$omp&      m1, m2, m3, ml, A11, B11, C11, D11, E11, UINT11, REM11, &
+        !$omp&      lin0, lin1, lin2, lin4, akt1) &
+        !$omp&   reduction(+:csumn, &
+        !$omp&      csums, &
+        !$omp&      csum2s, &
+        !$omp&      csum2ws, &
+        !$omp&      csumw, &
+        !$omp&      csum2w, &
+        !$omp&      csum3w, &
+        !$omp&      csumup, &
+        !$omp&      csumud, &
+        !$omp&      csumtt1, &
+        !$omp&      csumtt2, &
+        !$omp&      csumtt3, &
+        !$omp&      csumtt4, &
+        !$omp&      csumtt5, &
+        !$omp&      csumtt6, &
+        !$omp&      csumtt7, &
+        !$omp&      csumtt8, &
+        !$omp&      csumtt9, &
+        !$omp&      csumtt10, &
+        !$omp&      csumtt11, &
+        !$omp&      csumtt12, &
+        !$omp&      csumtt13, &
+        !$omp&      csumtt14, &
+        !$omp&      csumplq8, &
+        !$omp&      csumplq16, &
+        !$omp&      csumsmom, &
+        !$omp&      csum2smom, &
+        !$omp&      csum2wsmom, &
+        !$omp&      csumwmom, &
+        !$omp&      csum2wmom, &
+        !$omp&      csum3wmom, &
+        !$omp&      csumupmom, &
+        !$omp&      csumudmom, &
+        !$omp&      csumttmom1, &
+        !$omp&      csumttmom2, &
+        !$omp&      csumttmom3, &
+        !$omp&      csumttmom4, &
+        !$omp&      csumttmom5, &
+        !$omp&      csumttmom6, &
+        !$omp&      csumttmom7, &
+        !$omp&      csumttmom8, &
+        !$omp&      csumttmom9, &
+        !$omp&      csumttmom10, &
+        !$omp&      csumttmom11, &
+        !$omp&      csumttmom12, &
+        !$omp&      csumttmom13, &
+        !$omp&      csumttmom14, &
+        !$omp&      csumplqmom8, &
+        !$omp&      csumplqmom16)
+        do site = 1, SLICE_VOLUME
+            ! Preserve the original traversal: x is outermost, z innermost.
+            site_iu = mod(site - 1, ls(iu)) + 1
+            site_ju = mod((site - 1) / ls(iu), ls(ju)) + 1
+            site_ku = (site - 1) / (ls(iu) * ls(ju)) + 1
             phase = 2.0 * PI * site_ku / real(ls(ku))
             pf(1) = cmplx(cos(phase), sin(phase), kind=real64)
             phase = phase * 2.0d0
-            PF(2)=cmplx(cos(phase), sin(phase), kind=real64)
+            pf(2) = cmplx(cos(phase), sin(phase), kind=real64)
 
-            do site_ju = 1, ls(ju) ! LY direction
-                do site_iu = 1, ls(iu) ! LZ direction
-                    ! Lexicographical lattice site definition
-                    site = site + 1
-                    ix(iu) = site_iu
-                    ix(ju) = site_ju
-                    ix(ku) = site_ku
-                    ! MN defines the current lattice site
-                    mn = ix(1) + ls(1)*(ix(2)-1) + ls(1)*ls(2)*(ix(3)-1)
-
+            ix(iu) = site_iu
+            ix(ju) = site_ju
+            ix(ku) = site_ku
+            mn = ix(1) + ls(1)*(ix(2)-1) + ls(1)*ls(2)*(ix(3)-1)
 
                     ! TOdo: ANDREAS COMMENTS FROM HERE
                     !**********************************************************************
@@ -384,12 +436,11 @@ module here_be_dragons
                     enddo
 
                     !! OPERATOR CONSTRUCTION
-                    ! PRIVATE(m2, mn, ico, A11
-                    ! Every accumulator element csum*(ieee[,k]) is written by exactly one iddd per site, so they
-                    ! can stay shared. pf, lcnt, lin*, rem11, ids, ... are only read inside the region.
-                    !$omp parallel do default(shared) schedule(static) &
-                    !$omp&   private(m2, m3, ico, ieee, akt1, A11, B11, C11, ic)
+                    ! Every operator writes to the accumulators; many operators share
+                    ! a rotation/reflection slot, so all sums need OpenMP reductions.
                     do iddd = 1, 337 !new!
+                        ! Keep each operator in its own symmetry channel, including the
+                        ! short-loop fallback when it does not fit at this blocking level.
                         ieee = ieee_of(iddd)
                         m2 = mn
                         A11 = cmplx(0.0, 0.0, kind=real64)
@@ -1381,11 +1432,8 @@ module here_be_dragons
                         endif
 
                     enddo
-                    !$omp end parallel do
-
-                enddo
             enddo
-        enddo
+        !$omp end parallel do
     !**********************************************************************
         adiv1=1.0/(4.0*ls(ku))
         adiv2=1.0/(8.0*ls(ku))
