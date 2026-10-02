@@ -414,7 +414,11 @@ module here_be_dragons
                                 continue
                             endif
 
-                            if (lcnt(ids) >= ico) then
+                            ! If the operator does not fit in this blocking level, use the undeformed Polyakov segment
+                            if (lcnt(ids) < ico) then
+                                A11 = LIN0
+                                M2 = ML
+                            else
                                 ! Select operator to calculate
                                 select case(iddd)
                                 !**********************************************************************C
@@ -4363,11 +4367,6 @@ module here_be_dragons
                                 !******************************************************************c
                                 end select
                             !******************************************************************C
-                            ! If the operator does not fit in this blocking level (more than once)
-                            elseif (lcnt(ids) < ico) then
-                                A11 = LIN0
-                                M2=ML
-                            else
                                 if (ico == 1) then
                                     C11 = matmul(A11, LIN1)
                                     A11 = C11
@@ -4382,7 +4381,7 @@ module here_be_dragons
                                     C11 = matmul(A11, LIN4)
                                     A11 = C11
                                 endif
-                                M2=ML
+                                M2 = ML
                             endif
                             !***********************************************************************
                         endif

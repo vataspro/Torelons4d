@@ -76,7 +76,7 @@ module states_class
         implicit none
 
         integer, intent(in) :: t
-        real(real64), dimension(LX4), intent(in) :: phi
+        real(real64), intent(in) :: phi(LX4)
         real(real64) :: time_slice_avg
 
         integer :: s, t_plus_s
@@ -94,7 +94,7 @@ module states_class
         implicit none
 
         integer, intent(in) :: t
-        real(real64), dimension(LX4), intent(in) :: phi_1, phi_2
+        real(real64), intent(in) :: phi_1(LX4), phi_2(LX4)
         real(real64) :: time_slice_avg
 
         integer :: s, t_plus_s
@@ -112,7 +112,7 @@ module states_class
         implicit none
 
         integer, intent(in) :: t
-        complex(real64), dimension(LX4), intent(in) :: phi_1, phi_2
+        complex(real64), intent(in) :: phi_1(LX4), phi_2(LX4)
         complex(real64) :: time_slice_avg
 
         integer :: s, t_plus_s
@@ -121,8 +121,10 @@ module states_class
         t_plus_s = t
         do s = 1, LX4
             t_plus_s = mod(t_plus_s, LX4) + 1
-            time_slice_avg = time_slice_avg &
-            + 0.5d0 * (phi_1(t))*conjg(phi_2(t_plus_s) + phi_1(t_plus_s)*conjg(phi_2(t)))
+            time_slice_avg = time_slice_avg + 0.5d0 * ( &
+                phi_1(s) * conjg(phi_2(t_plus_s)) &
+                + phi_1(t_plus_s) * conjg(phi_2(s)) &
+            )
         enddo
     end function
 
@@ -242,7 +244,7 @@ module states_class
         if (abs(parity) /= 1) then
             error stop "Invalid parity passed to init_torelon_momentum_state, Must be +-1."
         endif
-        if (momentum == 0) then
+        if (abs(momentum) == 0) then
             error stop "Invalid momentum passed to init_torelon_momentum_state. Must not be 0."
         endif
         if (num_operators < 0) then
