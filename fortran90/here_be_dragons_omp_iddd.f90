@@ -154,7 +154,6 @@ module here_be_dragons
 
         id = blocking_level ! Current blocking level (BL)
 
-
         ! We try and fit the blocking level lengths into LX1
         ! Fill lcnt array
         ! Example: LX1 = 20, IBL=4
@@ -339,6 +338,26 @@ module here_be_dragons
             ix(ju) = site_ju
             ix(ku) = site_ku
             mn = ix(1) + ls(1)*(ix(2)-1) + ls(1)*ls(2)*(ix(3)-1)
+
+! TODO: Remove after cleanup
+!        site = 0 ! Initial lattice point
+!        do site_ku = 1, ls(ku) ! LX direction
+!            ! Assign momentum phases
+!            phase = 2.0 * PI * site_ku / real(ls(ku))
+!            pf(1) = cmplx(cos(phase), sin(phase), kind=real64)
+!            phase = phase * 2.0d0
+!            PF(2)=cmplx(cos(phase), sin(phase), kind=real64)
+!
+!            do site_ju = 1, ls(ju) ! LY direction
+!                do site_iu = 1, ls(iu) ! LZ direction
+!                    ! Lexicographical lattice site definition
+!                    site = site + 1
+!                    ix(iu) = site_iu
+!                    ix(ju) = site_ju
+!                    ix(ku) = site_ku
+!                    ! MN defines the current lattice site
+!                    mn = ix(1) + ls(1)*(ix(2)-1) + ls(1)*ls(2)*(ix(3)-1)
+!
 
                     ! TOdo: ANDREAS COMMENTS FROM HERE
                     !**********************************************************************

@@ -4,7 +4,6 @@ program main
     use read_field_config
     use here_be_dragons
     use states_class
-    use omp_lib, only: omp_get_wtime
 
     implicit none
 
@@ -27,7 +26,7 @@ program main
     type(torelon_momentum_state) :: momentum_states(10)
 
     ! Timing variables
-    real(real64) :: start, finish, &
+    real(real32) :: start, finish, &
     avg_runtime_loading, avg_runtime_blocking, avg_runtime_measurement, avg_runtime_correlation
 
     ! Loop variables
@@ -93,12 +92,12 @@ program main
     write(*, '(a)') "                                                "
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(4(a, i0))') "[Info][Lattice Size]                 V = ", LX1, "x", LX2, "x", LX3, "x", LX4
-    write(*, '(a, i0)') "[Info][Colours]                      Number of Colours = ", NCOL
+    write(*, '(4(a, i0))') "[Info][Lattice Size]     V = ", LX1, "x", LX2, "x", LX3, "x", LX4
+    write(*, '(a, i0)') "[Info][Colours]           Number of Colours = ", NCOL
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(a, i0)') "[Info][Measurements]                 Number of measurements = ", NCONFIG
+    write(*, '(a, i0)') "[Info][Measurements]      Number of measurements = ", NCONFIG
     write(*, '(a, a, i0)') &
     "[Info][Measurements]      Starting configuration: ", trim(FILENAME), CONFIG_START
     write(*, '(a, a, i0)') &
@@ -107,7 +106,7 @@ program main
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(a)') "[Info][Number of Operators q=0]      J   P   R      #"
+    write(*, '(a)') "[Info][Number of Operators q=0]      J   P   R   #"
     write(*, '(a)') "[Info][Number of Operators q=0]      ----------------"
     write(*, '(a, i0)') "[Info][Number of Operators q=0]      0   +   +   ", states(1)%get_num_operators()
     write(*, '(a, i0)') "[Info][Number of Operators q=0]      0   +   -   ", states(2)%get_num_operators()
@@ -123,7 +122,7 @@ program main
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(a)') "[Info][Number of Operators q=1]      J   P      #"
+    write(*, '(a)') "[Info][Number of Operators q=1]      J   P   #"
     write(*, '(a)') "[Info][Number of Operators q=1]      ------------"
     write(*, '(a, i0)') "[Info][Number of Operators q=1]      0   +   ", momentum_states(1)%get_num_operators()
     write(*, '(a, i0)') "[Info][Number of Operators q=1]      0   -   ", momentum_states(2)%get_num_operators()
@@ -134,7 +133,7 @@ program main
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"
-    write(*, '(a)') "[Info][Number of Operators q=2]      J   P      #"
+    write(*, '(a)') "[Info][Number of Operators q=2]      J   P   #"
     write(*, '(a)') "[Info][Number of Operators q=2]      ------------"
     write(*, '(a, i0)') "[Info][Number of Operators q=2]      0   +   ", momentum_states(6)%get_num_operators()
     write(*, '(a, i0)') "[Info][Number of Operators q=2]      0   -   ", momentum_states(7)%get_num_operators()
@@ -165,44 +164,44 @@ program main
         file_path = trim(FILEPATH) // trim(FILENAME) // trim(file_config_id)
 
         ! Load gauge field
-        start = omp_get_wtime()
+        call cpu_time(start)
         call read_gauge_field(file_path, gauge_field)
-        finish = omp_get_wtime()
+        call cpu_time(finish)
         avg_runtime_loading = avg_runtime_loading + (finish - start)
 
         ! Conduct measurements over every time slice
         do t = 1, LX4
             ! Block gauge field
-            start = omp_get_wtime()
+            call cpu_time(start)
             gauge_field_slice_blocked = &
             get_blocked_gauge_field(gauge_field(:, :, (t-1)*SLICE_VOLUME+1 : t*SLICE_VOLUME, 1:3))
-            finish = omp_get_wtime()
+            call cpu_time(finish)
             avg_runtime_blocking = avg_runtime_blocking + (finish - start)
 
             ! Measure thermal lines over all blocking levels
             do blocking_level = 1, MAX_BLOCKING_LEVEL
-                start = omp_get_wtime()
+                call cpu_time(start)
                 call THERML1(gauge_field_slice_blocked, t, blocking_level, lines, momentum_lines)
-                finish = omp_get_wtime()
+                call cpu_time(finish)
                 avg_runtime_measurement = avg_runtime_measurement + (finish - start)
             enddo
         enddo
 
         ! Update vevs of all states
         do state = 1, 10
-            start = omp_get_wtime()
+            call cpu_time(start)
             call states(state)%update_vevs(lines, bin_index)
             call momentum_states(state)%update_vevs(momentum_lines, bin_index)
-            finish = omp_get_wtime()
+            call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo
 
         ! Update correlation matrices of all states
         do state = 1, 10
-            start = omp_get_wtime()
+            call cpu_time(start)
             call states(state)%update_corr_matrix(lines, bin_index)
             call momentum_states(state)%update_corr_matrix(momentum_lines, bin_index)
-            finish = omp_get_wtime()
+            call cpu_time(finish)
             avg_runtime_correlation = avg_runtime_correlation + (finish - start)
         enddo
     enddo
@@ -219,15 +218,15 @@ program main
     ! Output runtimes
     write(*, '(a)') " *"
     write(*, '(a, f0.2)') &
-    "[Info][Runtimes]                     Average runtime for loading a configuration    ", avg_runtime_loading
+    "[Info][Runtimes]          Average runtime for loading a configuration    ", avg_runtime_loading
     write(*, '(a, f0.2)') &
-    "[Info][Runtimes]                     Average runtime for blocking a configuration    ", &
+    "[Info][Runtimes]          Average runtime for blocking a configuration    ", &
     avg_runtime_blocking
     write(*, '(a, f0.2)') &
-    "[Info][Runtimes]                     Average runtime for measuring lines on a configuration    ", &
-    avg_runtime_loading
+    "[Info][Runtimes]          Average runtime for measuring lines on a configuration    ", &
+    avg_runtime_measurement
     write(*, '(a, f0.2)') &
-    "[Info][Runtimes]                     Average runtime for updating vevs and correlators    ", avg_runtime_correlation
+    "[Info][Runtimes]          Average runtime for updating vevs and correlators    ", avg_runtime_correlation
     write(*, '(a)') " *"
     write(*, '(a)') " *******************************************************"
     write(*, '(a)') " *"

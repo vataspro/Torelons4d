@@ -1,6 +1,6 @@
 module read_field_config
     use torelon_parameters
-    use lattice, only: site_index
+    use lattice
     implicit none
 
     contains
@@ -73,16 +73,16 @@ module read_field_config
         real(real64) :: quaternion(4)
 
         ! Check gauge field variable is the correct size
-        if (size(gauge_field, 1) /= NCOL) then
+        if (size(gauge_field, dim=1) /= NCOL) then
             error stop "gauge_field must have size NCOL in 1st dimension"
         end if
-        if (size(gauge_field, 2) /= NCOL) then
+        if (size(gauge_field, dim=2) /= NCOL) then
             error stop "gauge_field must have size NCOL in 2nd dimension"
         end if
-        if (size(gauge_field, 3) /= LATTICE_VOLUME) then
+        if (size(gauge_field, dim=3) /= LATTICE_VOLUME) then
             error stop "gauge_field must have size LATTICE_VOLUME in 3rd dimension"
         end if
-        if (size(gauge_field, 4) /= 4) then
+        if (size(gauge_field, dim=4) /= 4) then
             error stop "gauge_field must have size 4 in 4th dimension"
         end if
 
@@ -105,6 +105,19 @@ module read_field_config
         write(6, "(a, f8.6)") "[I/O][Plaq]    Plaquette value: ", plaquette_read
         WRITE(6, "(a, i2.1)") "[I/O][Ncol]    Number of Colors:", nc_read
         WRITE(6, "(a, 4i3.2)") "[I/O][Dim]    T x X x Y x Z=", nt_read, nx_read, ny_read, nz_read
+
+        ! Check read values of parameters are the same as those passed to the program
+        ! Check number of colours
+        if (nc_read /= NCOL) &
+        error stop "NCOL in gauge configuration different from calculation parameters"
+        if (nx_read /= LX1) &
+        error stop "LX1 in gauge configuration different from calculation parameters"
+        if (ny_read /= LX2) &
+        error stop "LX2 in gauge configuration different from calculation parameters"
+        if (nz_read /= LX3) &
+        error stop "LX3 in gauge configuration different from calculation parameters"
+        if (nt_read /= LX4) &
+        error stop "LX4 in gauge configuration different from calculation parameters"
 
         ! Read gauge field configuration
         do t = 1, LX4

@@ -357,7 +357,6 @@ module here_be_dragons
                     enddo
 
                     !! OPERATOR CONSTRUCTION
-                    ! PRIVATE(m2, mn, ico, A11
                     do iddd = 1, 337 !new!
                         m2 = mn
                         A11 = cmplx(0.0, 0.0, kind=real64)

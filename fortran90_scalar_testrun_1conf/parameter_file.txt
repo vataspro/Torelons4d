@@ -1,5 +1,5 @@
 &params
-FILEPATH='/Users/s2820577/Desktop/PhD/CYI/Torelons4d/Torelons4d/fortran77_scalar_looptest/'
+FILEPATH='/Users/s2820577/Desktop/PhD/CYI/Torelons4d/Torelons4d/fortran77_scalar_testrun_1conf/'
 FILENAME='run1_52x26x26x26nc2rADJnf2b2.300000m1.000000n'
 NCOL=2
 LX1=26
@@ -7,7 +7,7 @@ LX2=26
 LX3=26
 LX4=52
 NCONFIG=1
-CONFIG_STEP=4
+CONFIG_STEP=1
 CONFIG_START=1
 MAX_BLOCKING_LEVEL=5
 STAPLE_WEIGHT=0.30
