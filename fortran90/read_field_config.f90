@@ -241,6 +241,14 @@ module read_field_config
         WRITE(6, "(a, i2.1)") "[I/O][Ncol]    Number of Colors:", nc_read
         WRITE(6, "(a, 4i3.2)") "[I/O][Dim]    T x X x Y x Z=", nt_read, nx_read, ny_read, nz_read
 
+        ! Protect against bad parameter file / loaded configuration mismatch
+        if (nc_read /= NCOL .or. nt_read /= LX4 .or. nx_read /= LX1 .or. &
+            ny_read /= LX2 .or. nz_read /= LX3) then
+            close(iun)
+            error stop "Gauge file dimensions do not match configured lattice"
+        end if
+
+
         ! Read gauge field configuration
         do t = 1, LX4
             do x = 1, LX1
