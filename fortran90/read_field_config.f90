@@ -1,6 +1,6 @@
 module read_field_config
     use torelon_parameters
-    use lattice, only: site_index
+    use lattice, only: site_index, move, herm
     implicit none
 
     contains
@@ -113,7 +113,9 @@ module read_field_config
 
         integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
         integer :: t, x, y, z, dir, dir_target, iun, iq, jq, site
-        real(real64) :: plaquette_read, re, im
+        integer :: mu, nu, site_plus_mu, site_plus_nu, k
+        real(real64) :: plaquette_read, plaquette_calc, plaquette_sum, re, im
+        complex(real64) :: plaquette_loop(NCOL, NCOL)
 
         complex(real64), allocatable :: compressed_link(:,:)
         complex(real64), allocatable :: full_link(:,:)
@@ -189,6 +191,29 @@ module read_field_config
                 end do
             end do
         end do
+
+        ! Recompute the average plaquette from the loaded links as a read check.
+        plaquette_sum = 0.0_real64
+        do mu = 1, 4
+            do nu = mu + 1, 4
+                do site = 1, LATTICE_VOLUME
+                    site_plus_mu = move(site, mu)
+                    site_plus_nu = move(site, nu)
+                    plaquette_loop = matmul(matmul(matmul( &
+                        gauge_field(:, :, site, mu), &
+                        gauge_field(:, :, site_plus_mu, nu)), &
+                        herm(gauge_field(:, :, site_plus_nu, mu))), &
+                        herm(gauge_field(:, :, site, nu)))
+                    do k = 1, NCOL
+                        plaquette_sum = plaquette_sum + real(plaquette_loop(k, k), kind=real64)
+                    end do
+                end do
+            end do
+        end do
+        plaquette_calc = plaquette_sum / &
+            (6.0_real64 * real(NCOL, real64) * real(LATTICE_VOLUME, real64))
+        write(6, '(a, f16.12)') '[I/O][Plaq]    Recomputed plaquette: ', plaquette_calc
+        write(6, '(a, es12.4)') '[I/O][Plaq]    Difference from header: ', plaquette_calc - plaquette_read
 
         close(iun)
     end subroutine read_spN_gauge_field
