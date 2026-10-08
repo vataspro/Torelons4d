@@ -291,6 +291,97 @@ module read_field_config
         close(iun)
     end subroutine read_gauge_field
 
+    ! Read one spatial time slice of an Sp(2N) gauge configuration.
+    ! As in read_gauge_field_slice, file directions 2:4 map to in-memory
+    ! directions 1:3. Each compressed link contains NCOL/2 x NCOL complex
+    ! values, with each complex value stored as two big-endian real64 values.
+    subroutine read_spN_gauge_field_slice(gauge_field_filename, gauge_field_slice, time_slice)
+        implicit none
+        character(len=*), intent(in) :: gauge_field_filename
+        complex(real64), intent(out) :: gauge_field_slice(NCOL, NCOL, SLICE_VOLUME, 3)
+        integer, intent(in) :: time_slice
+
+        integer :: ios, iun
+        integer :: x, y, z, dir, iq, jq, site, dir_target, byte_start
+        integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
+        integer(int64) :: file_site_number, position, site_record_bytes, link_bytes
+        integer(int8), allocatable :: spatial_link_bytes(:)
+        integer(int8) :: real_bytes(8)
+        character(len=256) :: iomsg
+        real(real64) :: plaquette_read, re, im
+        complex(real64), allocatable :: compressed_link(:,:), full_link(:,:)
+
+        if (time_slice < 1 .or. time_slice > LX4) then
+            error stop "time_slice must be between 1 and LX4"
+        end if
+
+        if (NCOL < 2 .or. mod(NCOL, 2) /= 0) then
+            error stop "Sp(2N) requires an even NCOL of at least 2"
+        end if
+
+        allocate(compressed_link(NCOL/2, NCOL), full_link(NCOL, NCOL))
+        link_bytes = int(NCOL, int64) * int(NCOL, int64) * 8_int64
+        site_record_bytes = 4_int64 * link_bytes
+        allocate(spatial_link_bytes(3 * link_bytes))
+
+        open(newunit=iun, file=gauge_field_filename, access="stream", form="unformatted", &
+            status="old", action="read", iostat=ios, iomsg=iomsg)
+        if (ios /= 0) then
+            error stop "Could not open gauge file: " // trim(iomsg)
+        end if
+
+        nc_read = read_be_int32(iun)
+        nt_read = read_be_int32(iun)
+        nx_read = read_be_int32(iun)
+        ny_read = read_be_int32(iun)
+        nz_read = read_be_int32(iun)
+        plaquette_read = read_be_real64(iun)
+
+        if (nc_read /= NCOL .or. nt_read /= LX4 .or. nx_read /= LX1 .or. &
+            ny_read /= LX2 .or. nz_read /= LX3) then
+            close(iun)
+            error stop "Gauge file dimensions do not match configured lattice"
+        end if
+
+        do x = 1, LX1
+            do y = 1, LX2
+                do z = 1, LX3
+                    site = site_index(x, y, z)
+                    ! File order is t,x,y,z (z fastest); skip the temporal link.
+                    file_site_number = int((time_slice - 1) * SLICE_VOLUME + &
+                        (x - 1) * LX2 * LX3 + (y - 1) * LX3 + z - 1, int64)
+                    ! Header is 28 bytes; spatial links start after link 1.
+                    position = 29_int64 + file_site_number * site_record_bytes + link_bytes
+                    read(iun, pos=position, iostat=ios, iomsg=iomsg) spatial_link_bytes
+                    if (ios /= 0) then
+                        close(iun)
+                        error stop "Could not seek to Sp(2N) gauge field slice: " // trim(iomsg)
+                    end if
+
+                    do dir = 1, 3
+                        dir_target = dir
+                        do iq = 1, NCOL/2
+                            do jq = 1, NCOL
+                                byte_start = (dir - 1) * link_bytes + &
+                                    ((iq - 1) * NCOL + jq - 1) * 16 + 1
+                                real_bytes = spatial_link_bytes(byte_start:byte_start + 7)
+                                re = be_bytes_to_real64(real_bytes)
+                                real_bytes = spatial_link_bytes(byte_start + 8:byte_start + 15)
+                                im = be_bytes_to_real64(real_bytes)
+                                compressed_link(iq, jq) = cmplx(re, im, kind=real64)
+                            end do
+                        end do
+
+                        full_link = decompress_spN(compressed_link)
+                        gauge_field_slice(:, :, site, dir_target) = full_link
+                    end do
+                end do
+            end do
+        end do
+
+        close(iun)
+    end subroutine read_spN_gauge_field_slice
+
     ! Read single time slice of the gauge configuration
     subroutine read_gauge_field_slice(gauge_field_filename, gauge_field_slice, time_slice)
         implicit none
