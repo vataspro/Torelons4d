@@ -86,12 +86,14 @@ module read_field_config
                 full_link(i, j) = compressed_link(i, j)
 
                 newi = i + NCOL/2
+                ! Reading A
                 if (j <= NCOL/2) then
                     newj = NCOL/2 + j
-                    full_link(newi,newj) = -conjg(compressed_link(i,j))
+                    full_link(newi,newj) = conjg(compressed_link(i,j))
+                ! Reading B
                 else
                     newj = j - NCOL/2
-                    full_link(newi,newj) = conjg(compressed_link(i,j))
+                    full_link(newi,newj) = -conjg(compressed_link(i,j))
                 end if
             end do
         end do
