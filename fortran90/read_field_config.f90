@@ -72,6 +72,126 @@ module read_field_config
         return
     end function quaternion_to_matrix
 
+    ! Convert a compressed Sp(2N) gauge link to a full 2Nx2N link
+    ! Compressed links are stored as Nx2N 
+    function decompress_spN(compressed_link) result(full_link)
+        implicit none
+        complex(real64), intent(in) :: compressed_link(:,:)
+        complex(real64) :: full_link(size(compressed_link,1)*2, &
+                                                  size(compressed_link,2))
+        integer(int32) :: i, j, newi, newj
+
+        do i=1, NCOL/2
+            do j=1, NCOL
+                full_link(i, j) = compressed_link(i, j)
+
+                newi = i + NCOL/2
+                if (j <= NCOL/2) then
+                    newj = NCOL/2 + j
+                    full_link(newi,newj) = -conjg(compressed_link(i,j))
+                else
+                    newj = j - NCOL/2
+                    full_link(newi,newj) = conjg(compressed_link(i,j))
+                end if
+            end do
+        end do
+
+        return
+     end function decompress_spN
+
+
+    ! Read an SpN gauge configuration from a configuration file
+    subroutine read_spN_gauge_field(gauge_field_filename, gauge_field)
+        implicit none
+        character(len=*), intent(in) :: gauge_field_filename
+        complex(real64), intent(out) :: gauge_field(:,:,:,:)
+
+        integer :: ios
+        character(len=256) :: iomsg
+
+        integer(int32) :: nc_read, nx_read, ny_read, nz_read, nt_read
+        integer :: t, x, y, z, dir, dir_target, iun, iq, jq, site
+        real(real64) :: plaquette_read, re, im
+
+        complex(real64), allocatable :: compressed_link(:,:)
+        complex(real64), allocatable :: full_link(:,:)
+
+        allocate(compressed_link(NCOL/2, NCOL))
+        allocate(full_link(NCOL, NCOL))
+
+
+        ! Check gauge field variable is the correct size
+        if (size(gauge_field, 1) /= NCOL) then
+            error stop "gauge_field must have size NCOL in 1st dimension"
+        end if
+        if (size(gauge_field, 2) /= NCOL) then
+            error stop "gauge_field must have size NCOL in 2nd dimension"
+        end if
+        if (size(gauge_field, 3) /= LATTICE_VOLUME) then
+            error stop "gauge_field must have size LATTICE_VOLUME in 3rd dimension"
+        end if
+        if (size(gauge_field, 4) /= 4) then
+            error stop "gauge_field must have size 4 in 4th dimension"
+        end if
+
+        ! Open gauge field file
+        open(newunit=iun, file=gauge_field_filename, access="stream", form="unformatted", &
+        status="old", action="read", iostat=ios, iomsg=iomsg)
+        if (ios /= 0) then
+            error stop "Could not open gauge file: " // trim(iomsg)
+        end if
+
+        ! Read file metadata
+        nc_read      = read_be_int32(iun)
+        nt_read      = read_be_int32(iun)
+        nx_read      = read_be_int32(iun)
+        ny_read      = read_be_int32(iun)
+        nz_read      = read_be_int32(iun)
+        plaquette_read = read_be_real64(iun)
+
+        ! Output gauge field metadata
+        write(6, "(a, f8.6)") "[I/O][Plaq]    Plaquette value: ", plaquette_read
+        WRITE(6, "(a, i2.1)") "[I/O][Ncol]    Number of Colors:", nc_read
+        WRITE(6, "(a, 4i3.2)") "[I/O][Dim]    T x X x Y x Z=", nt_read, nx_read, ny_read, nz_read
+
+        ! Read gauge field configuration
+        do t = 1, LX4
+            do x = 1, LX1
+                do y = 1, LX2
+                    do z = 1, LX3
+                        ! Get index of site referenced by these coordinates
+                        site = site_index(x, y, z, t)
+
+                        ! Import all links from this site
+                        do dir = 1, 4
+                            do iq = 1, NCOL/2
+                                do jq = 1, NCOL
+                                    re = read_be_real64(iun)
+                                    im = read_be_real64(iun)
+                                    compressed_link(iq, jq) = cmplx(re, im)
+                                end do
+                            end do
+
+                            full_link = decompress_spN(compressed_link)
+
+                            if (dir == 1) then
+                                dir_target = 4
+                            else
+                                dir_target = dir-1
+                            end if
+
+                            gauge_field(:, :, site, dir_target) = full_link
+
+                        end do
+                    end do
+                end do
+            end do
+        end do
+
+        close(iun)
+    end subroutine read_spN_gauge_field
+
+
     ! Read gauge configuration from configuration file - renamed from READ_GF
     subroutine read_gauge_field(gauge_field_filename, gauge_field)
         implicit none
