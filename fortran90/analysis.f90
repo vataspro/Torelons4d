@@ -407,7 +407,7 @@ module analysis
     subroutine construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, cfn, cfn_avg)
         implicit none
         complex(real64), intent(in) :: corr_matrix(:,:,:,:), corr_matrix_avg(:,:,:), eigenvectors(:,:)
-        real(real64), intent(out) :: cfn(:,:,:), cfn_avg(:,:)
+        real(real64), allocatable, intent(out) :: cfn(:,:,:), cfn_avg(:,:)
 
         complex(real64) :: scalar_product
         real(real64) :: normalisation
@@ -429,22 +429,12 @@ module analysis
             error stop
         endif
 
-        if (all(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS, k])) then
-            write(*, '(a, a)') "[Error][construct_correlators]    cfn must have shape", &
-            " [MAX_DELTA_T+1, NUM_BINS, k]"
-            error stop
-        endif
-
-        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1, k])) then
-            write(*, '(a, a)') "[Error][construct_correlators]    cfn_avg must have shape", &
-            " [MAX_DELTA_T+1, k]"
-            error stop
-        endif
-
         if (size(eigenvectors, dim=1) /= NUM_OPERATORS) &
         error stop &
         "[Error][construct_correlators]    eigenvectors must have NUM_OPERATORS as size of first dimension"
 
+        ! Allocate correlation function and average correlation funcion arrays
+        allocate(cfn(MAX_DELTA_T+1, NUM_BINS, k), cfn_avg(MAX_DELTA_T+1, k))
 
         ! Construct correlation functions of states by computing the scalar product v^dagger*C(t)*v
         do state = 1, k
@@ -497,4 +487,9 @@ module analysis
     end function
 
     ! Calculate effective masses and errors of states from normalised correlation functions
+    subroutine get_effective_masses(cfn, cfn_avg, effective_masses, effective_mass_errors)
+        implicit none
+        real(real64), intent(in) :: cfn(:,:,:), cfn_avg(:,:)
+        real(real64), intent(out) :: effective_masses(:,:), effective_mass_errors(:,:)
+    end subroutine
 end module
