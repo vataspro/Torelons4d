@@ -613,10 +613,18 @@ module analysis
             write(*, '(a)') " *"
 
             ! Output table header row
+            write(*, '(a)') "dt    cfn         error       m_eff       error   "
+            write(*, '(a)') "--------------------------------------------------"
 
             ! Output correlation function at 0 seperation with errors
+            write(*, '(i2, 2(a, f8.6), a)') 0, "    ", cfn_avg(1, i), "    ", cfn_error(1, i), &
+            "    ########    ########"
 
             ! Output correlation functions and effective masses with errors upto supplied maximum seperation
+            do dt = 1, maximum_seperation
+                write(*, '(i2, 4(a, f8.6))') dt, "    ", cfn_avg(dt+1, i), "    ", cfn_error(dt+1, i), &
+                "    ", effective_mass_avg(dt, i), "    ", effective_mass_error(dt, i)
+            enddo
 
             ! Increment state counter
             state = state + 1
