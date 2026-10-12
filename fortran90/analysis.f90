@@ -12,6 +12,24 @@ module analysis
 
     contains
 
+    ! Calculate errors on quantity from jacknife bins
+    function jacknife_error(data, average) result(error)
+        implicit none
+        real(real64), intent(in) :: data(:)
+        real(real64), intent(in) :: average
+        real(real64) :: error
+
+        integer :: bin, nbins
+
+        nbins = size(data)
+
+        error = 0.0d0
+        do bin = 1, nbins
+            error = error + (data(bin) - average)**2
+        enddo
+        error = sqrt(real(nbins-1, kind=real64) * error / real(nbins, kind=real64))
+    end function
+
     ! Solve real symmetric generalised eigenvalue problem using LAPACK routine DSYGVX. Eigenpairs are returned in ascending order (so eigenvalues(k) refers to the largest eigenvalue)
     subroutine generalised_eigenpairs_real_symmetric(A, B, eigenvalues, eigenvectors)
         implicit none
@@ -465,5 +483,22 @@ module analysis
         enddo
     end subroutine
 
-    ! Calculate effective masses
+    ! Calculate effective mass from 3 correlation function values using the exact cosh interpolation
+    function effective_mass(cfn) result(m_eff)
+        implicit none
+        real(real64), intent(in) :: cfn(-1:1)
+        real(real64) :: m_eff, x
+
+        ! Calculate argument of arcosh function
+        x = (cfn(1) + cfn(-1))/(2*cfn(0))
+
+        ! Determine if arcosh(x) exists. If it does not, assign m_eff = 0.0
+        if (x < 1) then
+            m_eff = 0.0
+        else
+            m_eff = acosh(x)
+        endif
+    end function
+
+
 end module
