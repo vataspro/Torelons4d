@@ -404,10 +404,10 @@ module analysis
     end subroutine
 
     ! Construct normalised correlation functions of operators from eigenvectors
-    subroutine construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, cfn, cfn_avg)
+    subroutine construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, cfn, cfn_avg, cfn_error)
         implicit none
         complex(real64), intent(in) :: corr_matrix(:,:,:,:), corr_matrix_avg(:,:,:), eigenvectors(:,:)
-        real(real64), allocatable, intent(out) :: cfn(:,:,:), cfn_avg(:,:)
+        real(real64), allocatable, intent(out) :: cfn(:,:,:), cfn_avg(:,:), cfn_error(:,:)
 
         complex(real64) :: scalar_product
         real(real64) :: normalisation
@@ -434,7 +434,7 @@ module analysis
         "[Error][construct_correlators]    eigenvectors must have NUM_OPERATORS as size of first dimension"
 
         ! Allocate correlation function and average correlation funcion arrays
-        allocate(cfn(MAX_DELTA_T+1, NUM_BINS, k), cfn_avg(MAX_DELTA_T+1, k))
+        allocate(cfn(MAX_DELTA_T+1, NUM_BINS, k), cfn_avg(MAX_DELTA_T+1, k), cfn_error(MAX_DELTA_T+1, k))
 
         ! Construct correlation functions of states by computing the scalar product v^dagger*C(t)*v
         do state = 1, k
@@ -467,6 +467,11 @@ module analysis
             cfn_avg(:, state) = cfn_avg(:, state) / normalisation
             cfn(:, :, state) = cfn(:, :, state) / normalisation
         enddo
+
+        ! Calculate errors on correlation functions
+        do concurrent (dt = 1:MAX_DELTA_T+1, state = 1:k)
+            cfn_error(dt, state) = jacknife_error(cfn(dt, :, state), cfn_avg(dt, state))
+        enddo
     end subroutine
 
     ! Calculate effective mass from 3 correlation function values using the exact cosh interpolation
@@ -487,10 +492,10 @@ module analysis
     end function
 
     ! Calculate effective masses and errors of states from normalised correlation functions
-    subroutine get_effective_masses(cfn, cfn_avg, effective_mass_avg, effective_mass_errors)
+    subroutine get_effective_masses(cfn, cfn_avg, effective_mass_avg, effective_mass_error)
         implicit none
         real(real64), intent(in) :: cfn(:,:,:), cfn_avg(:,:)
-        real(real64), allocatable, intent(out) :: effective_mass_avg(:,:), effective_mass_errors(:,:)
+        real(real64), allocatable, intent(out) :: effective_mass_avg(:,:), effective_mass_error(:,:)
 
         real(real64), allocatable :: effective_mass_bins(:,:,:)
         integer :: k, dt, bin, state
@@ -513,7 +518,7 @@ module analysis
 
         ! Allocate effective mass arrays
         allocate(effective_mass_avg(MAX_DELTA_T, k), effective_mass_bins(MAX_DELTA_T, NUM_BINS, k), &
-        effective_mass_errors(MAX_DELTA_T, k))
+        effective_mass_error(MAX_DELTA_T, k))
 
         ! Calculate effective masses for all time steps and states
         do concurrent (dt = 1:MAX_DELTA_T-1, state = 1:k)
@@ -536,8 +541,14 @@ module analysis
 
         ! Calculate errors on effective masses
         do concurrent (dt = 1:MAX_DELTA_T, state = 1:k)
-            effective_mass_errors(dt, state) = jacknife_error(effective_mass_bins(dt, :, state), &
+            effective_mass_error(dt, state) = jacknife_error(effective_mass_bins(dt, :, state), &
             effective_mass_avg(dt, state))
         enddo
+    end subroutine
+
+    ! Output correlation functions and effective masses with errors
+    subroutine output_results(cfn_avg, cfn_error, effective_mass_avg, effective_mass_error)
+        real(real64), intent(in) :: cfn_avg(:,:), cfn_error(:,:), &
+        effective_mass_avg(:,:), effective_mass_error(:,:)
     end subroutine
 end module
