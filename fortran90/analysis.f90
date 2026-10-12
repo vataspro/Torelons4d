@@ -505,13 +505,13 @@ module analysis
 
         ! Check dimensions
         if (all(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS, k])) then
-            write(*, '(a, a)') "[Error][get_effective_masses]    corr_matrix must have shape", &
+            write(*, '(a, a)') "[Error][get_effective_masses]    cfn must have shape", &
             " [MAX_DELTA_T+1, NUM_BINS, k]"
             error stop
         endif
 
         if (all(shape(cfn_avg) /= [MAX_DELTA_T+1, k])) then
-            write(*, '(a, a)') "[Error][get_effective_masses]    corr_matrix_avg must have shape", &
+            write(*, '(a, a)') "[Error][get_effective_masses]    cfn_avg must have shape", &
             " [MAX_DELTA_T+1, k]"
             error stop
         endif
@@ -547,8 +547,79 @@ module analysis
     end subroutine
 
     ! Output correlation functions and effective masses with errors
-    subroutine output_results(cfn_avg, cfn_error, effective_mass_avg, effective_mass_error)
+    subroutine output_results(cfn_avg, cfn_error, effective_mass_avg, effective_mass_error, mass_bound, max_dt)
         real(real64), intent(in) :: cfn_avg(:,:), cfn_error(:,:), &
         effective_mass_avg(:,:), effective_mass_error(:,:)
+        real(real64), intent(in), optional :: mass_bound(:)
+        integer, intent(in), optional :: max_dt
+
+        integer :: k, i, state, dt, maximum_seperation
+
+        ! Set default max_dt to 7
+        if (present(max_dt)) then
+            maximum_seperation = max_dt
+        else
+            maximum_seperation = 7
+        endif
+
+        ! Get number of states requested
+        if (present(mass_bound)) then
+            k = size(mass_bound)
+        else
+            k = size(cfn_avg, dim=2)
+        endif
+
+        ! Check dimensions
+        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1, k])) then
+            write(*, '(a, a)') "[Error][output_results]    cfn_avg must have shape", &
+            " [MAX_DELTA_T+1, k]"
+            error stop
+        endif
+
+        if (all(shape(cfn_error) /= [MAX_DELTA_T+1, k])) then
+            write(*, '(a, a)') "[Error][output_results]    cfn_error must have shape", &
+            " [MAX_DELTA_T+1, k]"
+            error stop
+        endif
+
+        if (all(shape(effective_mass_avg) /= [MAX_DELTA_T, k])) then
+            write(*, '(a, a)') "[Error][output_results]    effective_mass_avg must have shape", &
+            " [MAX_DELTA_T, k]"
+            error stop
+        endif
+
+        if (all(shape(effective_mass_error) /= [MAX_DELTA_T, k])) then
+            write(*, '(a, a)') "[Error][output_results]    effective_mass_error must have shape", &
+            " [MAX_DELTA_T, k]"
+            error stop
+        endif
+
+        ! Output correlation functions and effective masses fo each state in turn. Iterate through arrays in reverse order, as the lightest state is the last in each array
+        write(*, '(a)') " *******************************************************"
+        state = 0
+        do i = k, 1, -1
+            ! Output state identifier
+            write(*, '(a)') " *"
+            if (state == 0) then
+                write(*, '(a)') "Ground state"
+            else
+                write(*, '(a, i0)') "Excited state ", state
+            endif
+
+            ! Output mass upper bound if supplied
+            if (present(mass_bound)) then
+                write(*, '(a, f6.4)') "Mass upper bound:    ", mass_bound(i)
+            endif
+            write(*, '(a)') " *"
+
+            ! Output table header row
+
+            ! Output correlation function at 0 seperation with errors
+
+            ! Output correlation functions and effective masses with errors upto supplied maximum seperation
+
+            ! Increment state counter
+            state = state + 1
+        enddo
     end subroutine
 end module
