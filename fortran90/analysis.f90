@@ -385,5 +385,85 @@ module analysis
         mass_bound = -log(eigenvalues)
     end subroutine
 
+    ! Construct normalised correlation functions of operators from eigenvectors
+    subroutine construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, cfn, cfn_avg)
+        implicit none
+        complex(real64), intent(in) :: corr_matrix(:,:,:,:), corr_matrix_avg(:,:,:), eigenvectors(:,:)
+        real(real64), intent(out) :: cfn(:,:,:), cfn_avg(:,:)
+
+        complex(real64) :: scalar_product
+        real(real64) :: normalisation
+        integer :: k, state, dt, bin
+
+        ! Determine number of states requested as size of eigenvector array
+        k = size(eigenvectors, dim=2)
+
+        ! Check dimensions
+        if (all(shape(corr_matrix) /= [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1, NUM_BINS])) then
+            write(*, '(a, a)') "[Error][construct_correlators]    corr_matrix must have shape", &
+            " [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1, NUM_BINS]"
+            error stop
+        endif
+
+        if (all(shape(corr_matrix_avg) /= [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1])) then
+            write(*, '(a, a)') "[Error][construct_correlators]    corr_matrix_avg must have shape", &
+            " [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1]"
+            error stop
+        endif
+
+        if (all(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS, k])) then
+            write(*, '(a, a)') "[Error][construct_correlators]    cfn must have shape", &
+            " [MAX_DELTA_T+1, NUM_BINS, k]"
+            error stop
+        endif
+
+        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1, k])) then
+            write(*, '(a, a)') "[Error][construct_correlators]    cfn_avg must have shape", &
+            " [MAX_DELTA_T+1, k]"
+            error stop
+        endif
+
+        if (size(eigenvectors, dim=1) /= NUM_OPERATORS) &
+        error stop &
+        "[Error][construct_correlators]    eigenvectors must have NUM_OPERATORS as size of first dimension"
+
+
+        ! Construct correlation functions of states by computing the scalar product v^dagger*C(t)*v
+        do state = 1, k
+            do dt = 1, MAX_DELTA_T+1
+                ! Compute scalar product
+                scalar_product = dot_product(eigenvectors(:, state), &
+                matmul(corr_matrix_avg(:, :, dt), eigenvectors(:, state)))
+
+                ! Scalar product is real, so the real part is the correlation function entry
+                cfn_avg(dt, state) = scalar_product%re
+            enddo
+        enddo
+
+        do state = 1, k
+            do bin = 1, NUM_BINS
+                do dt = 1, MAX_DELTA_T+1
+                    ! Compute scalar product
+                    scalar_product = dot_product(eigenvectors(:, state), &
+                    matmul(corr_matrix(:, :, dt, bin), eigenvectors(:, state)))
+
+                    ! Scalar product is real, so the real part is the correlation function entry
+                    cfn(dt, bin, state) = scalar_product%re
+                enddo
+            enddo
+        enddo
+
+        ! Normalise correlation functions so that cfn(0) = 1 for all states
+        do state = 1, k
+            normalisation = cfn_avg(1, state)
+            cfn_avg(:, state) = cfn_avg(:, state) / normalisation
+
+            do bin = 1, NUM_BINS
+                normalisation = cfn(1, bin, state)
+                cfn(:, bin, state) = cfn(:, bin, state) / normalisation
+            enddo
+        enddo
+    end subroutine
+
     ! Calculate effective masses
 end module
