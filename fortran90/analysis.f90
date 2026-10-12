@@ -352,7 +352,38 @@ module analysis
         enddo
     end subroutine
 
-    ! Run GEVP on correlation matrix
+    ! Run GEVP on correlation matrix. Return mass upper bounds and eigenvectors used to weight operators.
+    subroutine GEVP(corr_matrix_avg, mass_bound, eigenvectors)
+        implicit none
+        complex(real64), intent(in) :: corr_matrix_avg(:,:,:)
+        real(real64), intent(out) :: mass_bound(:)
+        complex(real64), intent(out) :: eigenvectors(:,:)
+
+        real(real64), allocatable :: eigenvalues(:)
+        integer :: k
+
+        ! Get number of requested states
+        k = size(mass_bound)
+
+        ! Check dimensions
+        if (size(corr_matrix_avg, dim=1) /= NUM_OPERATORS .or. size(corr_matrix_avg, dim=2) /= NUM_OPERATORS) &
+        error stop "[Error][GEVP]    corr_matrix_avg must have NUM_OPERATORS as size of first two dimensions"
+
+        if (size(eigenvectors, dim=1) /= NUM_OPERATORS) &
+        error stop "[Error][GEVP]    eigenvectors must have NUM_OPERATORS as size of first dimension"
+
+        if (size(eigenvectors, dim=2) /= k) &
+        error stop "[Error][GEVP]    eigenvectors must have k as size of second dimension"
+
+        ! Allocate eigenvalue array
+        allocate(eigenvalues(k))
+
+        ! Run GEVP on correlation matrix
+        call generalised_eigenpairs(corr_matrix_avg(:,:,2), corr_matrix_avg(:,:,1), eigenvalues, eigenvectors)
+
+        ! Calculate upper bounds on massed of states from eigenvalues
+        mass_bound = -log(eigenvalues)
+    end subroutine
 
     ! Calculate effective masses
 end module
