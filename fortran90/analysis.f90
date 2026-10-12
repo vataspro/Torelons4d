@@ -475,11 +475,7 @@ module analysis
         do state = 1, k
             normalisation = cfn_avg(1, state)
             cfn_avg(:, state) = cfn_avg(:, state) / normalisation
-
-            do bin = 1, NUM_BINS
-                normalisation = cfn(1, bin, state)
-                cfn(:, bin, state) = cfn(:, bin, state) / normalisation
-            enddo
+            cfn(:, :, state) = cfn(:, :, state) / normalisation
         enddo
     end subroutine
 
@@ -500,5 +496,5 @@ module analysis
         endif
     end function
 
-
+    ! Calculate effective masses and errors of states from normalised correlation functions
 end module
