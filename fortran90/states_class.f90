@@ -121,8 +121,10 @@ module states_class
         t_plus_s = t
         do s = 1, LX4
             t_plus_s = mod(t_plus_s, LX4) + 1
-            time_slice_avg = time_slice_avg &
-            + 0.5d0 * (phi_1(s))*conjg(phi_2(t_plus_s)) + phi_1(t_plus_s)*conjg(phi_2(s))
+            time_slice_avg = time_slice_avg + 0.5d0 * ( &
+                phi_1(s) * conjg(phi_2(t_plus_s)) &
+                + phi_1(t_plus_s) * conjg(phi_2(s)) &
+            )
         enddo
     end function
 
@@ -332,7 +334,7 @@ module states_class
     subroutine update_torelon_vevs(torelon, lines, bin_index)
         implicit none
         class(torelon_state), intent(inout) :: torelon
-        complex(real64), intent(in) :: lines(LX4, MAX_BLOCKING_LEVEL, 235)
+        complex(real64), intent(in) :: lines(MAX_BLOCKING_LEVEL, 235, LX4)
         integer, intent(in) :: bin_index
 
         integer :: id, line_index, blocking_level, i
@@ -344,7 +346,7 @@ module states_class
             
             ! Update vevs
             torelon%vevs(id, bin_index) = torelon%vevs(id, bin_index) &
-            + sum(lines(:, blocking_level, line_index))
+            + sum(lines(blocking_level, line_index, :))
         enddo
     end subroutine
 
@@ -352,7 +354,7 @@ module states_class
     subroutine update_torelon_momentum_vevs(torelon, momentum_lines, bin_index)
         implicit none
         class(torelon_momentum_state), intent(inout) :: torelon
-        complex(real64), intent(in) :: momentum_lines(LX4, MAX_BLOCKING_LEVEL, 2, 2:235)
+        complex(real64), intent(in) :: momentum_lines(MAX_BLOCKING_LEVEL, 2, 2:235, LX4)
         integer, intent(in) :: bin_index
 
         integer :: id, line_index, blocking_level, i
@@ -364,7 +366,7 @@ module states_class
             
             ! Update vevs
             torelon%vevs(id, bin_index) = torelon%vevs(id, bin_index) &
-            + sum(momentum_lines(:, blocking_level, torelon%MOMENTUM, line_index))
+            + sum(momentum_lines(blocking_level, torelon%MOMENTUM, line_index, :))
         enddo
     end subroutine
 
@@ -372,7 +374,7 @@ module states_class
     subroutine update_torelon_corr_matrix(torelon, lines, bin_index)
         implicit none
         class(torelon_state), intent(inout) :: torelon
-        complex(real64), intent(in) :: lines(LX4, MAX_BLOCKING_LEVEL, 235)
+        complex(real64), intent(in) :: lines(MAX_BLOCKING_LEVEL, 235, LX4)
         integer, intent(in) :: bin_index
 
         integer :: i, j, id1, id2, line_index1, line_index2, b1, b2, delta_t
@@ -389,7 +391,7 @@ module states_class
             ! Update correlation matrices
             torelon%corr_matrix(id1, id2, delta_t, bin_index) &
             = torelon%corr_matrix(id1, id2, delta_t, bin_index) &
-            + time_slice_average(lines(:, b1, line_index1), lines(:, b2, line_index2), delta_t)
+            + time_slice_average(lines(b1, line_index1, :), lines(b2, line_index2, :), delta_t)
         enddo
     end subroutine
 
@@ -397,7 +399,7 @@ module states_class
     subroutine update_torelon_momentum_corr_matrix(torelon, momentum_lines, bin_index)
         implicit none
         class(torelon_momentum_state), intent(inout) :: torelon
-        complex(real64), intent(in) :: momentum_lines(LX4, MAX_BLOCKING_LEVEL, 2, 2:235)
+        complex(real64), intent(in) :: momentum_lines(MAX_BLOCKING_LEVEL, 2, 2:235, LX4)
         integer, intent(in) :: bin_index
 
         integer :: i, j, id1, id2, line_index1, line_index2, b1, b2, delta_t
@@ -414,8 +416,8 @@ module states_class
             ! Update correlation matrices
             torelon%corr_matrix(id1, id2, delta_t, bin_index) &
             = torelon%corr_matrix(id1, id2, delta_t, bin_index) &
-            + time_slice_average(momentum_lines(:, b1, torelon%MOMENTUM, line_index1), &
-            momentum_lines(:, b2, torelon%MOMENTUM, line_index2), delta_t)
+            + time_slice_average(momentum_lines(b1, torelon%MOMENTUM, line_index1, :), &
+            momentum_lines(b2, torelon%MOMENTUM, line_index2, :), delta_t)
         enddo
     end subroutine
 
