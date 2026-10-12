@@ -15,10 +15,9 @@ module analysis
 
         complex(real64), allocatable :: vevs_from_file(:,:), corr_matrix_from_file(:,:,:,:), &
         diagonal_correlators(:)
-        integer(int32) :: dim1, dim2, dim3, dim4, vev_shape(2), corr_matrix_shape(4), i, j, nconfig_check
+        integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check
         integer, allocatable :: distinct_operators(:)
         logical, allocatable :: operator_comparison(:)
-        integer :: indices_i(4), indices_j(4)
 
         !! Read vevs from file
         ! Open file
@@ -167,6 +166,22 @@ module analysis
     end subroutine
 
     ! Remove vevs from correlation matrix
+    subroutine subtract_vevs(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
+        implicit none
+        complex(real64), intent(in) :: vevs(:,:), vevs_avg(:)
+        complex(real64), intent(inout) :: corr_matrix(:,:,:,:), corr_matrix_avg(:,:,:)
+        integer :: i, j, bin
+
+        ! Subtract vevs from average correlation matrices to form connected correlation matrcies
+        do concurrent (i = 1:NUM_OPERATORS, j = 1:NUM_OPERATORS)
+            corr_matrix_avg(i, j, :) = corr_matrix_avg(i, j, :) - vevs_avg(i) * vevs_avg(j)
+        enddo
+
+        ! Subtract vevs from jacknife bins of correaltion matrices
+        do concurrent (i = 1:NUM_OPERATORS, j = 1:NUM_OPERATORS, bin = 1:NUM_BINS)
+            corr_matrix(i, j, :, bin) = corr_matrix(i, j, :, bin) - vevs(i, bin) * vevs(j, bin)
+        enddo
+    end subroutine
 
     ! Run GEVP on correlation matrix
 
