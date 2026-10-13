@@ -195,23 +195,34 @@ module analysis
     end subroutine
 
     ! Read vevs and correlation matrix into memory, and remove duplicate operators and zero operators
-    subroutine read_clean_data(vevs_filename, corr_matrix_filename, vevs, corr_matrix)
+    subroutine read_clean_data(vevs_filename, corr_matrix_filename, vevs, corr_matrix, read_nconfig)
         implicit none
         character(len=*), intent(in) :: vevs_filename, corr_matrix_filename
         complex(real64), allocatable, intent(out) :: vevs(:,:), corr_matrix(:,:,:,:)
+        logical, intent(in), optional :: read_nconfig
 
         complex(real64), allocatable :: vevs_from_file(:,:), corr_matrix_from_file(:,:,:,:), &
         diagonal_correlators(:)
         integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check
         integer, allocatable :: distinct_operators(:)
         logical, allocatable :: operator_comparison(:)
+        logical :: read_nconfig_default
+
+        ! Set read_nconfig
+        if (present(read_nconfig)) then
+            read_nconfig_default = read_nconfig
+        else
+            read_nconfig_default = .true.
+        endif
 
         !! Read vevs from file
         ! Open file
         open(11, file=trim(vevs_filename), form='unformatted', access='stream', status='old')
 
         ! Read number of configurations
-        read(11) NCONFIG
+        if (read_nconfig_default) then
+            read(11) NCONFIG
+        endif
 
         ! Read dimensions of array
         read(11) dim1
@@ -232,11 +243,13 @@ module analysis
         open(11, file=trim(corr_matrix_filename), form='unformatted', access='stream', status='old')
 
         ! Check number of configurations is the same as for the vevs
-        read(11) nconfig_check
-        if (nconfig_check /= NCONFIG) then
-            write(*, '(a)') &
-            "[Error]    Number of configurations not consistent between vevs and correlation matrix"
-            stop
+        if (read_nconfig_default) then
+            read(11) nconfig_check
+            if (nconfig_check /= NCONFIG) then
+                write(*, '(a)') &
+                "[Error]    Number of configurations not consistent between vevs and correlation matrix"
+                stop
+            endif
         endif
 
         ! Read dimensions of array
@@ -632,6 +645,7 @@ program analyse_lines
     ! Command line input variables
     character(len=31) :: input_state, arg
     integer :: nargs
+    logical :: read_nconfig
 
     ! File access variables
     character(len=255) :: vevs_file_name, corr_matrix_file_name
@@ -649,6 +663,7 @@ program analyse_lines
     ! ------------------------------------------- Set up analysis ------------------------------------------- !
 
     ! Get number of states to use and state to analyse from command line
+    read_nconfig = .true.
     nargs = command_argument_count()
     i = 1
     do while (i <= nargs)
@@ -663,6 +678,11 @@ program analyse_lines
             i = i + 1
             call get_command_argument(i, arg)
             input_state = trim(arg)
+        case("--configs")
+            i = i + 1
+            call get_command_argument(i, arg)
+            read(arg, *) NCONFIG
+            read_nconfig = .false.
         case default
             write(*, '(a, a)') "[Error]    Unknown option:    ", trim(arg)
         end select
