@@ -615,6 +615,9 @@ module analysis
 
             ! Increment state counter
             state = state + 1
+
+            write(*, '(a)') " *"
+            write(*, '(a)') " *******************************************************"
         enddo
     end subroutine
 end module
