@@ -688,7 +688,7 @@ program analyse_lines
     call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix)
 
     ! Arrange data into jackkife samples
-    call jackkinfe(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
+    call jackknife(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
 
     ! Form connected correlation matrix
     call subtract_vevs(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
