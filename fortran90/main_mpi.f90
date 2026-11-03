@@ -160,7 +160,8 @@ program main_mpi
     bin_index = 0
     do config = CONFIG_START, CONFIG_STOP, CONFIG_STEP
         ! Set bin into which measurements will be placed
-        bin_index = mod(bin_index, NUM_BINS) + 1
+        ! Measurements in bin b are measurement numbers [1 + (b-1) * CONFIG_PER_BIN, b * CONFIG_PER_BIN]
+        bin_index = ((config - CONFIG_START) / CONFIG_STEP) / CONFIG_PER_BIN + 1
 
         if (my_rank == 0) then
             ! Recieve lines and momentum_lines for all time slices
