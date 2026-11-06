@@ -270,12 +270,12 @@ module analysis
 
         !! Find values of NUM_OPERATORS, MAX_DELTA_T and NUM_BINS
         ! Assume operators contained in vevs(:,j), corr_matrix(:,:,k,l)
-        NUM_OPERATORS = size(vevs, dim=1)
+        NUM_OPERATORS = size(vevs_from_file, dim=1)
 
         ! Check there are the same number of operators in corr_matrix as in vevs
         if (size(corr_matrix_from_file, dim=1) /= NUM_OPERATORS) &
         error stop "vevs and corr_matrix incompatible: different number of operators"
-        if (size(corr_matrix_from_file, dim=1) /= size(corr_matrix, dim=2)) &
+        if (size(corr_matrix_from_file, dim=1) /= size(corr_matrix_from_file, dim=2)) &
         error stop "corr_matrix not square"
 
         ! Assume time seperations contained in corr_matrix(i,j,:,l)
@@ -289,16 +289,16 @@ module analysis
         error stop "vevs and corr_matrix incompatible: different number of bins"
 
         ! Output dimensions found
-        write(*, '(a, i0)') "[Info] Number of operators found: ", NUM_OPERATORS
-        write(*, '(a, i0)') "[Info] Number time seperations found: ", MAX_DELTA_T + 1
-        write(*, '(a, i0)') "[Info] Number of bins found: ", NUM_BINS
+        write(*, '(a, i0)') "[Info] Number of operators from file: ", NUM_OPERATORS
+        write(*, '(a, i0)') "[Info] Number time seperations from file: ", MAX_DELTA_T + 1
+        write(*, '(a, i0)') "[Info] Number of bins from file: ", NUM_BINS
 
 
         !! Find duplicate operators by comparing diagonal elements of correlation matrix at zero seperation
         ! Compute average diagonal correlation matrix elements at 0 seperation
         allocate(diagonal_correlators(NUM_OPERATORS))
         do i = 1, NUM_OPERATORS
-            diagonal_correlators(i) = sum(corr_matrix_from_file(i, i, 0, :))
+            diagonal_correlators(i) = sum(corr_matrix_from_file(i, i, 1, :))
         enddo
 
         ! Find non-duplicate operators by comparing diagonal correlators
@@ -307,18 +307,20 @@ module analysis
             allocate(operator_comparison(i-1))
             do j = 1, i-1
                 operator_comparison(j) &
-                = (abs(diagonal_correlators(j) - diagonal_correlators(i)) <= epsilon(1.0d0))
+                = (abs(diagonal_correlators(j) - diagonal_correlators(i)) <= epsilon(1.0))
             enddo
             if (.not.any(operator_comparison)) distinct_operators = [distinct_operators, i]
+            deallocate(operator_comparison)
         enddo
 
         !! Fill correlation matrix with distinct operators only
         ! Reset number of operators to number of distinct operators
         NUM_OPERATORS = size(distinct_operators)
+        write(*, '(a, i0)') "[Info] Number of operators after filter:", NUM_OPERATORS
 
         ! Allocate vevs and correlation matrix outputs
         allocate(vevs(NUM_OPERATORS, NUM_BINS), &
-        corr_matrix(NUM_OPERATORS, NUM_OPERATORS, 0:MAX_DELTA_T, NUM_BINS))
+        corr_matrix(NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1, NUM_BINS))
 
         ! Fill vevs with distinct operators
         do i = 1, NUM_OPERATORS
@@ -708,7 +710,7 @@ program analyse_lines
     ! -------------------------------------- Prepare data for analysis -------------------------------------- !
 
     ! Read data from files and remove duplicate operators
-    call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix)
+    call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix, read_nconfig)
 
     ! Arrange data into jackkife samples
     call jackknife(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
