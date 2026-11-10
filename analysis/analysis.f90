@@ -188,7 +188,9 @@ module analysis
                 allocate(operator_comparison(i-1))
                 do j = 1, i-1
                     operator_comparison(j) &
-                    = (abs(diagonal_correlators(j) - diagonal_correlators(i)) <= epsilon(1.0))
+                    = (1.0 - abs(sum(corr_matrix_from_file(i,j,1,:))) &
+                    / sqrt(diagonal_correlators(i)%re * diagonal_correlators(j)%re) &
+                    <= epsilon(1.0d0))
                 enddo
                 if (.not.any(operator_comparison)) distinct_operators = [distinct_operators, i]
                 deallocate(operator_comparison)
