@@ -12,6 +12,49 @@ module analysis
 
     contains
 
+    ! Provide help with options
+    subroutine options_help()
+        write(*, '(a)') "[Help]    Usage: ./analysis <options>"
+        write(*, '(a)') "[Help]"
+        write(*, '(a)') "[Help]    Required options for q=0 states:"
+
+        write(*, '(a, 11x, a)') "[Help]     * '-par <parallel parity>'", &
+        "Parallel parity of flux tube state for masses to be calculated"
+
+        write(*, '(a, 6x, a)') "[Help]     * '-perp <perpendicular parity>'", &
+        "Perpendicular parity of flux tube state for masses to be calculated"
+
+        write(*, '(a)') "[Help]"
+        write(*, '(a)') "[Help]    Required options for q/=0 states:"
+
+        write(*, '(a, 22x, a)') "[Help]     * '-P <parity>'", &
+        "Parity of flux tube state for masses to be calculated"
+
+        write(*, '(a, 8x, a)') "[Help]     * '-q <longitudinal momentum>'", &
+        "Longitudinal momentum of flux tube state for masses to be calculated"
+
+        write(*, '(a)') "[Help]"
+        write(*, '(a)') "[Help]    Other passable options:"
+
+        write(*, '(a, 9x, a)') "[Help]     * '-n <number_of_states>'", &
+        "Total of number_of_states calculated in GEVP. Defaults to n = 3 if not passed."
+
+        write(*, '(a, 4x, a)') "[Help]     * '--max-dt' <maximum delta t>", &
+        "Report effective masses upto and including maximum delta t. Defaults to max_dt = 7 if not passed."
+
+        write(*, '(a, 23x, a, a)') "[Help]     * '--lines'", &
+        "Show correlation functions and effective masses for individual line operators. ", &
+        "Defaults to FALSE if not passed."
+
+        write(*, '(a, 25x, a)') "[Help]     * '--fit'", &
+        "Use numerical cosh fit in calculation of effective masses. Defaults to TRUE if not passed."
+
+        write(*, '(a, 23x, a)') "[Help]     * '--exact'", &
+        "Use exact cosh formula in calculation of effective masses. Defaults to FALSE if not passed."
+
+        stop
+    end subroutine
+
     ! Calculate errors on quantity from jacknife bins
     pure function jacknife_error(data, average) result(error)
         implicit none
@@ -379,12 +422,12 @@ module analysis
 
         ! Subtract vevs from average correlation matrices to form connected correlation matrcies
         do concurrent (i = 1:NUM_OPERATORS, j = 1:NUM_OPERATORS)
-            corr_matrix_avg(i, j, :) = corr_matrix_avg(i, j, :) - vevs_avg(i) * vevs_avg(j)
+            corr_matrix_avg(i, j, :) = corr_matrix_avg(i, j, :) - vevs_avg(i) * conjg(vevs_avg(j))
         enddo
 
         ! Subtract vevs from jacknife bins of correaltion matrices
         do concurrent (i = 1:NUM_OPERATORS, j = 1:NUM_OPERATORS, bin = 1:NUM_BINS)
-            corr_matrix(i, j, :, bin) = corr_matrix(i, j, :, bin) - vevs(i, bin) * vevs(j, bin)
+            corr_matrix(i, j, :, bin) = corr_matrix(i, j, :, bin) - vevs(i, bin) * conjg(vevs(j, bin))
         enddo
     end subroutine
 
@@ -418,7 +461,6 @@ module analysis
         real(real64), allocatable, intent(out) :: cfn(:,:,:), cfn_avg(:,:), cfn_error(:,:)
 
         complex(real64) :: scalar_product
-        real(real64) :: normalisation
         integer :: state, dt, bin
 
         ! Check dimensions
@@ -469,9 +511,10 @@ module analysis
 
         ! Normalise correlation functions so that cfn(0) = 1 for all states
         do state = 1, NUM_STATES
-            normalisation = cfn_avg(1, state)
-            cfn_avg(:, state) = cfn_avg(:, state) / normalisation
-            cfn(:, :, state) = cfn(:, :, state) / normalisation
+            cfn_avg(:, state) = cfn_avg(:, state) / cfn_avg(1, state)
+            do bin = 1, NUM_BINS
+                cfn(:, bin, state) = cfn(:, bin, state) / cfn(1, bin, state)
+            enddo
         enddo
 
         ! Calculate errors on correlation functions
@@ -480,11 +523,11 @@ module analysis
         enddo
     end subroutine
 
-    ! Calculate effective mass from 3 correlation function values using the exact cosh interpolation
-    pure function effective_mass(cfn) result(m_eff)
+    ! Calculate effective mass exactly from 3 neighbouring correlation function data points
+    pure function get_effective_mass_exact(cfn) result(m_eff)
         implicit none
-        real(real64), intent(in) :: cfn(-1:1)
-        real(real64) :: m_eff, x
+        real(8), intent(in) :: cfn(-1:1)
+        real(8) :: m_eff, x
 
         ! Calculate argument of arcosh function
         x = (cfn(1) + cfn(-1))/(2*cfn(0))
@@ -497,11 +540,107 @@ module analysis
         endif
     end function
 
+    ! Calculate effective mass numerically using ratio of 2 neighbouring correlation function data points
+    pure function get_effective_mass_fit(cfn, t, rel_tol, abs_tol, max_iter) result(m_eff)
+        implicit none
+        integer, intent(in) :: t
+        real(8), intent(in) :: cfn(t-1:t)
+        real(8), intent(in), optional :: rel_tol, abs_tol
+        integer, intent(in), optional :: max_iter
+        real(8) :: m_eff
+
+        real(8) :: dt, ratio, rtol, atol, x, x_trial, width, low, high, F, dF
+        integer :: max_iterations, iter
+
+        ! Check t is valid
+        if (t < 1 .or. t > MAX_DELTA_T) then
+            error stop "[Error]    t invalid - must be in range [1, N_t/2]"
+        endif
+
+        ! Calculate dt = L_t/2 - t
+        dt = real(MAX_DELTA_T) - real(t)
+
+        ! Compute correlation function ratio
+        ratio = cfn(t-1) / cfn(t)
+
+        ! Check correlation function is falling
+        if (ratio < 1) then
+            m_eff = 0.0
+            return
+        endif
+
+        ! Set default parameters
+        if (present(rel_tol)) then
+            rtol = rel_tol
+        else
+            rtol = 1e-13
+        endif
+        if (present(abs_tol)) then
+            atol = abs_tol
+        else
+            atol = 1e-14
+        endif
+        if (present(max_iter)) then
+            max_iterations = max_iter
+        else
+            max_iterations = 100
+        endif
+
+        ! Set initial bracket boundaries
+        low = log(ratio)
+        high = acosh(ratio)
+
+        ! Set initial estimate as midpoint of bracket
+        x = (low + high) / 2
+
+        ! Conduct safeguarded Newton-Raphson iteration
+        do iter = 1, max_iterations
+            ! Compute F(x)
+            F = x + log(1.0 + exp(-2.0 * (dt + 1) * x)) - log(1.0 + exp(-2.0 * dt * x)) - log(ratio)
+
+            ! Update bracket
+            if (F < 0) then
+                low = x
+            elseif (F > 0) then
+                high = x
+            else
+                m_eff = x
+                return
+            endif
+
+            ! Compute bracket width
+            width = high - low
+
+            ! Check for convergence
+            if (width <= 2.0 * (atol + rtol * (low + high) / 2.0)) then
+                m_eff = (low + high) / 2
+                return
+            endif
+
+            ! Compute F'(x)
+            dF = (dt + 1) * tanh((dt + 1) * x) - dt * tanh(dt * x)
+
+            ! Produce trial update to x using Newton's method
+            x_trial = x - F / dF
+
+            ! Accept trial update if it is within the bracket. If not, use bisection to update x.
+            if (x_trial > low .and. x_trial < high) then
+                x = x_trial
+            else
+                x = (low + high) / 2
+            endif
+        enddo
+
+        ! Report error if process did not converge
+        error stop "[Error]    Numerical solver for effective mass did not converge"
+    end function
+
     ! Calculate effective masses and errors of states from normalised correlation functions
-    subroutine get_effective_masses(cfn, cfn_avg, effective_mass_avg, effective_mass_error)
+    subroutine get_effective_masses(cfn, cfn_avg, effective_mass_avg, effective_mass_error, fit_mode)
         implicit none
         real(real64), intent(in) :: cfn(:,:,:), cfn_avg(:,:)
         real(real64), allocatable, intent(out) :: effective_mass_avg(:,:), effective_mass_error(:,:)
+        logical, intent(in), optional :: fit_mode
 
         real(real64), allocatable :: effective_mass_bins(:,:,:)
         integer :: dt, bin, state
@@ -525,23 +664,34 @@ module analysis
         effective_mass_error(MAX_DELTA_T, NUM_STATES))
 
         ! Calculate effective masses for all time steps and states
-        do concurrent (dt = 1:MAX_DELTA_T-1, state = 1:NUM_STATES)
-            effective_mass_avg(dt, state) = effective_mass(cfn_avg(dt:dt+2, state))
-        enddo
+        ! Use effective mass mode requested - default to cosh fit
+        if (present(fit_mode) .and. .not.fit_mode) then
+            do concurrent (dt = 1:MAX_DELTA_T-1, state = 1:NUM_STATES)
+                effective_mass_avg(dt, state) = get_effective_mass_exact(cfn_avg(dt:dt+2, state))
+            enddo
 
-        do concurrent (dt = 1:MAX_DELTA_T-1, bin = 1:NUM_BINS, state = 1:NUM_STATES)
-            effective_mass_bins(dt, bin, state) = effective_mass(cfn(dt:dt+2, bin, state))
-        enddo
+            do concurrent (dt = 1:MAX_DELTA_T-1, bin = 1:NUM_BINS, state = 1:NUM_STATES)
+                effective_mass_bins(dt, bin, state) = get_effective_mass_exact(cfn(dt:dt+2, bin, state))
+            enddo
 
-        do concurrent (state = 1:NUM_STATES)
-            effective_mass_avg(MAX_DELTA_T, state) = effective_mass(&
-            [cfn_avg(MAX_DELTA_T-1, state), cfn_avg(MAX_DELTA_T, state), cfn_avg(MAX_DELTA_T-1, state)])
-        enddo
+            do concurrent (state = 1:NUM_STATES)
+                effective_mass_avg(MAX_DELTA_T, state) = get_effective_mass_exact(&
+                [cfn_avg(MAX_DELTA_T-1, state), cfn_avg(MAX_DELTA_T, state), cfn_avg(MAX_DELTA_T-1, state)])
+            enddo
 
-        do concurrent (bin = 1:NUM_BINS, state = 1:NUM_STATES)
-            effective_mass_bins(MAX_DELTA_T, bin, state) = effective_mass(&
-            [cfn(MAX_DELTA_T-1, bin, state), cfn(MAX_DELTA_T, bin, state), cfn(MAX_DELTA_T-1, bin, state)])
-        enddo
+            do concurrent (bin = 1:NUM_BINS, state = 1:NUM_STATES)
+                effective_mass_bins(MAX_DELTA_T, bin, state) = get_effective_mass_exact(&
+                [cfn(MAX_DELTA_T-1, bin, state), cfn(MAX_DELTA_T, bin, state), cfn(MAX_DELTA_T-1, bin, state)])
+            enddo
+        else
+            do concurrent (dt = 1:MAX_DELTA_T, state = 1:NUM_STATES)
+                effective_mass_avg(dt, state) = get_effective_mass_fit(cfn_avg(dt:dt+1, state), dt)
+            enddo
+
+            do concurrent (dt = 1:MAX_DELTA_T, bin = 1:NUM_BINS, state = 1:NUM_STATES)
+                effective_mass_bins(dt, bin, state) = get_effective_mass_fit(cfn(dt:dt+1, bin, state), dt)
+            enddo
+        endif
 
         ! Calculate errors on effective masses
         do concurrent (dt = 1:MAX_DELTA_T, state = 1:NUM_STATES)
@@ -653,6 +803,10 @@ program analyse_lines
     character(len=255) :: vevs_file_name, corr_matrix_file_name
     logical :: file_exists
 
+    ! Options variables
+    integer :: max_dt
+    logical :: max_dt_passed, lines_passed, mode_passed, use_fit_mode, num_states_passed
+
     ! Analysis variables
     complex(real64), allocatable :: vevs(:,:), corr_matrix(:,:,:,:), vevs_avg(:), corr_matrix_avg(:,:,:), &
     eigenvectors(:,:)
@@ -666,6 +820,11 @@ program analyse_lines
 
     ! Get number of states to use and state to analyse from command line
     read_nconfig = .true.
+    max_dt_passed = .false.
+    lines_passed = .false.
+    mode_passed = .false.
+    use_fit_mode = .true.
+    num_states_passed = .false.
     nargs = command_argument_count()
     i = 1
     do while (i <= nargs)
@@ -676,6 +835,7 @@ program analyse_lines
             i = i + 1
             call get_command_argument(i, arg)
             read(arg, *) NUM_STATES
+            num_states_passed = .true.
         case("--state")
             i = i + 1
             call get_command_argument(i, arg)
@@ -685,12 +845,41 @@ program analyse_lines
             call get_command_argument(i, arg)
             read(arg, *) NCONFIG
             read_nconfig = .false.
+        case("--max-dt")
+            i = i + 1
+            call get_command_argument(i, arg)
+            read(arg, *) max_dt
+            max_dt_passed = .true.
+        case("--lines")
+            lines_passed = .true.
+        case("--fit")
+            if (mode_passed) then
+                write(*, '(a)') "[Warning]    Effective mass mode ambiguous. Defaulting to numerical fitting."
+                mode_passed = .false.
+            else
+                use_fit_mode = .true.
+                mode_passed = .true.
+            endif
+        case("--exact")
+            if (mode_passed) then
+                write(*, '(a)') "[Warning]    Effective mass mode ambiguous. Defaulting to numerical fitting."
+                mode_passed = .false.
+            else
+                use_fit_mode = .false.
+                mode_passed = .true.
+            endif
         case default
             write(*, '(a, a)') "[Error]    Unknown option:    ", trim(arg)
         end select
 
         i = i + 1
     enddo
+
+    ! Set default effective mass mode to use numerical fit
+    if (.not.mode_passed) use_fit_mode = .true.
+
+    ! Set default number of states (This is changed later to the full spectrum if there are insufficient states that pass through the filters imposed)
+    if (.not. num_states_passed) NUM_STATES = 3
 
     ! Check vev and correlation matrix files exist
     vevs_file_name = "vevs_" // trim(input_state) // ".dat"
@@ -712,6 +901,10 @@ program analyse_lines
     ! Read data from files and remove duplicate operators
     call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix, read_nconfig)
 
+    ! Set default max_dt
+    if (.not. max_dt_passed) max_dt = 7
+    if (max_dt < 0 .or. max_dt > MAX_DELTA_T) max_dt = 7
+
     ! Arrange data into jackkife samples
     call jackknife(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
 
@@ -728,8 +921,8 @@ program analyse_lines
     call construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, cfn, cfn_avg, cfn_error)
 
     ! Calculate effective masses for states
-    call get_effective_masses(cfn, cfn_avg, m_eff, m_eff_error)
+    call get_effective_masses(cfn, cfn_avg, m_eff, m_eff_error, fit_mode=use_fit_mode)
 
     ! Output correlation functions and effective masses with errors to console
-    call output_results(cfn_avg, cfn_error, m_eff, m_eff_error, mass_bound=mass_upper_bound, max_dt=9)
+    call output_results(cfn_avg, cfn_error, m_eff, m_eff_error, mass_bound=mass_upper_bound, max_dt=max_dt)
 end program
