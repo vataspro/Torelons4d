@@ -332,9 +332,9 @@ module analysis
         error stop "vevs and corr_matrix incompatible: different number of bins"
 
         ! Output dimensions found
-        write(*, '(a, i0)') "[Info] Number of operators from file: ", NUM_OPERATORS
-        write(*, '(a, i0)') "[Info] Number time seperations from file: ", MAX_DELTA_T + 1
-        write(*, '(a, i0)') "[Info] Number of bins from file: ", NUM_BINS
+        write(*, '(a, i0)') "[Info]    Number of operators from file: ", NUM_OPERATORS
+        write(*, '(a, i0)') "[Info]    Number time seperations from file: ", MAX_DELTA_T + 1
+        write(*, '(a, i0)') "[Info]    Number of bins from file: ", NUM_BINS
 
 
         !! Find duplicate operators by comparing diagonal elements of correlation matrix at zero seperation
@@ -347,19 +347,26 @@ module analysis
         ! Find non-duplicate operators by comparing diagonal correlators
         distinct_operators = [1]
         do i = 2, NUM_OPERATORS
-            allocate(operator_comparison(i-1))
-            do j = 1, i-1
-                operator_comparison(j) &
-                = (abs(diagonal_correlators(j) - diagonal_correlators(i)) <= epsilon(1.0))
-            enddo
-            if (.not.any(operator_comparison)) distinct_operators = [distinct_operators, i]
-            deallocate(operator_comparison)
+            ! Check if operator is exactly 0
+            if (abs(diagonal_correlators(i)) <= epsilon(1.0d0)) then
+                write(*, '(a, i0, a, f12.10)') "[Info]    Operator ", i, " diagonal correlator is ", &
+                diagonal_correlators(i)%re
+                cycle
+            else
+                allocate(operator_comparison(i-1))
+                do j = 1, i-1
+                    operator_comparison(j) &
+                    = (abs(diagonal_correlators(j) - diagonal_correlators(i)) <= epsilon(1.0))
+                enddo
+                if (.not.any(operator_comparison)) distinct_operators = [distinct_operators, i]
+                deallocate(operator_comparison)
+            endif
         enddo
 
         !! Fill correlation matrix with distinct operators only
         ! Reset number of operators to number of distinct operators
         NUM_OPERATORS = size(distinct_operators)
-        write(*, '(a, i0)') "[Info] Number of operators after filter:", NUM_OPERATORS
+        write(*, '(a, i0)') "[Info]    Number of operators after filter: ", NUM_OPERATORS
 
         ! Allocate vevs and correlation matrix outputs
         allocate(vevs(NUM_OPERATORS, NUM_BINS), &
@@ -700,6 +707,73 @@ module analysis
         enddo
     end subroutine
 
+    ! Output effective masses from a given correlation function
+    subroutine output_effective_masses(cfn, cfn_avg, fit_mode)
+        implicit none
+        real(8), intent(in) :: cfn(:,:), cfn_avg(:)
+        logical, intent(in), optional :: fit_mode
+
+        real(8), allocatable :: effective_mass(:,:), effective_mass_avg(:), effective_mass_errors(:), &
+        cfn_norm(:,:), cfn_avg_norm(:), cfn_error(:)
+        integer :: i, b, delta_t
+
+        ! Allocate temporary arrays
+        allocate(cfn_norm(size(cfn, dim=1), size(cfn, dim=2)), cfn_avg_norm(size(cfn_avg)), &
+        cfn_error(size(cfn_avg)), effective_mass(size(cfn, dim=1)-1, size(cfn, dim=2)), &
+        effective_mass_avg(size(cfn_avg)-1), effective_mass_errors(size(cfn_avg)-1))
+
+        ! Calculate effective masses and bins
+        if (present(fit_mode) .and. .not.fit_mode) then
+            do i = 1, size(effective_mass_avg) - 1
+                effective_mass_avg(i) = get_effective_mass_exact(cfn_avg(i:i+2))
+                do b = 1, size(effective_mass, dim=2)
+                    effective_mass(i, b) = get_effective_mass_exact(cfn(i:i+2, b))
+                enddo
+            enddo
+            i = size(effective_mass_avg)
+            effective_mass_avg(i) = get_effective_mass_exact((/cfn_avg(i), cfn_avg(i+1), cfn_avg(i)/))
+            do b = 1, size(effective_mass, dim=2)
+                effective_mass(i, b) = get_effective_mass_exact((/cfn(i, b), cfn(i+1, b), cfn(i, b)/))
+            enddo
+        else
+            do i = 1, size(effective_mass_avg)
+                effective_mass_avg(i) = get_effective_mass_fit(cfn_avg(i:i+1), i)
+                do b = 1, size(effective_mass, dim=2)
+                    effective_mass(i, b) = get_effective_mass_fit(cfn(i:i+1, b), i)
+                enddo
+            enddo
+        endif
+
+        ! Calculate errors on effective masses
+        do i = 1, size(effective_mass_avg)
+            effective_mass_errors(i) = jacknife_error(effective_mass(i, :), effective_mass_avg(i))
+        enddo
+
+        ! Normalise cfn bins
+        cfn_avg_norm = cfn_avg / cfn_avg(1)
+        do b = 1, size(cfn, dim=2)
+            cfn_norm(:, b) = cfn(:, b) / cfn(1, b)
+        enddo
+
+        ! Calculate errors on cfn function
+        do delta_t = 1, size(cfn_avg)
+            cfn_error(delta_t) = jacknife_error(cfn_norm(delta_t, :), cfn_avg_norm(delta_t))
+        enddo
+
+        ! Output effective masses and errors
+        write(6, '(a, i0, a, f10.8, a, f10.8)') "delta t = ", 0, "  cfn = ",&
+        cfn_avg_norm(1), "  error = ", cfn_error(1)
+        do i = 1, 7
+            write(6, '(a, i0, 4(a, f10.8))') "delta t = ", i, "  cfn = ",&
+            cfn_avg_norm(i+1), "  error = ", cfn_error(i+1), "  m_eff = ",&
+            effective_mass_avg(i), "  error = ", effective_mass_errors(i)
+        enddo
+        do i = 1, 7
+            write(6, '(a, i0, a, f10.8, a, f10.8, a)') &
+            "(", i, ",", effective_mass_avg(i), ") +- (0,", effective_mass_errors(i), ")"
+        enddo
+    end subroutine
+
     ! Output correlation functions and effective masses with errors
     subroutine output_results(cfn_avg, cfn_error, effective_mass_avg, effective_mass_error, mass_bound, max_dt)
         real(real64), intent(in) :: cfn_avg(:,:), cfn_error(:,:), &
@@ -913,6 +987,18 @@ program analyse_lines
 
 
     ! ----------------------------- Run analysis and output results to console ----------------------------- !
+
+    if (lines_passed) then
+        do i = 1, NUM_OPERATORS
+            write(*, '(a, i0)') "Operator ", i
+            call output_effective_masses(corr_matrix(i, i, :, :)%re, corr_matrix_avg(i, i, :)%re, use_fit_mode)
+            print *, ""
+        enddo
+        write(*, '(a)') " *"
+        write(*, '(a)') " *******************************************************"
+        write(*, '(a)') " *"
+        print *, ""
+    endif
 
     ! Run GEVP on correlation matrix to find approximate wavefunctionals for states
     call GEVP(corr_matrix_avg, mass_upper_bound, eigenvectors)
