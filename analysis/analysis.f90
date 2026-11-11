@@ -574,7 +574,7 @@ module analysis
         allocate(effective_mass_avg(MAX_DELTA_T, NUM_STATES), effective_mass_error(MAX_DELTA_T, NUM_STATES))
 
         ! Calculate effective masses
-        do i = 1, NUM_OPERATORS
+        do i = 1, NUM_STATES
             if (present(fit_mode)) then
                 call get_effective_masses(cfn(:,:,i), cfn_avg(:,i), &
                 effective_mass_avg(:,i), effective_mass_error(:,i), fit_mode)
