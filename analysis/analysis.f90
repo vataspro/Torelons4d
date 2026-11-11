@@ -674,11 +674,11 @@ module analysis
         endif
 
         ! Output correlation functions and effective masses fo each state in turn. Iterate through arrays in reverse order, as the lightest state is the last in each array
-        write(*, '(a)') " *******************************************************"
         state = 0
         do i = NUM_STATES, 1, -1
             ! Output state identifier
-            write(*, '(a)') " *"
+            print *, ""
+            write(*, '(a)') "--------------------------------------------------"
             if (state == 0) then
                 write(*, '(a)') "Ground state"
             else
@@ -689,7 +689,7 @@ module analysis
             if (present(mass_bound)) then
                 write(*, '(a, f6.4)') "Mass upper bound:    ", mass_bound(i)
             endif
-            write(*, '(a)') " *"
+            write(*, '(a)') "--------------------------------------------------"
 
             ! Output table header row
             write(*, '(a)') "dt    cfn         error       m_eff       error   "
@@ -707,9 +707,6 @@ module analysis
 
             ! Increment state counter
             state = state + 1
-
-            write(*, '(a)') " *"
-            write(*, '(a)') " *******************************************************"
         enddo
     end subroutine
 end module
@@ -841,17 +838,20 @@ program analyse_lines
 
     ! ----------------------------- Run analysis and output results to console ----------------------------- !
 
+    print *, ""
     if (lines_passed) then
+        write(*, '(a)') " *"
+        write(*, '(a)') " *******************************************************"
+        write(*, '(a)') " *"
         do i = 1, NUM_OPERATORS
             write(*, '(a, i0)') "Operator ", i
             call output_effective_masses(corr_matrix(i, i, :, :)%re, corr_matrix_avg(i, i, :)%re, use_fit_mode)
             print *, ""
         enddo
-        write(*, '(a)') " *"
-        write(*, '(a)') " *******************************************************"
-        write(*, '(a)') " *"
-        print *, ""
     endif
+    write(*, '(a)') " *"
+    write(*, '(a)') " *******************************************************"
+    write(*, '(a)') " *"
 
     ! Run GEVP on correlation matrix to find approximate wavefunctionals for states
     call GEVP(corr_matrix_avg, mass_upper_bound, eigenvectors)
