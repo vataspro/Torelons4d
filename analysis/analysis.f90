@@ -70,14 +70,15 @@ module analysis
     end function
 
     ! Read vevs and correlation matrix into memory, and remove duplicate operators and zero operators
-    subroutine read_clean_data(vevs_filename, corr_matrix_filename, vevs, corr_matrix, read_nconfig)
+    subroutine read_clean_data(vevs_filename, corr_matrix_filename, vevs, corr_matrix, read_nconfig, lines_passed)
         implicit none
         character(len=*), intent(in) :: vevs_filename, corr_matrix_filename
         complex(real64), allocatable, intent(out) :: vevs(:,:), corr_matrix(:,:,:,:)
-        logical, intent(in), optional :: read_nconfig
+        logical, intent(in), optional :: read_nconfig, lines_passed
 
         complex(real64), allocatable :: vevs_from_file(:,:), corr_matrix_from_file(:,:,:,:), &
-        diagonal_correlators(:)
+        diagonal_correlators(:), corr_matrix_from_file_avg(:,:,:), corr_matrix_from_file_jackknife(:,:,:,:), &
+        vevs_from_file_avg(:)
         integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check
         integer, allocatable :: distinct_operators(:)
         logical, allocatable :: operator_comparison(:)
@@ -167,6 +168,30 @@ module analysis
         write(*, '(a, i0)') "[Info]    Number of operators from file: ", NUM_OPERATORS
         write(*, '(a, i0)') "[Info]    Number time seperations from file: ", MAX_DELTA_T + 1
         write(*, '(a, i0)') "[Info]    Number of bins from file: ", NUM_BINS
+
+        print *, ""
+        if (lines_passed) then
+            allocate(corr_matrix_from_file_avg(NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1), &
+            corr_matrix_from_file_jackknife(NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1, NUM_BINS), &
+            vevs_from_file_avg(NUM_OPERATORS))
+            corr_matrix_from_file_avg = sum(corr_matrix_from_file, dim=4)
+            corr_matrix_from_file_jackknife = corr_matrix_from_file
+            vevs_from_file_avg = sum(vevs_from_file, dim=2)
+            call jackknife(vevs_from_file, corr_matrix_from_file_jackknife, vevs_from_file_avg, corr_matrix_from_file_avg)
+            write(*, '(a)') " *"
+            write(*, '(a)') " *******************************************************"
+            write(*, '(a)') " *"
+            do i = 1, NUM_OPERATORS
+                write(*, '(a, i0)') "Operator ", i
+                call output_effective_masses(corr_matrix_from_file_jackknife(i, i, :, :)%re, &
+                corr_matrix_from_file_avg(i, i, :)%re, .true.)
+                print *, ""
+            enddo
+        endif
+        write(*, '(a)') " *"
+        write(*, '(a)') " *******************************************************"
+        write(*, '(a)') " *"
+        print *, ""
 
 
         !! Find duplicate operators by comparing diagonal elements of correlation matrix at zero seperation
@@ -823,7 +848,7 @@ program analyse_lines
     ! -------------------------------------- Prepare data for analysis -------------------------------------- !
 
     ! Read data from files and remove duplicate operators
-    call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix, read_nconfig)
+    call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix, read_nconfig, lines_passed)
 
     ! Set default max_dt
     if (.not. max_dt_passed) max_dt = 7
@@ -837,21 +862,6 @@ program analyse_lines
 
 
     ! ----------------------------- Run analysis and output results to console ----------------------------- !
-
-    print *, ""
-    if (lines_passed) then
-        write(*, '(a)') " *"
-        write(*, '(a)') " *******************************************************"
-        write(*, '(a)') " *"
-        do i = 1, NUM_OPERATORS
-            write(*, '(a, i0)') "Operator ", i
-            call output_effective_masses(corr_matrix(i, i, :, :)%re, corr_matrix_avg(i, i, :)%re, use_fit_mode)
-            print *, ""
-        enddo
-    endif
-    write(*, '(a)') " *"
-    write(*, '(a)') " *******************************************************"
-    write(*, '(a)') " *"
 
     ! Run GEVP on correlation matrix to find approximate wavefunctionals for states
     call GEVP(corr_matrix_avg, mass_upper_bound, eigenvectors)
