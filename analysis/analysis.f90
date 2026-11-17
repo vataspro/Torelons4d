@@ -817,8 +817,8 @@ program analyse_lines
 
     ! Options variables
     integer :: max_dt, SPIN, PP, PR, MOMENTUM
-    logical :: max_dt_passed, lines_passed, mode_passed, use_fit_mode, num_states_passed, &
-    spin_passed, PP_passed, PR_passed, momentum_passed
+    logical :: max_dt_passed, lines_passed, lines_filtered_passed, mode_passed, use_fit_mode, &
+    num_states_passed, spin_passed, PP_passed, PR_passed, momentum_passed
 
     ! Analysis variables
     complex(real64), allocatable :: vevs(:,:), corr_matrix(:,:,:,:), vevs_avg(:), corr_matrix_avg(:,:,:), &
@@ -840,6 +840,7 @@ program analyse_lines
     momentum_passed = .false.
     max_dt_passed = .false.
     lines_passed = .false.
+    lines_filtered_passed = .false.
     mode_passed = .false.
     use_fit_mode = .true.
     num_states_passed = .false.
@@ -892,6 +893,8 @@ program analyse_lines
             max_dt_passed = .true.
         case("--lines")
             lines_passed = .true.
+        case("--lines-filtered")
+            lines_filtered_passed = .true.
         case("--fit")
             if (mode_passed) then
                 write(*, '(a)') "[Warning]    Effective mass mode ambiguous. Defaulting to numerical fitting."
@@ -1058,6 +1061,22 @@ program analyse_lines
 
     ! Form connected correlation matrix
     call subtract_vevs(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
+
+    print *, ""
+    if (lines_filtered_passed) then
+        write(*, '(a)') " *"
+        write(*, '(a)') " *******************************************************"
+        write(*, '(a)') " *"
+        print *, ""
+        do i = 1, NUM_OPERATORS
+            write(*, '(a, i0)') "Operator ", i
+            call output_effective_masses(corr_matrix(i, i, :, :)%re, corr_matrix_avg(i, i, :)%re, use_fit_mode)
+            print *, ""
+        enddo
+        write(*, '(a)') " *"
+        write(*, '(a)') " *******************************************************"
+        write(*, '(a)') " *"
+    endif
 
 
     ! ----------------------------- Run analysis and output results to console ----------------------------- !
