@@ -100,9 +100,9 @@ module analysis
         logical, intent(in), optional :: read_nconfig, lines_passed
 
         complex(real64), allocatable :: vevs_from_file(:,:), corr_matrix_from_file(:,:,:,:), &
-        diagonal_correlators(:), corr_matrix_from_file_avg(:,:,:), corr_matrix_from_file_jackknife(:,:,:,:), &
-        vevs_from_file_avg(:)
-        integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check
+        diagonal_correlators(:,:), corr_matrix_from_file_avg(:,:,:), &
+        corr_matrix_from_file_jackknife(:,:,:,:), vevs_from_file_avg(:)
+        integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check, dt, bin
         integer, allocatable :: distinct_operators(:)
         logical, allocatable :: operator_comparison(:)
         logical :: read_nconfig_default
@@ -220,26 +220,35 @@ module analysis
 
 
         !! Find duplicate operators by comparing diagonal elements of correlation matrix at zero seperation
-        ! Compute average diagonal correlation matrix elements at 0 seperation
-        allocate(diagonal_correlators(NUM_OPERATORS))
+        ! Compute average diagonal correlation matrix elements at 0, 1 seperation
+        allocate(diagonal_correlators(NUM_OPERATORS, 2))
         do i = 1, NUM_OPERATORS
-            diagonal_correlators(i) = sum(corr_matrix_from_file(i, i, 1, :))
+            do dt = 1, 2
+                diagonal_correlators(i, dt) = sum(corr_matrix_from_file(i, i, dt, :))
+            enddo
+            diagonal_correlators(i, 2) = diagonal_correlators(i, 2) / diagonal_correlators(i, 1)
         enddo
 
         ! Find non-duplicate operators by comparing diagonal correlators
         distinct_operators = [1]
         do i = 2, NUM_OPERATORS
-            ! Check if operator is exactly 0
-            if (abs(diagonal_correlators(i)) <= epsilon(1.0d0)) then
-                write(*, '(a, i0, a, f12.10)') "[Info]    Operator ", i, " diagonal correlator is ", &
-                diagonal_correlators(i)%re
+            ! Exclude operators that are exactly 0
+            if ((abs(diagonal_correlators(i, 1)) <= epsilon(1.0d0))) then
+                write(*, '(a, i0, a, f12.10)') "[Info]    Operator ", i, " diagonal correlator at dt=0 is ", &
+                diagonal_correlators(i, 1)%re
                 cycle
+            ! Exclude operators that have a correlator that vanishes at 1 seperation
+            elseif ((diagonal_correlators(i, 2)%re <= epsilon(1.0d0))) then
+                write(*, '(a, i0, a, f12.10)') "[Info]    Operator ", i, " diagonal correlator at dt=1 is ", &
+                diagonal_correlators(i, 2)%re
+                cycle
+            ! Exclude identical operators
             else
                 allocate(operator_comparison(i-1))
                 do j = 1, i-1
                     operator_comparison(j) &
                     = (1.0 - abs(sum(corr_matrix_from_file(i,j,1,:))) &
-                    / sqrt(diagonal_correlators(i)%re * diagonal_correlators(j)%re) &
+                    / sqrt(diagonal_correlators(i, 1)%re * diagonal_correlators(j, 1)%re) &
                     <= epsilon(1.0d0))
                 enddo
                 if (.not.any(operator_comparison)) distinct_operators = [distinct_operators, i]
@@ -1062,6 +1071,7 @@ program analyse_lines
     ! Form connected correlation matrix
     call subtract_vevs(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
 
+    ! Output diagonal correlators after filtering of operators if requested
     print *, ""
     if (lines_filtered_passed) then
         write(*, '(a)') " *"
