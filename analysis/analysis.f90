@@ -12,24 +12,43 @@ module analysis
     subroutine options_help()
         write(*, '(a)') "[Help]    Usage: ./analysis <options>"
         write(*, '(a)') "[Help]"
-        write(*, '(a)') "[Help]    Required options for q=0 states:"
+        write(*, '(a)') "[Help]    Required options for all states:"
+        write(*, '(a, 24x, a)') "[Help]     * '-J <spin>'", &
+        "Spin of flux tube state for masses to be calculated"
 
-        write(*, '(a, 11x, a)') "[Help]     * '-par <parallel parity>'", &
-        "Parallel parity of flux tube state for masses to be calculated"
-
-        write(*, '(a, 6x, a)') "[Help]     * '-perp <perpendicular parity>'", &
-        "Perpendicular parity of flux tube state for masses to be calculated"
-
-        write(*, '(a)') "[Help]"
-        write(*, '(a)') "[Help]    Required options for q/=0 states:"
-
-        write(*, '(a, 22x, a)') "[Help]     * '-P <parity>'", &
-        "Parity of flux tube state for masses to be calculated"
-
-        write(*, '(a, 8x, a)') "[Help]     * '-q <longitudinal momentum>'", &
+        write(*, '(a, 7x, a)') "[Help]     * '-q <longitudinal momentum>'", &
         "Longitudinal momentum of flux tube state for masses to be calculated"
 
         write(*, '(a)') "[Help]"
+
+        write(*, '(a)') "[Help]    Required options for q=0, J=0,2 states:"
+
+        write(*, '(a, 11x, a)') "[Help]     * '-P <transverse parity>'", &
+        "Transverse parity of flux tube state for masses to be calculated"
+
+        write(*, '(a, 12x, a)') "[Help]     * '-R <intrinsic parity>'", &
+        "Intrinsic parity of flux tube state for masses to be calculated"
+
+        write(*, '(a)') "[Help]"
+
+        write(*, '(a)') "[Help]    Required options for q=0, J=1 states:"
+
+        write(*, '(a, 12x, a)') "[Help]     * '-R <intrinsic parity>'", &
+        "Intrinsic parity of flux tube state for masses to be calculated"
+
+        write(*, '(a)') "[Help]"
+
+        write(*, '(a)') "[Help]    Required options for q/=0, J=0,2 states:"
+
+        write(*, '(a, 11x, a)') "[Help]     * '-P <transverse parity>'", &
+        "Transverse parity of flux tube state for masses to be calculated"
+
+        write(*, '(a)') "[Help]"
+
+        write(*, '(a)') "[Help]    No further options for q/=0, J=1 states"
+
+        write(*, '(a)') "[Help]"
+
         write(*, '(a)') "[Help]    Other passable options:"
 
         write(*, '(a, 9x, a)') "[Help]     * '-n <number_of_states>'", &
@@ -41,6 +60,10 @@ module analysis
         write(*, '(a, 23x, a, a)') "[Help]     * '--lines'", &
         "Show correlation functions and effective masses for individual line operators. ", &
         "Defaults to FALSE if not passed."
+
+        write(*, '(a, 14x, a, a)') "[Help]     * '--lines-filtered'", &
+        "Show correlation functions and effective masses for individual line operators, ", &
+        "after filtering bad and identical operators. Defaults to FALSE if not passed."
 
         write(*, '(a, 25x, a)') "[Help]     * '--fit'", &
         "Use numerical cosh fit in calculation of effective masses. Defaults to TRUE if not passed."
@@ -788,12 +811,14 @@ program analyse_lines
     logical :: read_nconfig
 
     ! File access variables
+    character(len=7) :: file_spin, file_q, file_p, file_r
     character(len=255) :: vevs_file_name, corr_matrix_file_name
     logical :: file_exists
 
     ! Options variables
-    integer :: max_dt
-    logical :: max_dt_passed, lines_passed, mode_passed, use_fit_mode, num_states_passed
+    integer :: max_dt, SPIN, PP, PR, MOMENTUM
+    logical :: max_dt_passed, lines_passed, mode_passed, use_fit_mode, num_states_passed, &
+    spin_passed, PP_passed, PR_passed, momentum_passed
 
     ! Analysis variables
     complex(real64), allocatable :: vevs(:,:), corr_matrix(:,:,:,:), vevs_avg(:), corr_matrix_avg(:,:,:), &
@@ -809,6 +834,10 @@ program analyse_lines
 
     ! Get number of states to use and state to analyse from command line
     read_nconfig = .true.
+    spin_passed = .false.
+    PP_passed = .false.
+    PR_passed = .false.
+    momentum_passed = .false.
     max_dt_passed = .false.
     lines_passed = .false.
     mode_passed = .false.
@@ -820,15 +849,37 @@ program analyse_lines
         call get_command_argument(i, arg)
 
         select case (trim(arg))
+        case("-h")
+            call options_help()
+            stop
+        case("--help")
+            call options_help()
+            stop
+        case("-J")
+            i = i + 1
+            call get_command_argument(i, arg)
+            read(arg, *) SPIN
+            spin_passed = .true.
+        case("-q")
+            i = i + 1
+            call get_command_argument(i, arg)
+            read(arg, *) MOMENTUM
+            momentum_passed = .true.
+        case("-P")
+            i = i + 1
+            call get_command_argument(i, arg)
+            read(arg, *) PP
+            PP_passed = .true.
+        case("-R")
+            i = i + 1
+            call get_command_argument(i, arg)
+            read(arg, *) PR
+            PR_passed = .true.
         case("-n")
             i = i + 1
             call get_command_argument(i, arg)
             read(arg, *) NUM_STATES
             num_states_passed = .true.
-        case("--state")
-            i = i + 1
-            call get_command_argument(i, arg)
-            input_state = trim(arg)
         case("--configs")
             i = i + 1
             call get_command_argument(i, arg)
@@ -864,6 +915,114 @@ program analyse_lines
         i = i + 1
     enddo
 
+    ! Ensure input state exactly determines and valid state
+    if (spin_passed .and. momentum_passed) then
+        write(file_spin, '(i0)') SPIN
+        write(file_q, '(i0)') MOMENTUM
+
+        if ((SPIN == 0 .or. SPIN == 2) .and. MOMENTUM == 0) then
+            if (PP_passed .and. PR_passed) then
+                select case(PP)
+                case(1)
+                    file_p = 'P'
+                case(-1)
+                    file_p = 'M'
+                case default
+                    write(*, '(a)') "[Error]    Transverse parity must be P=+-1"
+                    stop
+                end select
+
+                select case(PR)
+                case(1)
+                    file_r = 'P'
+                case(-1)
+                    file_r = 'M'
+                case default
+                    write(*, '(a)') "[Error]    Intrinsic parity must be R=+-1"
+                    stop
+                end select
+
+                input_state = "J" // trim(file_spin) // trim(file_p) // trim(file_r) // "q" // trim(file_q)
+            else
+                write(*, '(a)') &
+                "[Error]    Both transverse and intrinsic parity must be defined for J=0,2, q=0 states"
+                stop
+            endif
+
+        elseif (SPIN == 1 .and. MOMENTUM == 0) then
+            if (PR_passed) then
+                select case(PR)
+                case(1)
+                    file_r = 'P'
+                case(-1)
+                    file_r = 'M'
+                case default
+                    write(*, '(a)') "[Error]    Intrinsic parity must be R=+-1"
+                    stop
+                end select
+
+                input_state = "J" // trim(file_spin) // trim(file_r) // "q" // trim(file_q)
+            else
+                write(*, '(a)') &
+                "[Error]    Intrinsic parity must be defined for J=1, q=0 states"
+                stop
+            endif
+
+            if (PP_passed) then
+                if (PP /= 1) then
+                    write(*, '(a)') "[Warning]    Only P=+ state exists for J=1, q=0"
+                endif
+            endif
+
+        elseif ((SPIN == 0 .or. SPIN == 2) .and. (MOMENTUM == 1 .or. MOMENTUM == 2)) then
+            if (PP_passed) then
+                select case(PP)
+                case(1)
+                    file_p = 'P'
+                case(-1)
+                    file_p = 'M'
+                case default
+                    write(*, '(a)') "[Error]    Transverse parity must be P=+-1"
+                    stop
+                end select
+
+                input_state = "J" // trim(file_spin) // trim(file_p) // "q" // trim(file_q)
+            else
+                write(*, '(a)') &
+                "[Error]    Transverse parity must be defined for J=0,2, q/=0 states"
+                stop
+            endif
+
+            if (PR_passed) then
+                if (PR /= 1) then
+                    write(*, '(a)') "[Warning]    Only R=+ state exists for J=0,2, q/=0"
+                endif
+            endif
+
+        elseif (SPIN == 1 .and. (MOMENTUM == 1 .or. MOMENTUM == 2)) then
+            input_state = "J" // trim(file_spin) // "q" // trim(file_q)
+
+            if (PP_passed) then
+                if (PP /= 1) then
+                    write(*, '(a)') "[Warning]    Only P=+ state exists for J=1, q/=0"
+                endif
+            endif
+
+            if (PR_passed) then
+                if (PR /= 1) then
+                    write(*, '(a)') "[Warning]    Only R=+ state exists for J=1, q/=0"
+                endif
+            endif
+        else
+            write(*, '(a, a)') "[Error]    Spin can only take values J=0,1,2. ", &
+            "Momentum can only take values q=0,1,2."
+            stop
+        endif
+    else
+        write(*, '(a)') "[Error]    Spin and momentum value must be passed to define a state"
+        stop
+    endif
+
     ! Set default effective mass mode to use numerical fit
     if (.not.mode_passed) use_fit_mode = .true.
 
@@ -874,13 +1033,13 @@ program analyse_lines
     vevs_file_name = "vevs_" // trim(input_state) // ".dat"
     inquire(file=trim(vevs_file_name), exist=file_exists)
     if (.not. file_exists) then
-        write(*, '(3(a))') "File ", trim(vevs_file_name), " could not be found"
+        write(*, '(3(a))') "[Error]    File ", trim(vevs_file_name), " could not be found"
         error stop
     endif
     corr_matrix_file_name = "corr_matrix_" // trim(input_state) // ".dat"
     inquire(file=trim(corr_matrix_file_name), exist=file_exists)
     if (.not. file_exists) then
-        write(*, '(3(a))') "File ", trim(corr_matrix_file_name), " could not be found"
+        write(*, '(3(a))') "[Error]    File ", trim(corr_matrix_file_name), " could not be found"
         error stop
     endif
 
