@@ -169,6 +169,8 @@ module analysis
         write(*, '(a, i0)') "[Info]    Number time seperations from file: ", MAX_DELTA_T + 1
         write(*, '(a, i0)') "[Info]    Number of bins from file: ", NUM_BINS
 
+
+        ! Output diagonal correlators if requested
         print *, ""
         if (lines_passed) then
             allocate(corr_matrix_from_file_avg(NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1), &
@@ -298,32 +300,52 @@ module analysis
     end subroutine
 
     ! Run GEVP on correlation matrix. Return mass upper bounds and eigenvectors used to weight operators.
-    subroutine GEVP(corr_matrix_avg, mass_bound, eigenvectors)
+    subroutine GEVP(corr_matrix, corr_matrix_avg, mass_bound, mass_bound_avg, eigenvectors, eigenvectors_avg)
         implicit none
-        complex(real64), intent(in) :: corr_matrix_avg(:,:,:)
-        real(real64), intent(out), allocatable :: mass_bound(:)
-        complex(real64), intent(out), allocatable :: eigenvectors(:,:)
+        complex(real64), intent(in) :: corr_matrix(:,:,:,:), corr_matrix_avg(:,:,:)
+        real(real64), intent(out), allocatable :: mass_bound(:,:), mass_bound_avg(:)
+        complex(real64), intent(out), allocatable :: eigenvectors(:,:,:), eigenvectors_avg(:,:)
 
         real(real64), allocatable :: eigenvalues(:)
+        integer :: bin
 
         ! Check dimensions
-        if (size(corr_matrix_avg, dim=1) /= NUM_OPERATORS .or. size(corr_matrix_avg, dim=2) /= NUM_OPERATORS) &
+        if (size(corr_matrix, dim=1) /= NUM_OPERATORS .or. size(corr_matrix, dim=2) /= NUM_OPERATORS) &
         error stop "[Error][GEVP]    corr_matrix_avg must have NUM_OPERATORS as size of first two dimensions"
 
         ! Allocate mass_bound and eigen arrays
-        allocate(mass_bound(NUM_STATES), eigenvalues(NUM_STATES), eigenvectors(NUM_OPERATORS, NUM_STATES))
+        allocate(mass_bound(NUM_STATES, NUM_BINS), mass_bound_avg(NUM_STATES), &
+        eigenvalues(NUM_STATES), &
+        eigenvectors(NUM_OPERATORS, NUM_STATES, NUM_BINS), eigenvectors_avg(NUM_OPERATORS, NUM_STATES))
 
-        ! Run GEVP on correlation matrix
-        call generalised_eigenpairs(corr_matrix_avg(:,:,2), corr_matrix_avg(:,:,1), eigenvalues, eigenvectors)
+        ! Run GEVP on correlation matrix average values
+        call generalised_eigenpairs(corr_matrix_avg(:,:,2), corr_matrix_avg(:,:,1), &
+        eigenvalues, eigenvectors_avg)
 
-        ! Calculate upper bounds on massed of states from eigenvalues
-        mass_bound = -log(eigenvalues)
+        ! Calculate upper bounds on masses of states from eigenvalues
+        mass_bound_avg = -log(eigenvalues)
+
+        ! Run GEVP and get mass upper bounds on all jackknife bins
+        do bin = 1, NUM_BINS
+            call generalised_eigenpairs(corr_matrix(:,:,2,bin), corr_matrix(:,:,1,bin), &
+            eigenvalues, eigenvectors(:,:,bin))
+            mass_bound(:,bin) = -log(eigenvalues)
+        enddo
     end subroutine
 
     ! Construct normalised correlation functions of operators from eigenvectors
-    subroutine construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, cfn, cfn_avg, cfn_error)
+    subroutine construct_correlators(&
+        corr_matrix, &
+        corr_matrix_avg, &
+        eigenvectors, &
+        eigenvectors_avg, &
+        cfn, &
+        cfn_avg, &
+        cfn_error&
+        )
         implicit none
-        complex(real64), intent(in) :: corr_matrix(:,:,:,:), corr_matrix_avg(:,:,:), eigenvectors(:,:)
+        complex(real64), intent(in) :: corr_matrix(:,:,:,:), corr_matrix_avg(:,:,:), &
+        eigenvectors(:,:,:), eigenvectors_avg(:,:)
         real(real64), allocatable, intent(out) :: cfn(:,:,:), cfn_avg(:,:), cfn_error(:,:)
 
         complex(real64) :: scalar_product
@@ -342,9 +364,13 @@ module analysis
             error stop
         endif
 
-        if (all(shape(eigenvectors) /= [NUM_OPERATORS, NUM_STATES])) &
+        if (all(shape(eigenvectors) /= [NUM_OPERATORS, NUM_STATES, NUM_BINS])) &
         error stop &
-        "[Error][construct_correlators]    eigenvectors must have shape [NUM_OPERATORS, NUM_STATES]"
+        "[Error][construct_correlators]    eigenvectors must have shape [NUM_OPERATORS, NUM_STATES, NUM_BINS]"
+
+        if (all(shape(eigenvectors_avg) /= [NUM_OPERATORS, NUM_STATES])) &
+        error stop &
+        "[Error][construct_correlators]    eigenvectors_avg must have shape [NUM_OPERATORS, NUM_STATES]"
 
         ! Allocate correlation function and average correlation funcion arrays
         allocate(cfn(MAX_DELTA_T+1, NUM_BINS, NUM_STATES), cfn_avg(MAX_DELTA_T+1, NUM_STATES), &
@@ -354,8 +380,8 @@ module analysis
         do state = 1, NUM_STATES
             do dt = 1, MAX_DELTA_T+1
                 ! Compute scalar product
-                scalar_product = dot_product(eigenvectors(:, state), &
-                matmul(corr_matrix_avg(:, :, dt), eigenvectors(:, state)))
+                scalar_product = dot_product(eigenvectors_avg(:, state), &
+                matmul(corr_matrix_avg(:, :, dt), eigenvectors_avg(:, state)))
 
                 ! Scalar product is real, so the real part is the correlation function entry
                 cfn_avg(dt, state) = scalar_product%re
@@ -366,8 +392,8 @@ module analysis
             do bin = 1, NUM_BINS
                 do dt = 1, MAX_DELTA_T+1
                     ! Compute scalar product
-                    scalar_product = dot_product(eigenvectors(:, state), &
-                    matmul(corr_matrix(:, :, dt, bin), eigenvectors(:, state)))
+                    scalar_product = dot_product(eigenvectors(:, state, bin), &
+                    matmul(corr_matrix(:, :, dt, bin), eigenvectors(:, state, bin)))
 
                     ! Scalar product is real, so the real part is the correlation function entry
                     cfn(dt, bin, state) = scalar_product%re
@@ -653,12 +679,21 @@ module analysis
     end subroutine
 
     ! Output correlation functions and effective masses with errors
-    subroutine output_results(cfn_avg, cfn_error, effective_mass_avg, effective_mass_error, mass_bound, max_dt)
+    subroutine output_results(&
+        cfn_avg, &
+        cfn_error, &
+        effective_mass_avg, &
+        effective_mass_error, &
+        mass_bound, &
+        mass_bound_avg, &
+        max_dt&
+        )
         real(real64), intent(in) :: cfn_avg(:,:), cfn_error(:,:), &
         effective_mass_avg(:,:), effective_mass_error(:,:)
-        real(real64), intent(in), optional :: mass_bound(:)
+        real(real64), intent(in) :: mass_bound(:,:), mass_bound_avg(:)
         integer, intent(in), optional :: max_dt
 
+        real(real64) :: mass_bound_error
         integer :: i, state, dt, maximum_seperation
 
         ! Set default max_dt to 7
@@ -669,8 +704,13 @@ module analysis
         endif
 
         ! Check dimensions
-        if (size(mass_bound) /= NUM_STATES) then
-            write(*, '(a)') "[Error][output_results]    mass_bound must have size NUM_STATES"
+        if (all(shape(mass_bound) /= [NUM_STATES, NUM_BINS])) then
+            write(*, '(a)') "[Error][output_results]    mass_bound must have shape [NUM_STATES, NUM_BINS]"
+            error stop
+        endif
+
+        if (size(mass_bound_avg) /= NUM_STATES) then
+            write(*, '(a)') "[Error][output_results]    mass_bound_avg must have size NUM_STATES"
             error stop
         endif
 
@@ -710,10 +750,9 @@ module analysis
                 write(*, '(a, i0)') "Excited state ", state
             endif
 
-            ! Output mass upper bound if supplied
-            if (present(mass_bound)) then
-                write(*, '(a, f6.4)') "Mass upper bound:    ", mass_bound(i)
-            endif
+            ! Output mass upper bound and error
+            mass_bound_error = jacknife_error(mass_bound(i, :), mass_bound_avg(i))
+            write(*, '(2(a, f6.4))') "Mass upper bound:    ", mass_bound_avg(i), " +- ", mass_bound_error
             write(*, '(a)') "--------------------------------------------------"
 
             ! Output table header row
@@ -758,8 +797,9 @@ program analyse_lines
 
     ! Analysis variables
     complex(real64), allocatable :: vevs(:,:), corr_matrix(:,:,:,:), vevs_avg(:), corr_matrix_avg(:,:,:), &
-    eigenvectors(:,:)
-    real(real64), allocatable :: mass_upper_bound(:), cfn(:,:,:), cfn_avg(:,:), cfn_error(:,:), m_eff(:,:), m_eff_error(:,:)
+    eigenvectors(:,:,:), eigenvectors_avg(:,:)
+    real(real64), allocatable :: mass_upper_bound(:,:), mass_upper_bound_avg(:), &
+    cfn(:,:,:), cfn_avg(:,:), cfn_error(:,:), m_eff(:,:), m_eff_error(:,:)
 
     ! Loop variables
     integer :: i
@@ -864,14 +904,17 @@ program analyse_lines
     ! ----------------------------- Run analysis and output results to console ----------------------------- !
 
     ! Run GEVP on correlation matrix to find approximate wavefunctionals for states
-    call GEVP(corr_matrix_avg, mass_upper_bound, eigenvectors)
+    call GEVP(corr_matrix, corr_matrix_avg, mass_upper_bound, mass_upper_bound_avg, &
+    eigenvectors, eigenvectors_avg)
 
     ! Construct correlation functions for states
-    call construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, cfn, cfn_avg, cfn_error)
+    call construct_correlators(corr_matrix, corr_matrix_avg, eigenvectors, eigenvectors_avg, &
+    cfn, cfn_avg, cfn_error)
 
     ! Calculate effective masses for states
     call get_effective_masses_all_states(cfn, cfn_avg, m_eff, m_eff_error, use_fit_mode)
 
     ! Output correlation functions and effective masses with errors to console
-    call output_results(cfn_avg, cfn_error, m_eff, m_eff_error, mass_bound=mass_upper_bound, max_dt=max_dt)
+    call output_results(cfn_avg, cfn_error, m_eff, m_eff_error, &
+    mass_upper_bound, mass_upper_bound_avg, max_dt=max_dt)
 end program
