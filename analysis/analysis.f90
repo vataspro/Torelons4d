@@ -52,7 +52,10 @@ module analysis
         write(*, '(a)') "[Help]    Other passable options:"
 
         write(*, '(a, 9x, a)') "[Help]     * '-n <number_of_states>'", &
-        "Total of number_of_states calculated in GEVP. Defaults to n = 3 if not passed."
+        "Total of number of states calculated in GEVP. Defaults to n = 3 if not passed."
+
+        write(*, '(a, 11x, a)') "[Help]     * '-runs <number of runs>'", &
+        " Total number of runs to used in calculation of states. Defaults to runs = 10 if not passed."
 
         write(*, '(a, 4x, a)') "[Help]     * '--max-dt' <maximum delta t>", &
         "Report effective masses upto and including maximum delta t. Defaults to max_dt = 7 if not passed."
@@ -93,16 +96,18 @@ module analysis
     end function
 
     ! Read vevs and correlation matrix into memory, and remove duplicate operators and zero operators
-    subroutine read_clean_data(vevs_filename, corr_matrix_filename, vevs, corr_matrix, read_nconfig, lines_passed)
+    subroutine read_clean_data(vevs_filename, corr_matrix_filename, vevs, corr_matrix, nruns, read_nconfig, lines_passed)
         implicit none
         character(len=*), intent(in) :: vevs_filename, corr_matrix_filename
         complex(real64), allocatable, intent(out) :: vevs(:,:), corr_matrix(:,:,:,:)
+        integer, intent(in) :: nruns
         logical, intent(in), optional :: read_nconfig, lines_passed
 
+        character(len=32) :: filepath, file_run_id
         complex(real64), allocatable :: vevs_from_file(:,:), corr_matrix_from_file(:,:,:,:), &
         diagonal_correlators(:,:), corr_matrix_from_file_avg(:,:,:), &
         corr_matrix_from_file_jackknife(:,:,:,:), vevs_from_file_avg(:)
-        integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check, dt
+        integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check, dt, run
         integer, allocatable :: distinct_operators(:)
         logical, allocatable :: operator_comparison(:)
         logical :: read_nconfig_default
@@ -114,9 +119,12 @@ module analysis
             read_nconfig_default = .true.
         endif
 
-        !! Read vevs from file
+        !! Read vevs from file from run 1
+        ! Write run1 to filepath
+        filepath = 'run1/'
+
         ! Open file
-        open(11, file=trim(vevs_filename), form='unformatted', access='stream', status='old')
+        open(11, file=trim(filepath) // trim(vevs_filename), form='unformatted', access='stream', status='old')
 
         ! Read number of configurations
         if (read_nconfig_default) then
@@ -124,22 +132,22 @@ module analysis
         endif
 
         ! Read dimensions of array
-        read(11) dim1
-        read(11) dim2
+        read(11) dim1 ! NUM_OPERATORS
+        read(11) dim2 ! NUM_BINS (per run)
 
-        ! Allocate vevs array
-        allocate(vevs_from_file(dim1, dim2))
+        ! Allocate vevs array to take data from nruns runs
+        allocate(vevs_from_file(dim1, nruns * dim2))
 
         ! Read vevs data from file
-        read(11) vevs_from_file
+        read(11) vevs_from_file(:, 1:dim2)
 
         ! Close file
         close(11)
 
-
         !! Read correlation matrix from file
         ! Open file
-        open(11, file=trim(corr_matrix_filename), form='unformatted', access='stream', status='old')
+        open(11, file=trim(filepath) // trim(corr_matrix_filename), &
+        form='unformatted', access='stream', status='old')
 
         ! Check number of configurations is the same as for the vevs
         if (read_nconfig_default) then
@@ -152,16 +160,16 @@ module analysis
         endif
 
         ! Read dimensions of array
-        read(11) dim1
-        read(11) dim2
-        read(11) dim3
-        read(11) dim4
+        read(11) dim1 ! NUM_OPERATORS
+        read(11) dim2 ! NUM_OPERATORS
+        read(11) dim3 ! MAX_DELTA_T + 1
+        read(11) dim4 ! NUM_BINS (per run)
 
-        ! Allocate vevs array
-        allocate(corr_matrix_from_file(dim1, dim2, dim3, dim4))
+        ! Allocate correlation matrix array to take data from nruns runs
+        allocate(corr_matrix_from_file(dim1, dim2, dim3, nruns * dim4))
 
         ! Read vevs data from file
-        read(11) corr_matrix_from_file
+        read(11) corr_matrix_from_file(:, :, :, 1:dim4)
 
         ! Close file
         close(11)
@@ -191,6 +199,90 @@ module analysis
         write(*, '(a, i0)') "[Info]    Number of operators from file: ", NUM_OPERATORS
         write(*, '(a, i0)') "[Info]    Number time seperations from file: ", MAX_DELTA_T + 1
         write(*, '(a, i0)') "[Info]    Number of bins from file: ", NUM_BINS
+
+
+        !! Read data from other requested runs
+        do run = 2, nruns
+            ! Set file path
+            write(file_run_id, '(i0)') run
+            filepath = 'run' // trim(file_run_id) // '/'
+
+            ! Read vev dimensions from file
+            open(11, &
+                file=trim(filepath) // trim(vevs_filename), &
+                form='unformatted', &
+                access='stream', &
+                status='old'&
+                )
+            if (read_nconfig_default) then
+                read(11) nconfig_check
+                if (nconfig_check /= NCONFIG) then
+                    write(*, '(a, i0)') &
+                    "[Error]    Number of configurations not consistent between run 1 and run ", run
+                    stop
+                endif
+            endif
+            read(11) dim1
+            read(11) dim2
+
+            ! Check dimensions are correct
+            if (dim1 /= NUM_OPERATORS) then
+                write(*, '(a, i0)') &
+                "[Error]    Number of operators in vevs file not consistent between run 1 and run ", run
+                stop
+            endif
+            if (nruns * dim2 /= NUM_BINS) then
+                write(*, '(a, i0)') &
+                "[Error]    Number of bins in vevs file not consistent between run 1 and run ", run
+                stop
+            endif
+
+            ! Read vevs from file
+            read(11) vevs_from_file(:, 1 + (run-1)*dim2 : run*dim2)
+            close(11)
+
+            ! Read correlation matrix dimensions from file
+            open(11, &
+                file=trim(filepath) // trim(corr_matrix_filename), &
+                form='unformatted', &
+                access='stream', &
+                status='old'&
+                )
+            if (read_nconfig_default) then
+                read(11) nconfig_check
+                if (nconfig_check /= NCONFIG) then
+                    write(*, '(a, i0)') &
+                    "[Error]    Number of configurations not consistent between run 1 and run ", run
+                    stop
+                endif
+            endif
+            read(11) dim1
+            read(11) dim2
+            read(11) dim3
+            read(11) dim4
+
+            ! Check dimensions are correct
+            if (dim1 /= NUM_OPERATORS .or. dim2 /= NUM_OPERATORS) then
+                write(*, '(a, i0)') &
+                "[Error]    Number of operators in corr_matrix file not consistent between run 1 and run ", run
+                stop
+            endif
+            if (dim3 /= MAX_DELTA_T+1) then
+                write(*, '(a, i0)') &
+                "[Error]    Number of time slices in corr_matrix file not consistent between run 1 and run ", &
+                run
+                stop
+            endif
+            if (nruns * dim4 /= NUM_BINS) then
+                write(*, '(a, i0)') &
+                "[Error]    Number of bins in corr_matrix file not consistent between run 1 and run ", run
+                stop
+            endif
+
+            ! Read correlation matrix from file
+            read(11) corr_matrix_from_file(:, :, :, 1 + (run-1)*dim4 : run*dim4)
+            close(11)
+        enddo
 
 
         ! Output diagonal correlators if requested
@@ -825,9 +917,9 @@ program analyse_lines
     logical :: file_exists
 
     ! Options variables
-    integer :: max_dt, SPIN, PP, PR, MOMENTUM
+    integer :: max_dt, SPIN, PP, PR, MOMENTUM, RUNS
     logical :: max_dt_passed, lines_passed, lines_filtered_passed, mode_passed, use_fit_mode, &
-    num_states_passed, spin_passed, PP_passed, PR_passed, momentum_passed
+    num_states_passed, spin_passed, PP_passed, PR_passed, momentum_passed, runs_passed
 
     ! Analysis variables
     complex(real64), allocatable :: vevs(:,:), corr_matrix(:,:,:,:), vevs_avg(:), corr_matrix_avg(:,:,:), &
@@ -853,6 +945,7 @@ program analyse_lines
     mode_passed = .false.
     use_fit_mode = .true.
     num_states_passed = .false.
+    runs_passed = .false.
     nargs = command_argument_count()
     i = 1
     do while (i <= nargs)
@@ -890,6 +983,11 @@ program analyse_lines
             call get_command_argument(i, arg)
             read(arg, *) NUM_STATES
             num_states_passed = .true.
+        case("--runs")
+            i = i + 1
+            call get_command_argument(i, arg)
+            read(arg, *) RUNS
+            runs_passed = .true.
         case("--configs")
             i = i + 1
             call get_command_argument(i, arg)
@@ -1041,15 +1139,18 @@ program analyse_lines
     ! Set default number of states (This is changed later to the full spectrum if there are insufficient states that pass through the filters imposed)
     if (.not. num_states_passed) NUM_STATES = 3
 
+    ! Set default number of runs (default to 10)
+    if (.not. runs_passed) RUNS = 10
+
     ! Check vev and correlation matrix files exist
     vevs_file_name = "vevs_" // trim(input_state) // ".dat"
-    inquire(file=trim(vevs_file_name), exist=file_exists)
+    inquire(file='run1/' // trim(vevs_file_name), exist=file_exists)
     if (.not. file_exists) then
         write(*, '(3(a))') "[Error]    File ", trim(vevs_file_name), " could not be found"
         error stop
     endif
     corr_matrix_file_name = "corr_matrix_" // trim(input_state) // ".dat"
-    inquire(file=trim(corr_matrix_file_name), exist=file_exists)
+    inquire(file='run1/' // trim(corr_matrix_file_name), exist=file_exists)
     if (.not. file_exists) then
         write(*, '(3(a))') "[Error]    File ", trim(corr_matrix_file_name), " could not be found"
         error stop
@@ -1059,11 +1160,15 @@ program analyse_lines
     ! -------------------------------------- Prepare data for analysis -------------------------------------- !
 
     ! Read data from files and remove duplicate operators
-    call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix, read_nconfig, lines_passed)
+    call read_clean_data(vevs_file_name, corr_matrix_file_name, vevs, corr_matrix, &
+    RUNS, read_nconfig, lines_passed)
 
     ! Set default max_dt
     if (.not. max_dt_passed) max_dt = 7
     if (max_dt < 0 .or. max_dt > MAX_DELTA_T) max_dt = 7
+
+    ! Update N_CONFIG to NCONFIG * RUNS
+    NCONFIG = NCONFIG * RUNS
 
     ! Arrange data into jackkife samples
     call jackknife(vevs, corr_matrix, vevs_avg, corr_matrix_avg)
