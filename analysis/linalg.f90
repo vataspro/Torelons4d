@@ -1,5 +1,10 @@
 module linalg
+    use iso_fortran_env, only : int8, int32, int64, real32, real64
     implicit none
+
+    interface eigenpairs
+        module procedure eigenpairs_real_symmetric
+    end interface
 
     interface generalised_eigenpairs
         module procedure generalised_eigenpairs_real_symmetric
@@ -8,17 +13,83 @@ module linalg
 
     contains
 
+    ! Solve real symmetric eigenvalue problem using LAPACK routine DSYEV.
+    ! All eigenpairs are returned in ascending order of eigenvalue.
+    ! The columns of eigenvectors contain the corresponding eigenvectors.
+    subroutine eigenpairs_real_symmetric(A, eigenvalues, eigenvectors)
+        implicit none
+
+        real(real64), intent(in)  :: A(:,:)
+        real(real64), intent(out) :: eigenvalues(:), eigenvectors(:,:)
+
+        real(real64), allocatable :: Acopy(:,:), work(:)
+        integer :: lwork, info, n
+
+        ! Get size of matrix
+        n = size(A, 1)
+
+        ! Check dimensions
+        if (n < 1 .or. size(A, 2) /= n) &
+        error stop "[Error][eigenpairs_real_symmetric]    A must be a non-empty square matrix"
+
+        if (size(eigenvalues) /= n) &
+        error stop "[Error][eigenpairs_real_symmetric]    eigenvalues must have shape (n)"
+
+        if (size(eigenvectors, 1) /= n .or. size(eigenvectors, 2) /= n) &
+        error stop "[Error][eigenpairs_real_symmetric]    eigenvectors must have shape (n,n)"
+
+        ! Copy matrix, since DSYEV overwrites it
+        allocate(Acopy(n,n))
+        Acopy = A
+
+        ! Workspace query
+        allocate(work(1))
+        lwork = -1
+
+        call DSYEV('V', 'U', n, Acopy, n, eigenvalues, work, lwork, info)
+
+        if (info /= 0) &
+        error stop "[Error][eigenpairs_real_symmetric]    DSYEV workspace query failed"
+
+        ! Allocate optimal workspace
+        lwork = max(1, 3*n-1, int(work(1)))
+        deallocate(work)
+        allocate(work(lwork))
+
+        ! Restore matrix before solving
+        Acopy = A
+
+        ! Solve symmetric eigenvalue problem
+        call DSYEV('V', 'U', n, Acopy, n, eigenvalues, work, lwork, info)
+
+        if (info /= 0) then
+            if (info < 0) then
+                write(*,'(a,i0)') &
+                    '[Error][eigenpairs_real_symmetric]    DSYEV: illegal argument ', -info
+            else
+                write(*,'(a,i0)') &
+                    '[Error][eigenpairs_real_symmetric]    DSYEV failed to converge, INFO = ', info
+            endif
+            error stop
+        endif
+
+        ! DSYEV returns eigenvectors as columns of Acopy
+        eigenvectors = Acopy
+
+    end subroutine eigenpairs_real_symmetric
+
+
     ! Solve real symmetric generalised eigenvalue problem using LAPACK routine DSYGVX. Eigenpairs are returned in ascending order (so eigenvalues(k) refers to the largest eigenvalue)
     subroutine generalised_eigenpairs_real_symmetric(A, B, eigenvalues, eigenvectors)
         implicit none
 
-        real(8), intent(in) :: A(:,:), B(:,:)
-        real(8), intent(out) :: eigenvalues(:), eigenvectors(:,:)
+        real(real64), intent(in) :: A(:,:), B(:,:)
+        real(real64), intent(out) :: eigenvalues(:), eigenvectors(:,:)
 
-        real(8), allocatable :: Acopy(:,:), Bcopy(:,:), work(:)
+        real(real64), allocatable :: Acopy(:,:), Bcopy(:,:), work(:)
         integer, allocatable :: iwork(:), ifail(:)
         integer :: lwork, info, n, m, il, iu, k
-        real(8) :: abstol
+        real(real64) :: abstol
 
         ! Get size of matrices
         n = size(A, 1)
@@ -91,15 +162,15 @@ module linalg
         implicit none
 
         complex(8), intent(in) :: A(:,:), B(:,:)
-        real(8), intent(out) :: eigenvalues(:)
+        real(real64), intent(out) :: eigenvalues(:)
         complex(8), intent(out) :: eigenvectors(:,:)
 
         complex(8), allocatable :: Acopy(:,:), Bcopy(:,:), work(:)
-        real(8), allocatable :: rwork(:)
+        real(real64), allocatable :: rwork(:)
         integer, allocatable :: iwork(:), ifail(:)
 
         integer :: lwork, info, n, m, il, iu, k
-        real(8) :: abstol
+        real(real64) :: abstol
 
         ! Get size of matrices
         n = size(A, 1)
