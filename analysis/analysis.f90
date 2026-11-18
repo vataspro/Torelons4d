@@ -102,7 +102,7 @@ module analysis
         complex(real64), allocatable :: vevs_from_file(:,:), corr_matrix_from_file(:,:,:,:), &
         diagonal_correlators(:,:), corr_matrix_from_file_avg(:,:,:), &
         corr_matrix_from_file_jackknife(:,:,:,:), vevs_from_file_avg(:)
-        integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check, dt, bin
+        integer(int32) :: dim1, dim2, dim3, dim4, i, j, nconfig_check, dt
         integer, allocatable :: distinct_operators(:)
         logical, allocatable :: operator_comparison(:)
         logical :: read_nconfig_default
