@@ -4,7 +4,7 @@ module analysis
 
     implicit none
 
-    integer :: NUM_OPERATORS, MAX_DELTA_T, NUM_BINS, NCONFIG, NUM_STATES
+    integer :: NUM_OPERATORS, MAX_DELTA_T, NUM_BINS, NCONFIG, NUM_STATES, LT
 
     contains
 
@@ -187,6 +187,7 @@ module analysis
 
         ! Assume time seperations contained in corr_matrix(i,j,:,l)
         MAX_DELTA_T = size(corr_matrix_from_file, dim=3) - 1
+        LT = 2 * MAX_DELTA_T
 
         ! Assume bins contained in vevs(i,:), corr_matrix(i,j,k,:)
         NUM_BINS = size(vevs_from_file, dim=2)
@@ -896,6 +897,196 @@ module analysis
             ! Increment state counter
             state = state + 1
         enddo
+    end subroutine
+
+
+    ! ---------------------------------- Correlated cosh fitting functions ---------------------------------- !
+
+    ! Cosh function correlation functions should be fitted to
+    function cosh_fit(t, m)
+        implicit none
+
+        integer, intent(in) :: t
+        real(real64), intent(in) :: m
+        real(real64) :: cosh_fit
+
+        cosh_fit = exp(-m * real(t, kind=real64)) + exp(-m * (real(LT - t, kind=real64)))
+    end function
+
+    ! Derivate of cosh function wrt m
+    function dcosh_fit(t, m)
+        implicit none
+
+        integer, intent(in) :: t
+        real(real64), intent(in) :: m
+        real(real64) :: dcosh_fit
+
+        dcosh_fit = -(real(t, kind=real64) * exp(-m * real(t, kind=real64)) &
+        + real(LT - t, kind=real64) * exp(-m * (real(LT - t, kind=real64))))
+    end function
+
+    ! Second derivate of cosh function wrt m
+    function d2cosh_fit(t, m)
+        implicit none
+
+        integer, intent(in) :: t
+        real(real64), intent(in) :: m
+        real(real64) :: d2cosh_fit
+
+        d2cosh_fit = (real(t, kind=real64)**2) * exp(-m * real(t, kind=real64)) &
+        + (real(LT - t, kind=real64)**2) * exp(-m * (real(LT - t, kind=real64)))
+    end function
+
+    ! Construct covariance matrix from normalised correlation functions and Jackknife bins
+    subroutine get_covariance_matrix(cfn, cfn_avg, covariance_matrix)
+        implicit none
+        real(real64), intent(in) :: cfn(:,:), cfn_avg(:)
+        real(real64), intent(out) :: covariance_matrix(:,:)
+
+        integer :: t1, t2
+
+        ! Check sizes of arrays
+        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1])) then
+            write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
+            "cfn_avg must have shape [MAX_DELTA_T+1]"
+            stop
+        endif
+
+        if (all(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
+            write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
+            "cfn must have shape [MAX_DELTA_T+1, NUM_BINS]"
+            stop
+        endif
+
+        if (all(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
+            write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
+            "covariance_matrix must have shape [MAX_DELTA_T+1, MAX_DELTA_T+1]"
+        endif
+
+        ! Construct covariance matrix from jackknife samples
+        covariance_matrix = 0.0d0
+        do concurrent (t1 = 1:MAX_DELTA_T+1, t2 = 1:MAX_DELTA_T+1)
+            covariance_matrix(t1, t2) = sum((cfn(t1, :) - cfn_avg(t1)) * (cfn(t2, :) - cfn_avg(t2)))
+        enddo
+        covariance_matrix = covariance_matrix * real(NUM_BINS - 1, kind=real64) / real(NUM_BINS, kind=real64)
+    end subroutine
+
+    ! Diagonalise a window of the covariance matrix
+    subroutine diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvectors, eigenvalues)
+        implicit none
+        real(real64), intent(in) :: covariance_matrix(:,:)
+        integer, intent(in) :: t_min, t_max
+        real(real64), intent(out) :: eigenvectors(:,:), eigenvalues(:)
+
+        integer :: window_size
+
+        ! Get size of window from [t_min, t_max]
+        window_size = t_max - t_min + 1
+        if (window_size <= 0) then
+            write(*, '(a, a)') "[Error][diagonalise_covariance_matrix]    ", &
+            "window cannot have size <= 0"
+        endif
+
+        ! Check sizes of other arrays
+        if (all(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
+            write(*, '(a, a)') "[Error][diagonalise_covariance_matrix]    ", &
+            "covariance_matrix must have shape [MAX_DELTA_T+1, MAX_DELTA_T+1]"
+        endif
+
+        if (all(shape(eigenvectors) /= [window_size, window_size])) then
+            write(*, '(a, a)') "[Error][diagonalise_covariance_matrix]    ", &
+            "eigenvectors must have shape [window size, window_size]"
+        endif
+
+        if (size(eigenvalues) /= window_size) then
+            write(*, '(a, a)') "[Error][diagonalise_covariance_matrix]    ", &
+            "eigenvalues must have shape [window size]"
+        endif
+
+        ! Diagnoalise covariance matrix
+        call eigenpairs(covariance_matrix(t_min:t_max, t_min:t_max), eigenvalues, eigenvectors)
+    end subroutine
+
+    ! Vector representing (derivative of) cosh function in given t-window in eigenbasis given
+    function transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, cosh_derivative)
+        implicit none
+
+        interface
+            function cosh_derivative(time, mass)
+                use iso_fortran_env, only: real64
+                implicit none
+                integer, intent(in) :: time
+                real(real64), intent(in) :: mass
+                real(real64) :: cosh_derivative
+            end function
+        end interface
+
+        integer, intent(in) :: t_min, t_max
+        real(real64), intent(in) :: m, eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max)
+        real(real64) :: transformed_cosh_vector(t_min:t_max)
+
+        real(real64) :: cosh_derivative_vector(t_min:t_max)
+        integer :: t
+
+        ! Fill vector with (derivative of) cosh function evaluated at relevant t-values
+        do t = t_min, t_max
+            cosh_derivative_vector(t) = cosh_derivative(t, m)
+        enddo
+
+        ! Transform vector into eigenbasis: u(m) = L^{-1/2} U^T g(m)
+        do t = t_min, t_max
+            transformed_cosh_vector(t) &
+            = dot_product(eigenvectors(:, t), cosh_derivative_vector) / sqrt(eigenvalues(t))
+        enddo
+    end function
+
+    ! Vector representing correlation function in eigenbasis given
+    function transformed_cfn(t_min, t_max, eigenvalues, eigenvectors, cfn)
+        implicit none
+
+        integer, intent(in) :: t_min, t_max
+        real(real64), intent(in) :: cfn(0:MAX_DELTA_T), eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max)
+        real(real64) :: transformed_cfn(t_min:t_max)
+
+        integer :: t
+
+        ! Transform t-window of correlation function into eigenbasis: y = L^{-1/2} U^T C
+        do t = t_min, t_max
+            transformed_cfn(t) &
+            = dot_product(eigenvectors(:, t), cfn(t_min:t_max)) / sqrt(eigenvalues(t))
+        enddo
+    end function
+
+    ! Compute the function F(m) = |u(m)| (y \cdot \hat{u}(m)) and its derivative. F(m) is the function whose roots correspond to minima of the correlated chi-squared (at the optimum cosh amplitude) for a given t-window.
+    subroutine get_F(t_min, t_max, m, eigenvalues, eigenvectors, transformed_data, F, dF)
+        implicit none
+
+        integer, intent(in) :: t_min, t_max
+        real(real64), intent(in) :: m, eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max), &
+        transformed_data(t_min:t_max)
+        real(real64), intent(out) :: F, dF
+
+        real(real64) :: transformed_model(t_min:t_max), dtransformed_model(t_min:t_max), &
+        d2transformed_model(t_min:t_max), U, dU, d2U, Y, dY, d2Y
+
+        ! Get model vector and derivatives in eigenbasis
+        transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, cosh_fit)
+        dtransformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, dcosh_fit)
+        d2transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, d2cosh_fit)
+
+        ! Get variables U, U', U'', Y, Y', Y'' in which we express F(m) and F'(m)
+        U = dot_product(transformed_model, transformed_model)
+        dU = 2*dot_product(dtransformed_model, transformed_model)
+        d2U = 2*(dot_product(d2transformed_model, transformed_model) + dot_product(dtransformed_model, dtransformed_model))
+        Y = dot_product(transformed_data, transformed_model)
+        dY = dot_product(transformed_data, dtransformed_model)
+        d2Y = dot_product(transformed_data, d2transformed_model)
+
+        ! Calculate F(m)
+        F = dY - (dU * Y) / (2 * U)
+
+        ! Calculate F'(m)
+        dF = d2Y - (U * d2U * Y + U * dU * dY - dU**2 * Y) / (2 * U**2)
     end subroutine
 end module
 
