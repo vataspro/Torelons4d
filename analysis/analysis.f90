@@ -972,7 +972,7 @@ module analysis
     end subroutine
 
     ! Diagonalise a window of the covariance matrix
-    subroutine diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvectors, eigenvalues)
+    subroutine diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvalues, eigenvectors)
         implicit none
         real(real64), intent(in) :: covariance_matrix(:,:)
         integer, intent(in) :: t_min, t_max
@@ -1056,7 +1056,8 @@ module analysis
         integer, intent(in) :: t_min, t_max
         real(real64), intent(in) :: m, eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max), &
         transformed_data(t_min:t_max)
-        real(real64), intent(out) :: F, dF
+        real(real64), intent(out) :: F
+        real(real64), intent(out), optional :: dF
 
         real(real64) :: transformed_model(t_min:t_max), dtransformed_model(t_min:t_max), &
         d2transformed_model(t_min:t_max), U, dU, d2U, Y, dY, d2Y
@@ -1078,28 +1079,33 @@ module analysis
             ! U = u(m) * u(m)
             U = U + transformed_model(t) ** 2 / eigenvalues(t)
 
-            ! U' = 2 (u'(m) * u(m))
-            dU = dU + 2 * dtransformed_model(t) * transformed_model(t) / eigenvalues(t)
-
-            ! U'' = 2 (u''(m) * u(m) + u'(m) * u'(m))
-            d2U = d2U + 2 * (d2transformed_model(t) * transformed_model(t) + dtransformed_model(t) ** 2) &
-            / eigenvalues(t)
-
             ! Y = y * u(m)
             Y = Y + transformed_data(t) * transformed_model(t) / eigenvalues(t)
+
+            ! U' = 2 (u'(m) * u(m))
+            dU = dU + 2 * dtransformed_model(t) * transformed_model(t) / eigenvalues(t)
 
             ! Y' = y * u'(m)
             dY = dY + transformed_data(t) * dtransformed_model(t) / eigenvalues(t)
 
-            ! Y'' = y * u''(m)
-            d2Y = d2Y + transformed_data(t) * d2transformed_model(t) / eigenvalues(t)
+            ! Second derivatives only need to be calculated if F'(m) is required
+            if (present(dF)) then
+                ! U'' = 2 (u''(m) * u(m) + u'(m) * u'(m))
+                d2U = d2U + 2 * (d2transformed_model(t) * transformed_model(t) + dtransformed_model(t) ** 2) &
+                / eigenvalues(t)
+
+                ! Y'' = y * u''(m)
+                d2Y = d2Y + transformed_data(t) * d2transformed_model(t) / eigenvalues(t)
+            endif
         enddo
 
         ! Calculate F(m)
         F = dY - (dU * Y) / (2 * U)
 
-        ! Calculate F'(m)
-        dF = d2Y - (U * d2U * Y + U * dU * dY - dU**2 * Y) / (2 * U**2)
+        ! Calculate F'(m) if required
+        if (present(dF)) then
+            dF = d2Y - (U * d2U * Y + U * dU * dY - dU**2 * Y) / (2 * U**2)
+        endif
     end subroutine
 
     ! Compute the correlated chi-squared of a given model state mass at the optimal cosh amplitude
@@ -1215,16 +1221,118 @@ module analysis
             endif
         enddo
 
-        ! Report error if process did not converge
+        ! Report error if process did not converge, and output x-value found at last itertaion
         if (.not.converged) then
             write(*, '(a, 4x, a, f6.4, a, f6.4)') "[Error][minimise_chi_squared]", &
             "Minimum of correlated chi squared could not be found inside the bracket: [", &
             mass_bracket(1), ", ", mass_bracket(2)
+            mass = x
+        endif
+
+        ! Calculate correlated chi-squared and report results
+        chi_squared = get_chi_squared(t_min, t_max, mass, eigenvalues, eigenvectors, transformed_data)
+    end subroutine
+
+    ! Fit a given correlation function over a given t-window to a cosh function by finding the global minimum of the correlated chi-squared function over a mass range between m=0 and a supplied mass upper bound, which should be as a result of the variational calculation
+    subroutine fit_cfn(t_min, t_max, cfn, covariance_matrix, mass_upper_bound, &
+        mass, chi_squared, course_scan_size)
+        implicit none
+
+        integer, intent(in) :: t_min, t_max
+        real(real64), intent(in) :: cfn(0:MAX_DELTA_T), covariance_matrix(0:MAX_DELTA_T, 0:MAX_DELTA_T), &
+        mass_upper_bound
+        real(real64), intent(out) :: mass, chi_squared
+        integer, intent(in), optional :: course_scan_size
+
+        real(real64) :: eigenvalues(t_min:t_max), eigenvectors(t_min:t_max, t_min:t_max), &
+        transformed_data(t_min:t_max)
+        real(real64), allocatable :: mass_scan(:), F_scan(:), mass_brackets(:,:), &
+        mass_values(:), chi_squared_values(:)
+        integer, allocatable :: bracket_indices(:)
+        integer :: course_scan_size_, num_minima, i, k, mass_loc
+
+        ! Set default course scan size
+        if (present(course_scan_size)) then
+            course_scan_size_ = course_scan_size
+        else
+            course_scan_size_ = 200
+        endif
+        allocate(mass_scan(course_scan_size_), F_scan(course_scan_size_))
+
+        ! Get eigenvalues and eigenvectors of covariance matrix
+        call diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvalues, eigenvectors)
+
+        ! Transform correlation function window into eigenbasis of the covariance matrix
+        transformed_data = transformed_cfn(t_min, t_max, eigenvectors, cfn)
+
+        ! Generate an equally-spaced course grid of mass values in the range [0, m_max]
+        mass_scan = linspace(0.0_real64, mass_upper_bound, course_scan_size_)
+
+        ! Evaluate F over all masses in course grid
+        do i = 1, course_scan_size_
+            call get_F(t_min, t_max, mass_scan(i), eigenvalues, eigenvectors, transformed_data, F_scan(i))
+        enddo
+
+
+        !! Find mass brackets by finding pairs of mass values over which F(m) changes sign
+        ! Find indices of mass values i where there is a minimum of chi-squared in the range [m(i), m(i+1)]
+        bracket_indices = [0]
+        do i = 1, course_scan_size_
+            if (F_scan(i) * F_scan(i+1) < 0.0) then
+                bracket_indices = [bracket_indices, i]
+            endif
+        enddo
+
+        ! Check the algorithm has found at least one minimum
+        if (size(bracket_indices) == 1) then
+            write(*, '(a, 4x, a, f6.4, a)') "[Error][fit_cfn]", &
+            "No chi-squared minimum found in mass range [0.0, ", mass_upper_bound, "]"
             error stop
         endif
 
-        ! If result converged, calculate correlated chi-squared and report results
-        chi_squared = get_chi_squared(t_min, t_max, mass, eigenvalues, eigenvectors, transformed_data)
+        ! Get number of minima
+        bracket_indices = bracket_indices(2:)
+        num_minima = size(bracket_indices)
+
+        ! Evaluate mass brackets that contain chi-squared minima
+        allocate(mass_brackets(2, num_minima))
+        do k = 1, num_minima
+            i = bracket_indices(k)
+            mass_brackets(1, k) = mass_scan(i)
+            mass_brackets(2, k) = mass_scan(i+1)
+        enddo
+
+
+        !! Run a Newton-bisection algorithm on each of these brackets to identify a root of F(m), and hence a minimim of chi-squared
+        ! Save mass and chi-squared values of end-points of search space
+        allocate(mass_values(0:num_minima+1), chi_squared_values(0:num_minima+1))
+        mass_values(0) = 0.0_real64
+        chi_squared_values(0) &
+        = get_chi_squared(t_min, t_max, 0.0_real64, eigenvalues, eigenvectors, transformed_data)
+        mass_values(num_minima+1) = mass_upper_bound
+        chi_squared_values(num_minima+1) &
+        = get_chi_squared(t_min, t_max, mass_upper_bound, eigenvalues, eigenvectors, transformed_data)
+
+        ! Save mass and chi-squared values of minima of chi-squared by using a Newton-bisection algorithm to solve for roots of F(m) in the intervals determined above
+        do k = 1, num_minima
+            call minimise_chi_squared(t_min, t_max, eigenvalues, eigenvectors, transformed_data, &
+            mass_brackets(:,k), mass_values(k), chi_squared_values(k))
+        enddo
+
+
+        !! Output the best-fit value of the mass (for this t-window) by selecting the minimum with the minimal chi-squared. Output a warning if this is found to be one of the end-points of the search space.
+        ! Find location of minimal chi-squared in list of values
+        mass_loc = minloc(chi_squared_values, 1) - 1
+
+        ! Output warning if this is an end-point of the search space
+        if (mass_loc == 0 .or. mass_loc == num_minima+1) then
+            write(*, '(a, 4x, a)') "[Warning][fit_cfn]", &
+            "Minimum chi-squared value found at boundary of input mass range"
+        endif
+
+        ! Output mass and chi-squared values at this minimum
+        mass = mass_values(mass_loc)
+        chi_squared = chi_squared_values(mass_loc)
     end subroutine
 end module
 
