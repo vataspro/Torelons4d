@@ -903,7 +903,7 @@ module analysis
     ! ---------------------------------- Correlated cosh fitting functions ---------------------------------- !
 
     ! Cosh function correlation functions should be fitted to
-    function cosh_fit(t, m)
+    pure function cosh_fit(t, m)
         implicit none
 
         integer, intent(in) :: t
@@ -914,7 +914,7 @@ module analysis
     end function
 
     ! Derivate of cosh function wrt m
-    function dcosh_fit(t, m)
+    pure function dcosh_fit(t, m)
         implicit none
 
         integer, intent(in) :: t
@@ -926,7 +926,7 @@ module analysis
     end function
 
     ! Second derivate of cosh function wrt m
-    function d2cosh_fit(t, m)
+    pure function d2cosh_fit(t, m)
         implicit none
 
         integer, intent(in) :: t
@@ -1008,11 +1008,11 @@ module analysis
     end subroutine
 
     ! Vector representing (derivative of) cosh function in given t-window in eigenbasis given
-    function transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, cosh_derivative)
+    function transformed_cosh_vector(t_min, t_max, m, eigenvectors, cosh_derivative)
         implicit none
 
         interface
-            function cosh_derivative(time, mass)
+            pure function cosh_derivative(time, mass)
                 use iso_fortran_env, only: real64
                 implicit none
                 integer, intent(in) :: time
@@ -1022,39 +1022,31 @@ module analysis
         end interface
 
         integer, intent(in) :: t_min, t_max
-        real(real64), intent(in) :: m, eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max)
+        real(real64), intent(in) :: m, eigenvectors(t_min:t_max,t_min:t_max)
         real(real64) :: transformed_cosh_vector(t_min:t_max)
 
         real(real64) :: cosh_derivative_vector(t_min:t_max)
         integer :: t
 
         ! Fill vector with (derivative of) cosh function evaluated at relevant t-values
-        do t = t_min, t_max
+        do concurrent (t = t_min:t_max)
             cosh_derivative_vector(t) = cosh_derivative(t, m)
         enddo
 
-        ! Transform vector into eigenbasis: u(m) = L^{-1/2} U^T g(m)
-        do t = t_min, t_max
-            transformed_cosh_vector(t) &
-            = dot_product(eigenvectors(:, t), cosh_derivative_vector) / sqrt(eigenvalues(t))
-        enddo
+        ! Transform vector into eigenbasis: L^{1/2} u(m) = U^T g(m)
+        transformed_cosh_vector = matmul(transpose(eigenvectors), cosh_derivative_vector)
     end function
 
     ! Vector representing correlation function in eigenbasis given
-    function transformed_cfn(t_min, t_max, eigenvalues, eigenvectors, cfn)
+    function transformed_cfn(t_min, t_max, eigenvectors, cfn)
         implicit none
 
         integer, intent(in) :: t_min, t_max
-        real(real64), intent(in) :: cfn(0:MAX_DELTA_T), eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max)
+        real(real64), intent(in) :: cfn(0:MAX_DELTA_T), eigenvectors(t_min:t_max,t_min:t_max)
         real(real64) :: transformed_cfn(t_min:t_max)
 
-        integer :: t
-
-        ! Transform t-window of correlation function into eigenbasis: y = L^{-1/2} U^T C
-        do t = t_min, t_max
-            transformed_cfn(t) &
-            = dot_product(eigenvectors(:, t), cfn(t_min:t_max)) / sqrt(eigenvalues(t))
-        enddo
+        ! Transform t-window of correlation function into eigenbasis: L^{1/2} y = U^T C
+        transformed_cfn = matmul(transpose(eigenvectors), cfn(t_min:t_max))
     end function
 
     ! Compute the function F(m) = |u(m)| (y \cdot \hat{u}(m)) and its derivative. F(m) is the function whose roots correspond to minima of the correlated chi-squared (at the optimum cosh amplitude) for a given t-window.
@@ -1068,19 +1060,40 @@ module analysis
 
         real(real64) :: transformed_model(t_min:t_max), dtransformed_model(t_min:t_max), &
         d2transformed_model(t_min:t_max), U, dU, d2U, Y, dY, d2Y
+        integer :: t
 
         ! Get model vector and derivatives in eigenbasis
-        transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, cosh_fit)
-        dtransformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, dcosh_fit)
-        d2transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvalues, eigenvectors, d2cosh_fit)
+        transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, cosh_fit)
+        dtransformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, dcosh_fit)
+        d2transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, d2cosh_fit)
 
         ! Get variables U, U', U'', Y, Y', Y'' in which we express F(m) and F'(m)
-        U = dot_product(transformed_model, transformed_model)
-        dU = 2*dot_product(dtransformed_model, transformed_model)
-        d2U = 2*(dot_product(d2transformed_model, transformed_model) + dot_product(dtransformed_model, dtransformed_model))
-        Y = dot_product(transformed_data, transformed_model)
-        dY = dot_product(transformed_data, dtransformed_model)
-        d2Y = dot_product(transformed_data, d2transformed_model)
+        U = 0.0
+        dU = 0.0
+        d2U = 0.0
+        Y = 0.0
+        dY = 0.0
+        d2Y = 0.0
+        do t = t_min, t_max
+            ! U = u(m) * u(m)
+            U = U + transformed_model(t) ** 2 / eigenvalues(t)
+
+            ! U' = 2 (u'(m) * u(m))
+            dU = dU + 2 * dtransformed_model(t) * transformed_model(t) / eigenvalues(t)
+
+            ! U'' = 2 (u''(m) * u(m) + u'(m) * u'(m))
+            d2U = d2U + 2 * (d2transformed_model(t) * transformed_model(t) + dtransformed_model(t) ** 2) &
+            / eigenvalues(t)
+
+            ! Y = y * u(m)
+            Y = Y + transformed_data(t) * transformed_model(t) / eigenvalues(t)
+
+            ! Y' = y * u'(m)
+            dY = dY + transformed_data(t) * dtransformed_model(t) / eigenvalues(t)
+
+            ! Y'' = y * u''(m)
+            d2Y = d2Y + transformed_data(t) * d2transformed_model(t) / eigenvalues(t)
+        enddo
 
         ! Calculate F(m)
         F = dY - (dU * Y) / (2 * U)
