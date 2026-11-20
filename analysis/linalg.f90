@@ -25,8 +25,9 @@ module linalg
         real(real64) :: step
         integer :: i
 
+        step = (stop - start) / real(num - 1, kind=real64)
         do i = 1, num
-            linspace(i) = start + real(i - 1, kind=real64) * (stop - start) / real(num - 1, kind=real64)
+            linspace(i) = start + real(i - 1, kind=real64) * step
         enddo
     end function
 
