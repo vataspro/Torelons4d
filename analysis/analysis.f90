@@ -974,7 +974,7 @@ module analysis
     ! Diagonalise a window of the covariance matrix
     subroutine diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvalues, eigenvectors)
         implicit none
-        real(real64), intent(in) :: covariance_matrix(:,:)
+        real(real64), intent(in) :: covariance_matrix(0:,0:)
         integer, intent(in) :: t_min, t_max
         real(real64), intent(out) :: eigenvectors(:,:), eigenvalues(:)
 
@@ -1155,9 +1155,9 @@ module analysis
         real(real64), intent(in), optional :: rel_tol, abs_tol
         integer, intent(in), optional :: max_iter
 
-        real(real64) :: rtol, atol, low, high, x, x_trial, width, F, dF
+        real(real64) :: rtol, atol, low, high, x, x_trial, width, F, dF, F_low, F_high
         integer :: max_iterations, iter
-        logical :: converged
+        logical :: converged, F_rising_in_interval
 
         ! Set default parameters
         if (present(rel_tol)) then
@@ -1183,6 +1183,18 @@ module analysis
         ! Set initial estimate as midpoint of bracket
         x = (low + high) / 2
 
+        ! Determine if F is rising or falling in the given interval
+        call get_F(t_min, t_max, low, eigenvalues, eigenvectors, transformed_data, F_low)
+        call get_F(t_min, t_max, high, eigenvalues, eigenvectors, transformed_data, F_high)
+        if (F_low < 0.0_real64 .and. F_high > 0.0_real64) then
+            F_rising_in_interval = .true.
+        elseif (F_low > 0.0_real64 .and. F_high < 0.0_real64) then
+            F_rising_in_interval = .false.
+        else
+            write(*, '(a, 4x, a)') "[Error][minimise_chi_squared]", &
+            "No root exists in mass bracket given"
+        endif
+
         ! Conduct safeguarded Newton-Raphson iteration
         converged = .false.
         do iter = 1, max_iterations
@@ -1190,14 +1202,26 @@ module analysis
             call get_F(t_min, t_max, x, eigenvalues, eigenvectors, transformed_data, F, dF)
 
             ! Update bracket
-            if (F < 0) then
-                low = x
-            elseif (F > 0) then
-                high = x
+            if (F_rising_in_interval) then
+                if (F < 0) then
+                    low = x
+                elseif (F > 0) then
+                    high = x
+                else
+                    mass = x
+                    converged = .true.
+                    exit
+                endif
             else
-                mass = x
-                converged = .true.
-                exit
+                if (F > 0) then
+                    low = x
+                elseif (F < 0) then
+                    high = x
+                else
+                    mass = x
+                    converged = .true.
+                    exit
+                endif
             endif
 
             ! Compute bracket width
@@ -1277,8 +1301,8 @@ module analysis
         !! Find mass brackets by finding pairs of mass values over which F(m) changes sign
         ! Find indices of mass values i where there is a minimum of chi-squared in the range [m(i), m(i+1)]
         bracket_indices = [0]
-        do i = 1, course_scan_size_
-            if (F_scan(i) * F_scan(i+1) < 0.0) then
+        do i = 1, course_scan_size_ - 1
+            if (F_scan(i) * F_scan(i+1) < 0.0_real64) then
                 bracket_indices = [bracket_indices, i]
             endif
         enddo
