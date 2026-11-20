@@ -1302,29 +1302,27 @@ module analysis
         ! Find indices of mass values i where there is a minimum of chi-squared in the range [m(i), m(i+1)]
         bracket_indices = [0]
         do i = 1, course_scan_size_ - 1
-            if (F_scan(i) * F_scan(i+1) < 0.0_real64) then
+            if (F_scan(i) * F_scan(i+1) < epsilon(1.0_real64)) then
                 bracket_indices = [bracket_indices, i]
             endif
         enddo
 
         ! Check the algorithm has found at least one minimum
         if (size(bracket_indices) == 1) then
-            write(*, '(a, 4x, a, f6.4, a)') "[Error][fit_cfn]", &
-            "No chi-squared minimum found in mass range [0.0, ", mass_upper_bound, "]"
-            error stop
+            num_minima = 0
+        else
+            ! Get number of minima
+            bracket_indices = bracket_indices(2:)
+            num_minima = size(bracket_indices)
+
+            ! Evaluate mass brackets that contain chi-squared minima
+            allocate(mass_brackets(2, num_minima))
+            do k = 1, num_minima
+                i = bracket_indices(k)
+                mass_brackets(1, k) = mass_scan(i)
+                mass_brackets(2, k) = mass_scan(i+1)
+            enddo
         endif
-
-        ! Get number of minima
-        bracket_indices = bracket_indices(2:)
-        num_minima = size(bracket_indices)
-
-        ! Evaluate mass brackets that contain chi-squared minima
-        allocate(mass_brackets(2, num_minima))
-        do k = 1, num_minima
-            i = bracket_indices(k)
-            mass_brackets(1, k) = mass_scan(i)
-            mass_brackets(2, k) = mass_scan(i+1)
-        enddo
 
 
         !! Run a Newton-bisection algorithm on each of these brackets to identify a root of F(m), and hence a minimim of chi-squared
