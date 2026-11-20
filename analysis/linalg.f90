@@ -13,6 +13,23 @@ module linalg
 
     contains
 
+    ! Return a list of evenly spaced real numbers in the interval [start, stop]
+    function linspace(start, stop, num)
+        implicit none
+
+        real(real64), intent(in) :: start, stop
+        integer, intent(in) :: num
+
+        real(real64) :: linspace(num)
+
+        real(real64) :: step
+        integer :: i
+
+        do i = 1, num
+            linspace(i) = start + real(i - 1, kind=real64) * (stop - start) / real(num - 1, kind=real64)
+        enddo
+    end function
+
     ! Solve real symmetric eigenvalue problem using LAPACK routine DSYEV.
     ! All eigenpairs are returned in ascending order of eigenvalue.
     ! The columns of eigenvectors contain the corresponding eigenvectors.
