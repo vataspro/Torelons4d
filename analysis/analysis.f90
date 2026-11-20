@@ -1101,6 +1101,41 @@ module analysis
         ! Calculate F'(m)
         dF = d2Y - (U * d2U * Y + U * dU * dY - dU**2 * Y) / (2 * U**2)
     end subroutine
+
+    ! Compute the correlated chi-squared of a given model state mass at the optimal cosh amplitude
+    function get_chi_squared(t_min, t_max, m, eigenvalues, eigenvectors, transformed_data) &
+        result(chi_squared)
+        implicit none
+
+        integer, intent(in) :: t_min, t_max
+        real(real64), intent(in) :: m, eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max), &
+        transformed_data(t_min:t_max)
+        real(real64) :: chi_squared
+
+        real(real64) :: transformed_model(t_min:t_max), U, Y, R
+        integer :: t
+
+        ! Get model vector in eigenbasis
+        transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, cosh_fit)
+
+        ! Get variables U, Y, R in which we express chi-squared
+        U = 0.0
+        Y = 0.0
+        R = 0.0
+        do t = t_min, t_max
+            ! U = u(m) * u(m)
+            U = U + transformed_model(t) ** 2 / eigenvalues(t)
+
+            ! Y = y * u(m)
+            Y = Y + transformed_data(t) * transformed_model(t) / eigenvalues(t)
+
+            ! R = y * y
+            R = R + transformed_data(t) ** 2 / eigenvalues(t)
+        enddo
+
+        ! Calculate chi-squared
+        chi_squared = R - Y**2 / U
+    end function
 end module
 
 
