@@ -543,8 +543,8 @@ module analysis
     ! Calculate effective mass exactly from 3 neighbouring correlation function data points
     pure function get_effective_mass_exact(cfn) result(m_eff)
         implicit none
-        real(8), intent(in) :: cfn(-1:1)
-        real(8) :: m_eff, x
+        real(real64), intent(in) :: cfn(-1:1)
+        real(real64) :: m_eff, x
 
         ! Calculate argument of arcosh function
         x = (cfn(1) + cfn(-1))/(2*cfn(0))
@@ -561,12 +561,12 @@ module analysis
     pure function get_effective_mass_fit(cfn, t, rel_tol, abs_tol, max_iter) result(m_eff)
         implicit none
         integer, intent(in) :: t
-        real(8), intent(in) :: cfn(t-1:t)
-        real(8), intent(in), optional :: rel_tol, abs_tol
+        real(real64), intent(in) :: cfn(t-1:t)
+        real(real64), intent(in), optional :: rel_tol, abs_tol
         integer, intent(in), optional :: max_iter
-        real(8) :: m_eff
+        real(real64) :: m_eff
 
-        real(8) :: dt, ratio, rtol, atol, x, x_trial, width, low, high, F, dF
+        real(real64) :: dt, ratio, rtol, atol, x, x_trial, width, low, high, F, dF
         integer :: max_iterations, iter
 
         ! Check t is valid
@@ -764,10 +764,10 @@ module analysis
     ! Output effective masses from a given correlation function
     subroutine output_effective_masses(cfn, cfn_avg, fit_mode)
         implicit none
-        real(8), intent(in) :: cfn(:,:), cfn_avg(:)
+        real(real64), intent(in) :: cfn(:,:), cfn_avg(:)
         logical, intent(in), optional :: fit_mode
 
-        real(8), allocatable :: effective_mass_avg(:), effective_mass_errors(:), &
+        real(real64), allocatable :: effective_mass_avg(:), effective_mass_errors(:), &
         cfn_norm(:,:), cfn_avg_norm(:), cfn_error(:)
         integer :: i, b, delta_t
 
@@ -1136,6 +1136,96 @@ module analysis
         ! Calculate chi-squared
         chi_squared = R - Y**2 / U
     end function
+
+    ! Find the mass value that minimises the correlated chi-squared over a given mass range by using a Newton-bisection algorithm to find a zero of F(m) within the given range
+    subroutine minimise_chi_squared(t_min, t_max, eigenvalues, eigenvectors, transformed_data, mass_bracket, &
+        mass, chi_squared, rel_tol, abs_tol, max_iter)
+        implicit none
+
+        integer, intent(in) :: t_min, t_max
+        real(real64), intent(in) :: eigenvalues(t_min:t_max), eigenvectors(t_min:t_max, t_min:t_max), &
+        transformed_data(t_min:t_max), mass_bracket(2)
+        real(real64), intent(out) :: mass, chi_squared
+        real(real64), intent(in), optional :: rel_tol, abs_tol
+        integer, intent(in), optional :: max_iter
+
+        real(real64) :: rtol, atol, low, high, x, x_trial, width, F, dF
+        integer :: max_iterations, iter
+        logical :: converged
+
+        ! Set default parameters
+        if (present(rel_tol)) then
+            rtol = rel_tol
+        else
+            rtol = 1e-13
+        endif
+        if (present(abs_tol)) then
+            atol = abs_tol
+        else
+            atol = 1e-14
+        endif
+        if (present(max_iter)) then
+            max_iterations = max_iter
+        else
+            max_iterations = 100
+        endif
+
+        ! Set initial bracket boundaries
+        low = mass_bracket(1)
+        high = mass_bracket(2)
+
+        ! Set initial estimate as midpoint of bracket
+        x = (low + high) / 2
+
+        ! Conduct safeguarded Newton-Raphson iteration
+        converged = .false.
+        do iter = 1, max_iterations
+            ! Compute F(m) and F'(m)
+            call get_F(t_min, t_max, x, eigenvalues, eigenvectors, transformed_data, F, dF)
+
+            ! Update bracket
+            if (F < 0) then
+                low = x
+            elseif (F > 0) then
+                high = x
+            else
+                mass = x
+                converged = .true.
+                exit
+            endif
+
+            ! Compute bracket width
+            width = high - low
+
+            ! Check for convergence
+            if (width <= 2.0 * (atol + rtol * (low + high) / 2.0)) then
+                mass = (low + high) / 2
+                converged = .true.
+                exit
+            endif
+
+            ! Produce trial update to x using Newton's method
+            x_trial = x - F / dF
+
+            ! Accept trial update if it is within the bracket. If not, use bisection to update x.
+            if (x_trial > low .and. x_trial < high) then
+                x = x_trial
+            else
+                x = (low + high) / 2
+            endif
+        enddo
+
+        ! Report error if process did not converge
+        if (.not.converged) then
+            write(*, '(a, 4x, a, f6.4, a, f6.4)') "[Error][minimise_chi_squared]", &
+            "Minimum of correlated chi squared could not be found inside the bracket: [", &
+            mass_bracket(1), ", ", mass_bracket(2)
+            error stop
+        endif
+
+        ! If result converged, calculate correlated chi-squared and report results
+        chi_squared = get_chi_squared(t_min, t_max, mass, eigenvalues, eigenvectors, transformed_data)
+    end subroutine
 end module
 
 
