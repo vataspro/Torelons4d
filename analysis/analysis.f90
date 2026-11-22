@@ -1230,7 +1230,7 @@ module analysis
 
                 ! Accept trial update if it is within the bracket. If not, use bisection to update x.
                 if (ieee_is_finite(x_newton)) then
-                    if (x_newton > low .and. x_newton < high) then
+                    if (x_newton > low + 0.05 * width .and. x_newton < high - 0.05 * width) then
                         x = x_newton
                     else
                         x = x_bisection
