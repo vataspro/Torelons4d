@@ -1382,10 +1382,13 @@ module analysis
         = get_chi_squared(t_min_, t_max_, mass_upper_bound, eigenvalues, eigenvectors, transformed_data)
         error_codes(num_minima+1) = 0
 
-        ! Save mass and chi-squared values of minima of chi-squared by using a Newton-bisection algorithm to solve for roots of F(m) in the intervals determined above
+        ! Save mass and chi-squared values of minima of chi-squared by using a Newton-bisection algorithm to solve for roots of F(m) in the intervals determined above. Discard points that did not converge by setting chi-squared value to be very large.
         do k = 1, num_minima
             call minimise_chi_squared(t_min_, t_max_, eigenvalues, eigenvectors, transformed_data, &
             mass_brackets(:,k), mass_values(k), chi_squared_values(k), info=error_codes(k))
+            if (error_codes(k) /= 0) then
+                chi_squared_values(k) = huge(1.0_real64)
+            endif
         enddo
 
 
