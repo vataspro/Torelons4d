@@ -13,6 +13,22 @@ module linalg
 
     contains
 
+    ! Returns the sign of the input as -1, 0 or +1, as an integer
+    function sgn(x)
+        implicit none
+
+        real(real64), intent(in) :: x
+        integer :: sgn
+
+        if (x > 0) then
+            sgn = 1
+        elseif (x < 0) then
+            sgn = -1
+        else
+            sgn = 0
+        endif
+    end function
+
     ! Return a list of evenly spaced real numbers in the interval [start, stop]
     function linspace(start, stop, num)
         implicit none
