@@ -1139,29 +1139,28 @@ module analysis
         transformed_data(t_min:t_max)
         real(real64) :: chi_squared
 
-        real(real64) :: transformed_model(t_min:t_max), U, Y, R
+        real(real64) :: transformed_model(t_min:t_max), U, Y, A
         integer :: t
 
         ! Get model vector in eigenbasis
         transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, cosh_fit)
 
-        ! Get variables U, Y, R in which we express chi-squared
+        ! Get variables U, Y, A in which we express chi-squared
         U = 0.0
         Y = 0.0
-        R = 0.0
         do t = t_min, t_max
             ! U = u(m) * u(m)
             U = U + transformed_model(t) ** 2 / eigenvalues(t)
 
             ! Y = y * u(m)
             Y = Y + transformed_data(t) * transformed_model(t) / eigenvalues(t)
-
-            ! R = y * y
-            R = R + transformed_data(t) ** 2 / eigenvalues(t)
         enddo
 
-        ! Calculate chi-squared
-        chi_squared = R - Y**2 / U
+        ! Calculate chi-squared in a numerically stable way
+        A = Y / U
+        chi_squared = sum( &
+            (transformed_data - A * transformed_model)**2 / eigenvalues &
+        )
     end function
 
     ! Find the mass value that minimises the correlated chi-squared over a given mass range by using a Newton-bisection algorithm to find a zero of F(m) within the given range
