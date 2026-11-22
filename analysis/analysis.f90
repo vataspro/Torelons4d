@@ -1,5 +1,6 @@
 module analysis
     use iso_fortran_env, only : int8, int32, int64, real32, real64
+    use ieee_arithmetic, only: ieee_is_finite
     use linalg
 
     implicit none
@@ -1155,7 +1156,7 @@ module analysis
         real(real64), intent(in), optional :: rel_tol, abs_tol
         integer, intent(in), optional :: max_iter
 
-        real(real64) :: rtol, atol, low, high, x, x_trial, width, F, dF, F_low, F_high
+        real(real64) :: rtol, atol, low, high, x, x_newton, x_bisection, width, F, dF, F_low, F_high
         integer :: max_iterations, iter
         logical :: converged
 
@@ -1219,14 +1220,25 @@ module analysis
                 exit
             endif
 
-            ! Produce trial update to x using Newton's method
-            x_trial = x - F / dF
+            ! Update x using either Newton's method or bisection
+            ! Safeguard x by checking size of derivative and update to x via Newton's method. If Newton's update will give a NaN value, use bisection.
+            x_bisection = (low + high) / 2.0_real64
+            if (abs(dF) > epsilon(1.0_real64)) then
+                ! Produce trial update to x using Newton's method
+                x_newton = x - F / dF
 
-            ! Accept trial update if it is within the bracket. If not, use bisection to update x.
-            if (x_trial > low .and. x_trial < high) then
-                x = x_trial
+                ! Accept trial update if it is within the bracket. If not, use bisection to update x.
+                if (ieee_is_finite(x_newton)) then
+                    if (x_newton > low .and. x_newton < high) then
+                        x = x_newton
+                    else
+                        x = x_bisection
+                    endif
+                else
+                    x = x_bisection
+                endif
             else
-                x = (low + high) / 2
+                x = x_bisection
             endif
         enddo
 
@@ -1287,7 +1299,7 @@ module analysis
         ! Find indices of mass values i where there is a minimum of chi-squared in the range [m(i), m(i+1)]
         bracket_indices = [0]
         do i = 1, course_scan_size_ - 1
-            if (F_scan(i) * F_scan(i+1) < epsilon(1.0_real64)) then
+            if (F_scan(i) * F_scan(i+1) < 0.0_real64) then
                 bracket_indices = [bracket_indices, i]
             endif
         enddo
