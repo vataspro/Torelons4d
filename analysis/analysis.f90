@@ -1157,7 +1157,7 @@ module analysis
 
         real(real64) :: rtol, atol, low, high, x, x_trial, width, F, dF, F_low, F_high
         integer :: max_iterations, iter
-        logical :: converged, F_rising_in_interval
+        logical :: converged
 
         ! Set default parameters
         if (present(rel_tol)) then
@@ -1186,13 +1186,10 @@ module analysis
         ! Determine if F is rising or falling in the given interval
         call get_F(t_min, t_max, low, eigenvalues, eigenvectors, transformed_data, F_low)
         call get_F(t_min, t_max, high, eigenvalues, eigenvectors, transformed_data, F_high)
-        if (F_low < 0.0_real64 .and. F_high > 0.0_real64) then
-            F_rising_in_interval = .true.
-        elseif (F_low > 0.0_real64 .and. F_high < 0.0_real64) then
-            F_rising_in_interval = .false.
-        else
+        if (F_low * F_high > 0.0_real64) then
             write(*, '(a, 4x, a)') "[Error][minimise_chi_squared]", &
             "No root exists in mass bracket given"
+            error stop
         endif
 
         ! Conduct safeguarded Newton-Raphson iteration
@@ -1202,26 +1199,14 @@ module analysis
             call get_F(t_min, t_max, x, eigenvalues, eigenvectors, transformed_data, F, dF)
 
             ! Update bracket
-            if (F_rising_in_interval) then
-                if (F < 0) then
-                    low = x
-                elseif (F > 0) then
-                    high = x
-                else
-                    mass = x
-                    converged = .true.
-                    exit
-                endif
+            if (sgn(F) == sgn(F_low)) then
+                low = x
+            elseif (sgn(F) == sgn(F_high)) then
+                high = x
             else
-                if (F > 0) then
-                    low = x
-                elseif (F < 0) then
-                    high = x
-                else
-                    mass = x
-                    converged = .true.
-                    exit
-                endif
+                mass = x
+                converged = .true.
+                exit
             endif
 
             ! Compute bracket width
