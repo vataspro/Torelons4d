@@ -1288,7 +1288,6 @@ module analysis
         else
             course_scan_size_ = 200
         endif
-        allocate(mass_scan(course_scan_size_), F_scan(course_scan_size_))
 
         ! Validate input parameters
         ! Set minimum course scan size
@@ -1305,30 +1304,40 @@ module analysis
         if (t_max_ > MAX_DELTA_T) then
             t_max_ = MAX_DELTA_T
         endif
-        ! Check t_min < t_max. If not, swap values.
-        if (t_min_ > t_max_) then
-            k = t_min_
-            t_min_ = t_max_
-            t_max_ = k
-        endif
-        ! Check we have at least 3 data points in fitting window. If there are not, return an error.
-        if (t_max_ - t_min_ < 2) then
+        ! Check t_min < t_max, and that there are at least 3 data points in the fitting window. If not, throw and error.
+        if (t_min_ + 2 > t_max_) then
             write(*, '(a, 4x, a)') "[Error][fit_cfn]", &
-            "Insufficient data points in t-window"
+            "Must be at least 3 data points in fitting window"
+            error stop
         endif
+        ! Check mass upper bound is finite and strictly positive
+        if (ieee_is_finite(mass_upper_bound)) then
+            if (mass_upper_bound <= 0.0_real64) then
+                write(*, '(a, 4x, a)') "[Error][fit_cfn]", &
+                "mass_upper_bound must be positive"
+                error stop
+            endif
+        else
+            write(*, '(a, 4x, a)') "[Error][fit_cfn]", &
+            "mass_upper_bound must be finite"
+            error stop
+        endif
+
+        ! Allocate arrays for course scan
+        allocate(mass_scan(course_scan_size_), F_scan(course_scan_size_))
 
         ! Get eigenvalues and eigenvectors of covariance matrix
-        call diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvalues, eigenvectors)
+        call diagonalise_covariance_matrix(covariance_matrix, t_min_, t_max_, eigenvalues, eigenvectors)
 
         ! Transform correlation function window into eigenbasis of the covariance matrix
-        transformed_data = transformed_cfn(t_min, t_max, eigenvectors, cfn)
+        transformed_data = transformed_cfn(t_min_, t_max_, eigenvectors, cfn)
 
         ! Generate an equally-spaced course grid of mass values in the range [0, m_max]
         mass_scan = linspace(0.0_real64, mass_upper_bound, course_scan_size_)
 
         ! Evaluate F over all masses in course grid
         do i = 1, course_scan_size_
-            call get_F(t_min, t_max, mass_scan(i), eigenvalues, eigenvectors, transformed_data, F_scan(i))
+            call get_F(t_min_, t_max_, mass_scan(i), eigenvalues, eigenvectors, transformed_data, F_scan(i))
         enddo
 
 
@@ -1365,17 +1374,17 @@ module analysis
         ! Starting mass
         mass_values(0) = 0.0_real64
         chi_squared_values(0) &
-        = get_chi_squared(t_min, t_max, 0.0_real64, eigenvalues, eigenvectors, transformed_data)
+        = get_chi_squared(t_min_, t_max_, 0.0_real64, eigenvalues, eigenvectors, transformed_data)
         error_codes(0) = 0
         ! Stopping mass
         mass_values(num_minima+1) = mass_upper_bound
         chi_squared_values(num_minima+1) &
-        = get_chi_squared(t_min, t_max, mass_upper_bound, eigenvalues, eigenvectors, transformed_data)
+        = get_chi_squared(t_min_, t_max_, mass_upper_bound, eigenvalues, eigenvectors, transformed_data)
         error_codes(num_minima+1) = 0
 
         ! Save mass and chi-squared values of minima of chi-squared by using a Newton-bisection algorithm to solve for roots of F(m) in the intervals determined above
         do k = 1, num_minima
-            call minimise_chi_squared(t_min, t_max, eigenvalues, eigenvectors, transformed_data, &
+            call minimise_chi_squared(t_min_, t_max_, eigenvalues, eigenvectors, transformed_data, &
             mass_brackets(:,k), mass_values(k), chi_squared_values(k), info=error_codes(k))
         enddo
 
