@@ -1380,13 +1380,18 @@ module analysis
         ! Find indices of mass values i where there is a minimum of chi-squared in the range [m(i), m(i+1)]
         bracket_indices = [0]
         bracket_steps = [0]
-        do i = 2, course_scan_size_ - 1
+        do i = 1, course_scan_size_ - 1
             ! Check if a course grid point has almost exactly found a zero of F
-            if (F_scan(1, i) <  10.0 ** (-10) * F_scan(2, i)) then
-                bracket_indices = [bracket_indices, i-1]
-                bracket_steps = [bracket_steps, 2]
+            if (abs(F_scan(1, i)) <  1.0e-10_real64 * F_scan(2, i) .and. i /= 1) then
+                ! If signs of F(m_i-1) and F(m_i+1) differ, add this as a bracket
+                if ((F_scan(1, i-1) < 0.0_real64 .and. F_scan(1, i+1) > 0.0_real64) .or. &
+                    (F_scan(1, i-1) > 0.0_real64 .and. F_scan(1, i+1) < 0.0_real64)) then
+                    bracket_indices = [bracket_indices, i-1]
+                    bracket_steps = [bracket_steps, 2]
+                endif
+            endif
             ! Check if interval [m(i), m(i+1)] contians a root of F
-            elseif ((F_scan(1, i) < 0.0_real64 .and. F_scan(1, i+1) > 0.0_real64) .or. &
+            if ((F_scan(1, i) < 0.0_real64 .and. F_scan(1, i+1) > 0.0_real64) .or. &
                 (F_scan(1, i) > 0.0_real64 .and. F_scan(1, i+1) < 0.0_real64)) then
                 bracket_indices = [bracket_indices, i]
                 bracket_steps = [bracket_steps, 1]
