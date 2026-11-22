@@ -1006,6 +1006,22 @@ module analysis
 
         ! Diagnoalise covariance matrix
         call eigenpairs(covariance_matrix(t_min:t_max, t_min:t_max), eigenvalues, eigenvectors)
+
+        ! Check eigenvalues are well-conditions
+        if (any(.not. ieee_is_finite(eigenvalues))) then
+            write(*, '(a, 4x, a)') "[Error][diagnonalise_covariance_matrix]", &
+            "Non-finite covariance eigenvalue"
+            error stop
+        endif
+        if (any(eigenvalues <= 0.0_real64)) then
+            write(*, '(a, 4x, a)') "[Error][diagnoalise_covariance_matrix]", &
+            "Covariance not positive definite"
+            error stop
+        endif
+        if (minval(eigenvalues) < epsilon(1.0_real64) * maxval(eigenvalues)) then
+            write(*, '(a, 4x, a)') "[Warning][diagonalise_covariance_matrix]", &
+            "Condition number of covariance matrix of order machine precision"
+        endif
     end subroutine
 
     ! Vector representing (derivative of) cosh function in given t-window in eigenbasis given
