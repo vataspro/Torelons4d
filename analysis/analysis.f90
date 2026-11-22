@@ -1270,7 +1270,7 @@ module analysis
         real(real64), allocatable :: mass_scan(:), F_scan(:), mass_brackets(:,:), &
         mass_values(:), chi_squared_values(:)
         integer, allocatable :: bracket_indices(:)
-        integer :: course_scan_size_, num_minima, i, k, mass_loc
+        integer :: course_scan_size_, t_min_, t_max_, num_minima, i, k, mass_loc
 
         ! Set default course scan size
         if (present(course_scan_size)) then
@@ -1279,6 +1279,33 @@ module analysis
             course_scan_size_ = 200
         endif
         allocate(mass_scan(course_scan_size_), F_scan(course_scan_size_))
+
+        ! Validate input parameters
+        ! Set minimum course scan size
+        if (course_scan_size_ < 20) then
+            course_scan_size_ = 20
+        endif
+        ! Check t_min >= 0
+        t_min_ = t_min
+        if (t_min_ < 0) then
+            t_min_ = 0
+        endif
+        ! Check t_max <= MAX_DELTA_T
+        t_max_ = t_max
+        if (t_max_ > MAX_DELTA_T) then
+            t_max_ = MAX_DELTA_T
+        endif
+        ! Check t_min < t_max. If not, swap values.
+        if (t_min_ > t_max_) then
+            k = t_min_
+            t_min_ = t_max_
+            t_max_ = k
+        endif
+        ! Check we have at least 3 data points in fitting window. If there are not, return an error.
+        if (t_max_ - t_min_ < 2) then
+            write(*, '(a, 4x, a)') "[Error][fit_cfn]", &
+            "Insufficient data points in t-window"
+        endif
 
         ! Get eigenvalues and eigenvectors of covariance matrix
         call diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvalues, eigenvectors)
