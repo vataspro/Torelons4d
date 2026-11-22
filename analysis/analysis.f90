@@ -1067,17 +1067,17 @@ module analysis
     end function
 
     ! Compute the function F(m) = |u(m)| (y \cdot \hat{u}(m)) and its derivative. F(m) is the function whose roots correspond to minima of the correlated chi-squared (at the optimum cosh amplitude) for a given t-window.
-    subroutine get_F(t_min, t_max, m, eigenvalues, eigenvectors, transformed_data, F, dF)
+    subroutine get_F(t_min, t_max, m, eigenvalues, eigenvectors, transformed_data, F, dF, F_scale, dF_scale)
         implicit none
 
         integer, intent(in) :: t_min, t_max
         real(real64), intent(in) :: m, eigenvalues(t_min:t_max), eigenvectors(t_min:t_max,t_min:t_max), &
         transformed_data(t_min:t_max)
         real(real64), intent(out) :: F
-        real(real64), intent(out), optional :: dF
+        real(real64), intent(out), optional :: dF, F_scale, dF_scale
 
         real(real64) :: transformed_model(t_min:t_max), dtransformed_model(t_min:t_max), &
-        d2transformed_model(t_min:t_max), U, dU, d2U, Y, dY, d2Y
+        d2transformed_model(t_min:t_max), U, dU, d2U, Y, dY, d2Y, F_fraction_term, dF_fraction_term
         integer :: t
 
         ! Get model vector and derivatives in eigenbasis
@@ -1085,7 +1085,7 @@ module analysis
         dtransformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, dcosh_fit)
 
         ! Second derivatives only need to be calculated if F'(m) is required
-        if (present(dF)) then
+        if (present(dF) .or. present(dF_scale)) then
             d2transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, d2cosh_fit)
         endif
 
@@ -1110,7 +1110,7 @@ module analysis
             dY = dY + transformed_data(t) * dtransformed_model(t) / eigenvalues(t)
 
             ! Second derivatives only need to be calculated if F'(m) is required
-            if (present(dF)) then
+            if (present(dF) .or. present(dF_scale)) then
                 ! U'' = 2 (u''(m) * u(m) + u'(m) * u'(m))
                 d2U = d2U + 2 * (d2transformed_model(t) * transformed_model(t) + dtransformed_model(t) ** 2) &
                 / eigenvalues(t)
@@ -1121,11 +1121,26 @@ module analysis
         enddo
 
         ! Calculate F(m)
-        F = dY - (dU * Y) / (2 * U)
+        F_fraction_term = (dU * Y) / (2 * U)
+        F = dY - F_fraction_term
 
         ! Calculate F'(m) if required
         if (present(dF)) then
-            dF = d2Y - (U * d2U * Y + U * dU * dY - dU**2 * Y) / (2 * U**2)
+            dF_fraction_term = (U * d2U * Y + U * dU * dY - dU**2 * Y) / (2 * U**2)
+            dF = d2Y - dF_fraction_term
+        endif
+
+        ! Calculate scale of F(m)
+        if (present(F_scale)) then
+            F_scale = abs(dY) + abs(F_fraction_term)
+        endif
+
+        ! Calculate scale of F'(m)
+        if (present(dF_scale)) then
+            if (.not. present(dF)) then
+                dF_fraction_term = (U * d2U * Y + U * dU * dY - dU**2 * Y) / (2 * U**2)
+            endif
+            dF_scale = abs(d2Y) + abs(dF_fraction_term)
         endif
     end subroutine
 
@@ -1296,10 +1311,10 @@ module analysis
 
         real(real64) :: eigenvalues(t_min:t_max), eigenvectors(t_min:t_max, t_min:t_max), &
         transformed_data(t_min:t_max)
-        real(real64), allocatable :: mass_scan(:), F_scan(:), mass_brackets(:,:), &
+        real(real64), allocatable :: mass_scan(:), F_scan(:,:), mass_brackets(:,:), &
         mass_values(:), chi_squared_values(:)
-        integer, allocatable :: bracket_indices(:), error_codes(:)
-        integer :: course_scan_size_, t_min_, t_max_, num_minima, i, k, mass_loc
+        integer, allocatable :: bracket_indices(:), bracket_steps(:), error_codes(:)
+        integer :: course_scan_size_, t_min_, t_max_, num_minima, i, k, mass_loc, step
 
         ! Set default course scan size
         if (present(course_scan_size)) then
@@ -1343,7 +1358,7 @@ module analysis
         endif
 
         ! Allocate arrays for course scan
-        allocate(mass_scan(course_scan_size_), F_scan(course_scan_size_))
+        allocate(mass_scan(course_scan_size_), F_scan(2, course_scan_size_))
 
         ! Get eigenvalues and eigenvectors of covariance matrix
         call diagonalise_covariance_matrix(covariance_matrix, t_min_, t_max_, eigenvalues, eigenvectors)
@@ -1356,16 +1371,25 @@ module analysis
 
         ! Evaluate F over all masses in course grid
         do i = 1, course_scan_size_
-            call get_F(t_min_, t_max_, mass_scan(i), eigenvalues, eigenvectors, transformed_data, F_scan(i))
+            call get_F(t_min_, t_max_, mass_scan(i), eigenvalues, eigenvectors, transformed_data, &
+            F_scan(1, i), F_scale=F_scan(2, i))
         enddo
 
 
         !! Find mass brackets by finding pairs of mass values over which F(m) changes sign
         ! Find indices of mass values i where there is a minimum of chi-squared in the range [m(i), m(i+1)]
         bracket_indices = [0]
-        do i = 1, course_scan_size_ - 1
-            if (F_scan(i) * F_scan(i+1) < 0.0_real64) then
+        bracket_steps = [0]
+        do i = 2, course_scan_size_ - 1
+            ! Check if a course grid point has almost exactly found a zero of F
+            if (F_scan(1, i) <  10.0 ** (-10) * F_scan(2, i)) then
+                bracket_indices = [bracket_indices, i-1]
+                bracket_steps = [bracket_steps, 2]
+            ! Check if interval [m(i), m(i+1)] contians a root of F
+            elseif ((F_scan(1, i) < 0.0_real64 .and. F_scan(1, i+1) > 0.0_real64) .or. &
+                (F_scan(1, i) > 0.0_real64 .and. F_scan(1, i+1) < 0.0_real64)) then
                 bracket_indices = [bracket_indices, i]
+                bracket_steps = [bracket_steps, 1]
             endif
         enddo
 
@@ -1375,14 +1399,16 @@ module analysis
         else
             ! Get number of minima
             bracket_indices = bracket_indices(2:)
+            bracket_steps = bracket_steps(2:)
             num_minima = size(bracket_indices)
 
             ! Evaluate mass brackets that contain chi-squared minima
             allocate(mass_brackets(2, num_minima))
             do k = 1, num_minima
                 i = bracket_indices(k)
+                step = bracket_steps(k)
                 mass_brackets(1, k) = mass_scan(i)
-                mass_brackets(2, k) = mass_scan(i+1)
+                mass_brackets(2, k) = mass_scan(i+step)
             enddo
         endif
 
