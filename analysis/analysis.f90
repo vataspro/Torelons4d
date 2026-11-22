@@ -1083,7 +1083,11 @@ module analysis
         ! Get model vector and derivatives in eigenbasis
         transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, cosh_fit)
         dtransformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, dcosh_fit)
-        d2transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, d2cosh_fit)
+
+        ! Second derivatives only need to be calculated if F'(m) is required
+        if (present(dF)) then
+            d2transformed_model = transformed_cosh_vector(t_min, t_max, m, eigenvectors, d2cosh_fit)
+        endif
 
         ! Get variables U, U', U'', Y, Y', Y'' in which we express F(m) and F'(m)
         U = 0.0
