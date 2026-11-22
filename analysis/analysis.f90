@@ -478,23 +478,23 @@ module analysis
         integer :: state, dt, bin
 
         ! Check dimensions
-        if (all(shape(corr_matrix) /= [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1, NUM_BINS])) then
+        if (any(shape(corr_matrix) /= [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1, NUM_BINS])) then
             write(*, '(a, a)') "[Error][construct_correlators]    corr_matrix must have shape", &
             " [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1, NUM_BINS]"
             error stop
         endif
 
-        if (all(shape(corr_matrix_avg) /= [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1])) then
+        if (any(shape(corr_matrix_avg) /= [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1])) then
             write(*, '(a, a)') "[Error][construct_correlators]    corr_matrix_avg must have shape", &
             " [NUM_OPERATORS, NUM_OPERATORS, MAX_DELTA_T+1]"
             error stop
         endif
 
-        if (all(shape(eigenvectors) /= [NUM_OPERATORS, NUM_STATES, NUM_BINS])) &
+        if (any(shape(eigenvectors) /= [NUM_OPERATORS, NUM_STATES, NUM_BINS])) &
         error stop &
         "[Error][construct_correlators]    eigenvectors must have shape [NUM_OPERATORS, NUM_STATES, NUM_BINS]"
 
-        if (all(shape(eigenvectors_avg) /= [NUM_OPERATORS, NUM_STATES])) &
+        if (any(shape(eigenvectors_avg) /= [NUM_OPERATORS, NUM_STATES])) &
         error stop &
         "[Error][construct_correlators]    eigenvectors_avg must have shape [NUM_OPERATORS, NUM_STATES]"
 
@@ -664,25 +664,25 @@ module analysis
         integer :: dt, bin
 
         ! Check dimensions
-        if (all(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
+        if (any(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
             write(*, '(a, a)') "[Error][get_effective_masses]    cfn must have shape", &
             " [MAX_DELTA_T+1, NUM_BINS]"
             error stop
         endif
 
-        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1])) then
+        if (any(shape(cfn_avg) /= [MAX_DELTA_T+1])) then
             write(*, '(a, a)') "[Error][get_effective_masses]    cfn_avg must have shape", &
             " [MAX_DELTA_T+1]"
             error stop
         endif
 
-        if (all(shape(effective_mass_avg) /= [MAX_DELTA_T])) then
+        if (any(shape(effective_mass_avg) /= [MAX_DELTA_T])) then
             write(*, '(a, a)') "[Error][get_effective_masses]    effective_mass_avg must have shape", &
             " [MAX_DELTA_T]"
             error stop
         endif
 
-        if (all(shape(effective_mass_error) /= [MAX_DELTA_T])) then
+        if (any(shape(effective_mass_error) /= [MAX_DELTA_T])) then
             write(*, '(a, a)') "[Error][get_effective_masses]    effective_mass_error must have shape", &
             " [MAX_DELTA_T]"
             error stop
@@ -735,13 +735,13 @@ module analysis
         integer :: i
 
         ! Check dimensions
-        if (all(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS, NUM_STATES])) then
+        if (any(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS, NUM_STATES])) then
             write(*, '(a, a)') "[Error][get_effective_masses]    cfn must have shape", &
             " [MAX_DELTA_T+1, NUM_BINS, NUM_STATES]"
             error stop
         endif
 
-        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1, NUM_STATES])) then
+        if (any(shape(cfn_avg) /= [MAX_DELTA_T+1, NUM_STATES])) then
             write(*, '(a, a)') "[Error][get_effective_masses]    cfn_avg must have shape", &
             " [MAX_DELTA_T+1, NUM_STATES]"
             error stop
@@ -830,7 +830,7 @@ module analysis
         endif
 
         ! Check dimensions
-        if (all(shape(mass_bound) /= [NUM_STATES, NUM_BINS])) then
+        if (any(shape(mass_bound) /= [NUM_STATES, NUM_BINS])) then
             write(*, '(a)') "[Error][output_results]    mass_bound must have shape [NUM_STATES, NUM_BINS]"
             error stop
         endif
@@ -840,25 +840,25 @@ module analysis
             error stop
         endif
 
-        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1, NUM_STATES])) then
+        if (any(shape(cfn_avg) /= [MAX_DELTA_T+1, NUM_STATES])) then
             write(*, '(a, a)') "[Error][output_results]    cfn_avg must have shape", &
             " [MAX_DELTA_T+1, k]"
             error stop
         endif
 
-        if (all(shape(cfn_error) /= [MAX_DELTA_T+1, NUM_STATES])) then
+        if (any(shape(cfn_error) /= [MAX_DELTA_T+1, NUM_STATES])) then
             write(*, '(a, a)') "[Error][output_results]    cfn_error must have shape", &
             " [MAX_DELTA_T+1, k]"
             error stop
         endif
 
-        if (all(shape(effective_mass_avg) /= [MAX_DELTA_T, NUM_STATES])) then
+        if (any(shape(effective_mass_avg) /= [MAX_DELTA_T, NUM_STATES])) then
             write(*, '(a, a)') "[Error][output_results]    effective_mass_avg must have shape", &
             " [MAX_DELTA_T, k]"
             error stop
         endif
 
-        if (all(shape(effective_mass_error) /= [MAX_DELTA_T, NUM_STATES])) then
+        if (any(shape(effective_mass_error) /= [MAX_DELTA_T, NUM_STATES])) then
             write(*, '(a, a)') "[Error][output_results]    effective_mass_error must have shape", &
             " [MAX_DELTA_T, k]"
             error stop
@@ -947,19 +947,19 @@ module analysis
         integer :: t1, t2
 
         ! Check sizes of arrays
-        if (all(shape(cfn_avg) /= [MAX_DELTA_T+1])) then
+        if (any(shape(cfn_avg) /= [MAX_DELTA_T+1])) then
             write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
             "cfn_avg must have shape [MAX_DELTA_T+1]"
             stop
         endif
 
-        if (all(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
+        if (any(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
             write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
             "cfn must have shape [MAX_DELTA_T+1, NUM_BINS]"
             stop
         endif
 
-        if (all(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
+        if (any(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
             write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
             "covariance_matrix must have shape [MAX_DELTA_T+1, MAX_DELTA_T+1]"
         endif
@@ -989,12 +989,12 @@ module analysis
         endif
 
         ! Check sizes of other arrays
-        if (all(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
+        if (any(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
             write(*, '(a, a)') "[Error][diagonalise_covariance_matrix]    ", &
             "covariance_matrix must have shape [MAX_DELTA_T+1, MAX_DELTA_T+1]"
         endif
 
-        if (all(shape(eigenvectors) /= [window_size, window_size])) then
+        if (any(shape(eigenvectors) /= [window_size, window_size])) then
             write(*, '(a, a)') "[Error][diagonalise_covariance_matrix]    ", &
             "eigenvectors must have shape [window size, window_size]"
         endif
