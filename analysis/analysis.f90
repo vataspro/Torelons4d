@@ -1146,7 +1146,7 @@ module analysis
 
     ! Find the mass value that minimises the correlated chi-squared over a given mass range by using a Newton-bisection algorithm to find a zero of F(m) within the given range
     subroutine minimise_chi_squared(t_min, t_max, eigenvalues, eigenvectors, transformed_data, mass_bracket, &
-        mass, chi_squared, rel_tol, abs_tol, max_iter)
+        mass, chi_squared, rel_tol, abs_tol, max_iter, info)
         implicit none
 
         integer, intent(in) :: t_min, t_max
@@ -1155,6 +1155,7 @@ module analysis
         real(real64), intent(out) :: mass, chi_squared
         real(real64), intent(in), optional :: rel_tol, abs_tol
         integer, intent(in), optional :: max_iter
+        integer, intent(out), optional :: info
 
         real(real64) :: rtol, atol, low, high, x, x_newton, x_bisection, width, F, dF, F_low, F_high
         integer :: max_iterations, iter
@@ -1244,7 +1245,7 @@ module analysis
 
         ! Report error if process did not converge, and output x-value found at last itertaion
         if (.not.converged) then
-            write(*, '(a, 4x, a, f6.4, a, f6.4)') "[Error][minimise_chi_squared]", &
+            write(*, '(a, 4x, a, f6.4, a, f6.4)') "[Warning][minimise_chi_squared]", &
             "Minimum of correlated chi squared could not be found inside the bracket: [", &
             mass_bracket(1), ", ", mass_bracket(2)
             mass = x
@@ -1252,6 +1253,15 @@ module analysis
 
         ! Calculate correlated chi-squared and report results
         chi_squared = get_chi_squared(t_min, t_max, mass, eigenvalues, eigenvectors, transformed_data)
+
+        ! Output info status if requested
+        if (present(info)) then
+            if (converged) then
+                info = 0
+            else
+                info = 1
+            endif
+        endif
     end subroutine
 
     ! Fit a given correlation function over a given t-window to a cosh function by finding the global minimum of the correlated chi-squared function over a mass range between m=0 and a supplied mass upper bound, which should be as a result of the variational calculation
@@ -1269,7 +1279,7 @@ module analysis
         transformed_data(t_min:t_max)
         real(real64), allocatable :: mass_scan(:), F_scan(:), mass_brackets(:,:), &
         mass_values(:), chi_squared_values(:)
-        integer, allocatable :: bracket_indices(:)
+        integer, allocatable :: bracket_indices(:), error_codes(:)
         integer :: course_scan_size_, t_min_, t_max_, num_minima, i, k, mass_loc
 
         ! Set default course scan size
@@ -1351,18 +1361,22 @@ module analysis
 
         !! Run a Newton-bisection algorithm on each of these brackets to identify a root of F(m), and hence a minimim of chi-squared
         ! Save mass and chi-squared values of end-points of search space
-        allocate(mass_values(0:num_minima+1), chi_squared_values(0:num_minima+1))
+        allocate(mass_values(0:num_minima+1), chi_squared_values(0:num_minima+1), error_codes(0:num_minima+1))
+        ! Starting mass
         mass_values(0) = 0.0_real64
         chi_squared_values(0) &
         = get_chi_squared(t_min, t_max, 0.0_real64, eigenvalues, eigenvectors, transformed_data)
+        error_codes(0) = 0
+        ! Stopping mass
         mass_values(num_minima+1) = mass_upper_bound
         chi_squared_values(num_minima+1) &
         = get_chi_squared(t_min, t_max, mass_upper_bound, eigenvalues, eigenvectors, transformed_data)
+        error_codes(num_minima+1) = 0
 
         ! Save mass and chi-squared values of minima of chi-squared by using a Newton-bisection algorithm to solve for roots of F(m) in the intervals determined above
         do k = 1, num_minima
             call minimise_chi_squared(t_min, t_max, eigenvalues, eigenvectors, transformed_data, &
-            mass_brackets(:,k), mass_values(k), chi_squared_values(k))
+            mass_brackets(:,k), mass_values(k), chi_squared_values(k), info=error_codes(k))
         enddo
 
 
@@ -1379,6 +1393,12 @@ module analysis
         ! Output mass and chi-squared values at this minimum
         mass = mass_values(mass_loc)
         chi_squared = chi_squared_values(mass_loc)
+
+        ! Output a warning if mass value with minimum chi-squared did not converge
+        if (error_codes(mass_loc) /= 0) then
+            write(*, '(a, 4x, a)') "[Warning][fit_cfn]", &
+            "Mass value found by fit_cfn did not converge"
+        endif
     end subroutine
 end module
 
