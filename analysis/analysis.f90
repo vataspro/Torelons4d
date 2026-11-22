@@ -939,47 +939,46 @@ module analysis
     end function
 
     ! Construct covariance matrix from normalised correlation functions and Jackknife bins
-    subroutine get_covariance_matrix(cfn, cfn_avg, covariance_matrix)
+    subroutine get_covariance_matrix(jackknife_bins, data, covariance_matrix)
         implicit none
-        real(real64), intent(in) :: cfn(:,:), cfn_avg(:)
+        real(real64), intent(in) :: jackknife_bins(:,:), data(:)
         real(real64), intent(out) :: covariance_matrix(:,:)
 
-        integer :: t1, t2
+        integer :: t1, t2, ndata
+
+        ! Get number of data points
+        ndata = size(data)
 
         ! Check sizes of arrays
-        if (any(shape(cfn_avg) /= [MAX_DELTA_T+1])) then
+        if (any(shape(jackknife_bins) /= [ndata, NUM_BINS])) then
             write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
-            "cfn_avg must have shape [MAX_DELTA_T+1]"
+            "jackknife_bins must have shape [ndata, NUM_BINS]"
             stop
         endif
 
-        if (any(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
+        if (any(shape(covariance_matrix) /= [ndata, ndata])) then
             write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
-            "cfn must have shape [MAX_DELTA_T+1, NUM_BINS]"
-            stop
-        endif
-
-        if (any(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
-            write(*, '(a, a)') "[Error][get_covariance_matrix]    ", &
-            "covariance_matrix must have shape [MAX_DELTA_T+1, MAX_DELTA_T+1]"
+            "covariance_matrix must have shape [ndata, ndata]"
         endif
 
         ! Construct covariance matrix from jackknife samples
         covariance_matrix = 0.0d0
-        do concurrent (t1 = 1:MAX_DELTA_T+1, t2 = 1:MAX_DELTA_T+1)
-            covariance_matrix(t1, t2) = sum((cfn(t1, :) - cfn_avg(t1)) * (cfn(t2, :) - cfn_avg(t2)))
+        do concurrent (t1 = 1:ndata, t2 = 1:ndata)
+            covariance_matrix(t1, t2) &
+            = sum((jackknife_bins(t1, :) - data(t1)) * (jackknife_bins(t2, :) - data(t2)))
         enddo
         covariance_matrix = covariance_matrix * real(NUM_BINS - 1, kind=real64) / real(NUM_BINS, kind=real64)
     end subroutine
 
     ! Diagonalise a window of the covariance matrix
-    subroutine diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvalues, eigenvectors)
+    subroutine diagonalise_covariance_matrix(covariance_matrix, t_min, t_max, eigenvalues, eigenvectors, base)
         implicit none
-        real(real64), intent(in) :: covariance_matrix(0:,0:)
+        real(real64), intent(in) :: covariance_matrix(:,:)
         integer, intent(in) :: t_min, t_max
+        integer, intent(in), optional :: base
         real(real64), intent(out) :: eigenvectors(:,:), eigenvalues(:)
 
-        integer :: window_size
+        integer :: window_size, ndata, t_min_, t_max_
 
         ! Get size of window from [t_min, t_max]
         window_size = t_max - t_min + 1
@@ -988,10 +987,20 @@ module analysis
             "window cannot have size <= 0"
         endif
 
+        ! Modify t_min and t_max if covariance_matrix is not one-based
+        if (present(base)) then
+            t_min_ = t_min - base + 1
+            t_max_ = t_max - base + 1
+        else
+            t_min_ = t_min
+            t_max_ = t_max
+        endif
+
         ! Check sizes of other arrays
-        if (any(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
+        ndata = size(covariance_matrix, dim=1)
+        if (any(shape(covariance_matrix) /= [ndata, ndata])) then
             write(*, '(a, a)') "[Error][diagonalise_covariance_matrix]    ", &
-            "covariance_matrix must have shape [MAX_DELTA_T+1, MAX_DELTA_T+1]"
+            "covariance_matrix must have shape [ndata, ndata]"
         endif
 
         if (any(shape(eigenvectors) /= [window_size, window_size])) then
@@ -1005,7 +1014,7 @@ module analysis
         endif
 
         ! Diagnoalise covariance matrix
-        call eigenpairs(covariance_matrix(t_min:t_max, t_min:t_max), eigenvalues, eigenvectors)
+        call eigenpairs(covariance_matrix(t_min_:t_max_, t_min_:t_max_), eigenvalues, eigenvectors)
 
         ! Check eigenvalues are well-conditions
         if (any(.not. ieee_is_finite(eigenvalues))) then
@@ -1361,7 +1370,7 @@ module analysis
         allocate(mass_scan(course_scan_size_), F_scan(2, course_scan_size_))
 
         ! Get eigenvalues and eigenvectors of covariance matrix
-        call diagonalise_covariance_matrix(covariance_matrix, t_min_, t_max_, eigenvalues, eigenvectors)
+        call diagonalise_covariance_matrix(covariance_matrix, t_min_, t_max_, eigenvalues, eigenvectors, base=0)
 
         ! Transform correlation function window into eigenbasis of the covariance matrix
         transformed_data = transformed_cfn(t_min_, t_max_, eigenvectors, cfn)
