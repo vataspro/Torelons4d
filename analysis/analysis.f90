@@ -2463,4 +2463,7 @@ program analyse_lines
     ! Output correlation functions and effective masses with errors to console
     call output_results(cfn_avg, cfn_error, m_eff_avg, m_eff_error, &
     mass_upper_bound, mass_upper_bound_avg, max_dt=max_dt)
+
+    ! Output fitted masses to console
+    call output_fitted_masses(cfn, cfn_avg, m_eff, m_eff_avg, mass_upper_bound, mass_upper_bound_avg)
 end program
