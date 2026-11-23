@@ -55,7 +55,7 @@ module analysis
         write(*, '(a, 9x, a)') "[Help]     * '-n <number_of_states>'", &
         "Total of number of states calculated in GEVP. Defaults to n = 3 if not passed."
 
-        write(*, '(a, 11x, a)') "[Help]     * '-runs <number of runs>'", &
+        write(*, '(a, 6x, a)') "[Help]     * '--runs <number of runs>'", &
         " Total number of runs to used in calculation of states. Defaults to runs = 10 if not passed."
 
         write(*, '(a, 4x, a)') "[Help]     * '--max-dt' <maximum delta t>", &
@@ -1028,7 +1028,7 @@ module analysis
             "Non-finite covariance eigenvalue"
             error stop
         endif
-        if (any(eigenvalues <= 0.0_real64)) then
+        if (any(eigenvalues < 0.0_real64)) then
             write(*, '(a, 4x, a)') "[Error][diagnoalise_covariance_matrix]", &
             "Covariance not positive definite"
             error stop
@@ -2112,9 +2112,14 @@ module analysis
             write(*, '(a)') "(Chi-squared / dof) +- (error)"
             write(*, '(a)') "------------------------------------------------------------------"
             print *, ""
-            write(*, '(a)', advance='no') "t_max \ t_min____|"
+            write(*, '(a, 4x, a)', advance='no') "t_max \ t_min", "|"
             do t_min = t_start, t_end - 2
-                write(*, '(a, i2, a)', advance='no') "________", t_min, "________|"
+                write(*, '(9x, i2, 9x, a)', advance='no') t_min, "|"
+            enddo
+            print *, ""
+            write(*, '(a, a)', advance='no') repeat("_", 17), "|"
+            do t_min = t_start, t_end - 2
+                write(*, '(a, a)', advance='no') repeat("_", 20), "|"
             enddo
             print *, ""
             do t_max = t_start + 2, t_end
@@ -2129,22 +2134,27 @@ module analysis
                     endif
                 enddo
                 print *, ""
-                write(*, '(a)', advance='no') "_________________|"
+                write(*, '(17x, a)', advance='no') "|"
                 do t_min = t_start, t_end - 2
                     window_size = t_max - t_min + 1
                     if (window_size < 3) then
-                        write(*, '(a)', advance='no') "__######____######__|"
+                        write(*, '(2x, a, 4x, a, 2x, a)', advance='no') "######", "######", "|"
                     else
-                        write(*, '(a, f6.4, a, f6.4, a)') &
-                        "__", chi2_fit(t_min, t_max), "_+-_", chi2_fit_errors(t_min, t_max), "__|"
+                        write(*, '(2x, f6.4, x, a, x, f6.4, 2x, a)', advance='no') &
+                        chi2_fit(t_min, t_max), "+-", chi2_fit_errors(t_min, t_max), "|"
                     endif
+                enddo
+                print *, ""
+                write(*, '(a, a)', advance='no') repeat("_", 17), "|"
+                do t_min = t_start, t_end - 2
+                    write(*, '(a, a)', advance='no') repeat("_", 20), "|"
                 enddo
                 print *, ""
             enddo
             print *, ""
 
             ! Deallocate fit parameter arrays
-            deallocate(fitted_masses, fitted_mass_errors, chi2_fit)
+            deallocate(fitted_masses, fitted_mass_errors, chi2_fit, chi2_fit_errors)
 
             ! Increment state counter
             state = state + 1
