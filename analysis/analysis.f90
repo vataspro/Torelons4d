@@ -1810,7 +1810,7 @@ module analysis
         real(real64), intent(in) :: cfn(0:,:), cfn_avg(0:), effective_mass(:,:), effective_mass_avg(:)
         integer, intent(out) :: t_start, t_end
         real(real64), intent(in), optional :: reduced_chi_squared_cutoff, slope_error_cutoff, cfn_error_cutoff
-        integer, intent(out), optional :: info
+        integer, intent(out) :: info
 
         real(real64) :: reduced_chi_squared_cutoff_, slope_error_cutoff_, cfn_error_cutoff_, &
         eigenvalues(3), eigenvectors(3,3), cfn_error, &
@@ -1892,6 +1892,13 @@ module analysis
         enddo
         t_end = t_noise
 
+        ! Check a valid end time has been found
+        if (t_end < 2) then
+            info = 1
+            t_start = -1
+            return
+        endif
+
         !! Find t_start as the earliest window where effective masses (t_start+1, t_start+2, t_start+3) are well approximated by a plateau
         ! Get effective mass covariance matrix
         allocate(covariance_matrix(MAX_DELTA_T, MAX_DELTA_T))
@@ -1941,13 +1948,9 @@ module analysis
 
         ! Check that a valid start time was found and raise an error if not
         if (t_start < t_end - 1) then
-            if (present(info)) then
-                info = 0
-            endif
+            info = 0
         else
-            if (present(info)) then
-                info = 1
-            endif
+            info = 1
         endif
     end subroutine
 end module
