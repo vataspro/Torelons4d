@@ -1491,27 +1491,74 @@ module analysis
         ndata = size(x_range)
         if (present(jackknife_bins)) nbins = size(jackknife_bins, dim=2)
 
-        ! Check dimensions of other arrays
+        ! Validation checks
+        if (ndata < 2) then
+            write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+            "At least two x-values must be supplied"
+            error stop
+        endif
+        if (present(jackknife_bins)) then
+            if (nbins < 2) then
+                write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+                "At least 2 jackknife bins must be supplied"
+                error stop
+            endif
+        endif
         if (any(shape(input_data) /= [ndata])) then
             write(*, '(a, 4x, a)') "[Error][linear_fit]", &
             "input_data must have shape [ndata]"
+            error stop
         endif
         if (present(jackknife_bins)) then
             if (any(shape(jackknife_bins) /= [ndata, nbins])) then
                 write(*, '(a, 4x, a)') "[Error][linear_fit]", &
                 "jackknife_bins must have shape [ndata, nbins]"
+                error stop
             endif
         endif
         if (present(eigenvalues)) then
             if (any(shape(eigenvalues) /= [ndata])) then
                 write(*, '(a, 4x, a)') "[Error][linear_fit]", &
                 "eigenvalues must have shape [ndata]"
+                error stop
             endif
         endif
         if (present(eigenvectors)) then
             if (any(shape(eigenvectors) /= [ndata, ndata])) then
                 write(*, '(a, 4x, a)') "[Error][linear_fit]", &
                 "eigenvectors must have shape [ndata, ndata]"
+                error stop
+            endif
+        endif
+        if (.not.all(ieee_is_finite(x_range))) then
+            write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+            "x_range must only contain finite values"
+            error stop
+        endif
+        if (.not.all(ieee_is_finite(input_data))) then
+            write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+            "input_data must only contain finite values"
+            error stop
+        endif
+        if (present(jackknife_bins)) then
+            if (.not.all(ieee_is_finite(jackknife_bins))) then
+                write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+                "jackknife_bins must only contain finite values"
+                error stop
+            endif
+        endif
+        if (present(eigenvalues)) then
+            if (.not.all(ieee_is_finite(eigenvalues))) then
+                write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+                "eigenvalues must only contain finite values"
+                error stop
+            endif
+        endif
+        if (present(eigenvectors)) then
+            if (.not.all(ieee_is_finite(eigenvectors))) then
+                write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+                "eigenvectors must only contain finite values"
+                error stop
             endif
         endif
 
@@ -1521,7 +1568,7 @@ module analysis
         x_shifted = x_range - x_avg
 
         ! Transform 1-vector, x and y into eigen-basis, if supplied
-        allocate(one_transformed(ndata), x_transformed(ndata), data_transformed(ndata))
+        allocate(one(ndata), one_transformed(ndata), x_transformed(ndata), data_transformed(ndata))
         if (present(jackknife_bins)) allocate(bins_transformed(ndata, nbins))
         one = 1.0_real64
         if (present(eigenvectors)) then
@@ -1587,7 +1634,7 @@ module analysis
             intercept_error = jacknife_error(intercept_bins, intercept)
         else
             slope_error = sqrt(S(0) / D)
-            intercept_error = sqrt(S(2) / D)
+            intercept_error = sqrt((S(2) + 2.0_real64*x_avg*S(1) + x_avg**2*S(0)) / D)
         endif
 
         ! Compute chi-squared of fit if requested
