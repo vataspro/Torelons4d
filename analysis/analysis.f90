@@ -1759,7 +1759,7 @@ module analysis
             endif
         endif
         D = S(0) * S(2) - S(1) ** 2
-        if (.not.ieee_is_finite(D)) then
+        if (.not.ieee_is_finite(D) .or. abs(D) < epsilon(1.0_real64)) then
             write(*, '(a, 4x, a)') "[Error][linear_fit]", &
             "Covariance matrix is singular"
             error stop
@@ -1893,7 +1893,7 @@ module analysis
         t_end = min(t_noise+1, MAX_DELTA_T)
 
         ! Check a valid end time has been found
-        if (t_end < 2) then
+        if (t_end < 3) then
             info = 1
             t_start = -1
             return
@@ -1908,7 +1908,7 @@ module analysis
         t_plateau = t_end - 1
 
         ! Loop over valid window start times to find earliest possible t_plateau
-        do t = 0, t_end - 2
+        do t = 1, t_end - 2
             ! Get eigendecomposition of 3x3 block of covariance matrix
             call diagonalise_covariance_matrix(covariance_matrix, t, t+2, eigenvalues, eigenvectors, base=1)
 
