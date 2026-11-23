@@ -1473,6 +1473,150 @@ module analysis
     end subroutine
 
     ! Fit data (and jackknife bins) with eigendecomposition of covariance matrix to a linear function
+    subroutine constant_fit(input_data, intercept, intercept_error, &
+        chi_squared, jackknife_bins, eigenvalues, eigenvectors)
+        implicit none
+
+        real(real64), intent(in) :: input_data(:)
+        real(real64), intent(in), optional :: jackknife_bins(:,:), eigenvalues(:), eigenvectors(:,:)
+        real(real64), intent(out) :: intercept, intercept_error
+        real(real64), intent(out), optional :: chi_squared
+
+        integer :: ndata, nbins, bin
+        real(real64), allocatable :: data_transformed(:), one_transformed(:), &
+        bins_transformed(:,:), one(:), T_bins(:), intercept_bins(:)
+        real(real64) :: S, T_data
+
+        ! Get size of data field and number of jackknife bins, if supplied
+        ndata = size(input_data)
+        if (present(jackknife_bins)) nbins = size(jackknife_bins, dim=2)
+
+        ! Validation checks
+        if (ndata < 2) then
+            write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+            "At least two x-values must be supplied"
+            error stop
+        endif
+        if (present(jackknife_bins)) then
+            if (nbins < 2) then
+                write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+                "At least 2 jackknife bins must be supplied"
+                error stop
+            endif
+        endif
+        if (present(jackknife_bins)) then
+            if (any(shape(jackknife_bins) /= [ndata, nbins])) then
+                write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+                "jackknife_bins must have shape [ndata, nbins]"
+                error stop
+            endif
+        endif
+        if (present(eigenvalues)) then
+            if (any(shape(eigenvalues) /= [ndata])) then
+                write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+                "eigenvalues must have shape [ndata]"
+                error stop
+            endif
+        endif
+        if (present(eigenvectors)) then
+            if (any(shape(eigenvectors) /= [ndata, ndata])) then
+                write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+                "eigenvectors must have shape [ndata, ndata]"
+                error stop
+            endif
+        endif
+        if (.not.all(ieee_is_finite(input_data))) then
+            write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+            "input_data must only contain finite values"
+            error stop
+        endif
+        if (present(jackknife_bins)) then
+            if (.not.all(ieee_is_finite(jackknife_bins))) then
+                write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+                "jackknife_bins must only contain finite values"
+                error stop
+            endif
+        endif
+        if (present(eigenvalues)) then
+            if (.not.all(ieee_is_finite(eigenvalues))) then
+                write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+                "eigenvalues must only contain finite values"
+                error stop
+            endif
+        endif
+        if (present(eigenvectors)) then
+            if (.not.all(ieee_is_finite(eigenvectors))) then
+                write(*, '(a, 4x, a)') "[Error][constant_fit]", &
+                "eigenvectors must only contain finite values"
+                error stop
+            endif
+        endif
+
+        ! Transform 1-vector, x and y into eigen-basis, if supplied
+        allocate(one(ndata), one_transformed(ndata), data_transformed(ndata))
+        if (present(jackknife_bins)) allocate(bins_transformed(ndata, nbins))
+        one = 1.0_real64
+        if (present(eigenvectors)) then
+            one_transformed = matmul(transpose(eigenvectors), one)
+            data_transformed = matmul(transpose(eigenvectors), input_data)
+            if (present(jackknife_bins)) then
+                do bin = 1, nbins
+                    bins_transformed(:, bin) = matmul(transpose(eigenvectors), jackknife_bins(:, bin))
+                enddo
+            endif
+        else
+            one_transformed = one
+            data_transformed = input_data
+            if (present(jackknife_bins)) bins_transformed = jackknife_bins
+        endif
+
+        ! Compute S, T and D coefficients for full data and jackknife samples, if supplied
+        if (present(jackknife_bins)) allocate(T_bins(nbins))
+        if (present(eigenvalues)) then
+            S = sum(one_transformed ** 2 / eigenvalues)
+            T_data = sum(one_transformed * data_transformed / eigenvalues)
+            if (present(jackknife_bins)) then
+                do bin = 1, nbins
+                    T_bins(bin) = sum(one_transformed * bins_transformed(:, bin) / eigenvalues)
+                enddo
+            endif
+        else
+            S = dot_product(one_transformed, one_transformed)
+            T_data = dot_product(one_transformed, data_transformed)
+            if (present(jackknife_bins)) then
+                do bin = 1, nbins
+                    T_bins(bin) = dot_product(one_transformed, bins_transformed(:,bin))
+                enddo
+            endif
+        endif
+
+        ! Compute intercept and slope estimates for full data and jackknife samples, if supplied
+        intercept = T_data / S
+        if (present(jackknife_bins)) then
+            allocate(intercept_bins(nbins))
+            do bin = 1, nbins
+                intercept_bins(bin) = T_bins(bin) / S
+            enddo
+        endif
+
+        ! Compute error on intercept and slope estimates, either from jackknife samples or covariance matrix
+        if (present(jackknife_bins)) then
+            intercept_error = jacknife_error(intercept_bins, intercept)
+        else
+            intercept_error = 1.0_real64 / sqrt(S)
+        endif
+
+        ! Compute chi-squared of fit if requested
+        if (present(chi_squared)) then
+            if (present(eigenvalues)) then
+                chi_squared = sum((data_transformed - intercept * one_transformed)**2 / eigenvalues)
+            else
+                chi_squared = sum((data_transformed - intercept * one_transformed)**2)
+            endif
+        endif
+    end subroutine
+
+    ! Fit data (and jackknife bins) with eigendecomposition of covariance matrix to a linear function
     subroutine linear_fit(x_range, input_data, intercept, intercept_error, slope, slope_error, &
         chi_squared, jackknife_bins, eigenvalues, eigenvectors)
         implicit none
@@ -1615,6 +1759,11 @@ module analysis
             endif
         endif
         D = S(0) * S(2) - S(1) ** 2
+        if (.not.ieee_is_finite(D)) then
+            write(*, '(a, 4x, a)') "[Error][linear_fit]", &
+            "Covariance matrix is singular"
+            error stop
+        endif
 
         ! Compute intercept and slope estimates for full data and jackknife samples, if supplied
         slope = (S(0) * T_data(1) - S(1) * T_data(0)) / D
