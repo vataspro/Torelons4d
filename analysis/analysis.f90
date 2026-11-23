@@ -2051,6 +2051,10 @@ module analysis
             ! Iterate over all allowed windows
             do t_max = t_start + 2, t_end
                 do t_min = t_start, t_end - 2
+                    ! Get window size and skip if window is too small
+                    window_size = t_max - t_min + 1
+                    if (window_size < 3) cycle
+
                     ! Fit full dataset to cosh function over this window
                     call fit_cfn(&
                         t_min, &
@@ -2078,7 +2082,6 @@ module analysis
                     enddo
 
                     ! Get chi-squared / dof
-                    window_size = t_max - t_min + 1
                     dof = window_size - 2
                     chi2_fit(t_min, t_max) = chi2_fit(t_min, t_max) / real(dof, kind=real64)
                     chi2_fit_bins = chi2_fit_bins / real(dof, kind=real64)
@@ -2090,6 +2093,55 @@ module analysis
                     = jacknife_error(chi2_fit_bins, chi2_fit(t_min, t_max))
                 enddo
             enddo
+
+            ! Output fitted masses and chi-squared values to screen as a table of values
+            print *, ""
+            write(*, '(a)') "------------------------------------------------------------------"
+            if (state == 0) then
+                write(*, '(a)') "Ground state"
+            else
+                write(*, '(a, i0)') "Excited state ", state
+            endif
+            print *, ""
+            write(*, '(a)') "Fitted masses using correlation function in range [t_min, t_max]"
+            write(*, '(a)') "Table columns:    t_min"
+            write(*, '(a)') "Table rows:       t_max"
+            print *, ""
+            write(*, '(a)') "Table contents:"
+            write(*, '(a)') "(Fitted mass) +- (error)"
+            write(*, '(a)') "(Chi-squared / dof) +- (error)"
+            write(*, '(a)') "------------------------------------------------------------------"
+            print *, ""
+            write(*, '(a)', advance='no') "t_max \ t_min____|"
+            do t_min = t_start, t_end - 2
+                write(*, '(a, i2, a)', advance='no') "________", t_min, "________|"
+            enddo
+            print *, ""
+            do t_max = t_start + 2, t_end
+                write(*, '(2x, i2, 13x, a)', advance='no') t_max, "|"
+                do t_min = t_start, t_end - 2
+                    window_size = t_max - t_min + 1
+                    if (window_size < 3) then
+                        write(*, '(2x, a, 4x, a, 2x, a)', advance='no') "######", "######", "|"
+                    else
+                        write(*, '(2x, f6.4, x, a, x, f6.4, 2x, a)', advance='no') &
+                        fitted_masses(t_min, t_max), "+-", fitted_mass_errors(t_min, t_max), "|"
+                    endif
+                enddo
+                print *, ""
+                write(*, '(a)', advance='no') "_________________|"
+                do t_min = t_start, t_end - 2
+                    window_size = t_max - t_min + 1
+                    if (window_size < 3) then
+                        write(*, '(a)', advance='no') "__######____######__|"
+                    else
+                        write(*, '(a, f6.4, a, f6.4, a)') &
+                        "__", chi2_fit(t_min, t_max), "_+-_", chi2_fit_errors(t_min, t_max), "__|"
+                    endif
+                enddo
+                print *, ""
+            enddo
+            print *, ""
 
             ! Deallocate fit parameter arrays
             deallocate(fitted_masses, fitted_mass_errors, chi2_fit)
