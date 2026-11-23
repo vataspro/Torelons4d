@@ -1022,13 +1022,13 @@ module analysis
         ! Diagnoalise covariance matrix
         call eigenpairs(covariance_matrix(t_min_:t_max_, t_min_:t_max_), eigenvalues, eigenvectors)
 
-        ! Check eigenvalues are well-conditions
+        ! Check eigenvalues are well-conditioned
         if (any(.not. ieee_is_finite(eigenvalues))) then
             write(*, '(a, 4x, a)') "[Error][diagnonalise_covariance_matrix]", &
             "Non-finite covariance eigenvalue"
             error stop
         endif
-        if (any(eigenvalues < 0.0_real64)) then
+        if (any(eigenvalues <= 0.0_real64)) then
             write(*, '(a, 4x, a)') "[Error][diagnoalise_covariance_matrix]", &
             "Covariance not positive definite"
             error stop
@@ -1462,10 +1462,10 @@ module analysis
         mass_loc = minloc(chi_squared_values, 1) - 1
 
         ! Output warning if this is an end-point of the search space
-        if (mass_loc == 0 .or. mass_loc == num_minima+1) then
-            write(*, '(a, 4x, a)') "[Warning][fit_cfn]", &
-            "Minimum chi-squared value found at boundary of input mass range"
-        endif
+        ! if (mass_loc == 0 .or. mass_loc == num_minima+1) then
+        !     write(*, '(a, 4x, a)') "[Warning][fit_cfn]", &
+        !     "Minimum chi-squared value found at boundary of input mass range"
+        ! endif
 
         ! Output mass and chi-squared values at this minimum
         mass = mass_values(mass_loc)
@@ -1951,7 +1951,7 @@ module analysis
 
         ! Set t_start as 2 time steps before plateau onset if a plateau has been found
         if (t_plateau < t_end - 1) then
-            t_start = max(0, t_plateau - 2)
+            t_start = max(1, t_plateau - 2)
         else
             t_start = t_plateau
         endif
@@ -2109,7 +2109,7 @@ module analysis
             print *, ""
             write(*, '(a)') "Table contents:"
             write(*, '(a)') "(Fitted mass) +- (error)"
-            write(*, '(a)') "(Chi-squared / dof) +- (error)"
+            write(*, '(a)') "(Chi-squared / dof)"
             write(*, '(a)') "------------------------------------------------------------------"
             print *, ""
             write(*, '(a, 4x, a)', advance='no') "t_max \ t_min", "|"
@@ -2138,10 +2138,9 @@ module analysis
                 do t_min = t_start, t_end - 2
                     window_size = t_max - t_min + 1
                     if (window_size < 3) then
-                        write(*, '(2x, a, 4x, a, 2x, a)', advance='no') "######", "######", "|"
+                        write(*, '(7x, a, 7x, a)', advance='no') "######", "|"
                     else
-                        write(*, '(2x, f6.4, x, a, x, f6.4, 2x, a)', advance='no') &
-                        chi2_fit(t_min, t_max), "+-", chi2_fit_errors(t_min, t_max), "|"
+                        write(*, '(7x, f6.4, 7x, a)', advance='no') chi2_fit(t_min, t_max), "|"
                     endif
                 enddo
                 print *, ""
