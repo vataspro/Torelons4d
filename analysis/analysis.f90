@@ -1816,7 +1816,8 @@ module analysis
         eigenvalues(3), eigenvectors(3,3), cfn_error, &
         chi2_const, slope, slope_error, intercept, intercept_error, t_range(3)
         real(real64), allocatable :: covariance_matrix(:,:)
-        integer :: t
+        integer :: t, t_noise
+        logical :: cfn_noise_dominated
 
         ! Validation checks
         if (any(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
@@ -1858,8 +1859,11 @@ module analysis
         endif
 
         !! Find t_end as the time at which the correlator becomes noise-dominated
-        t_end = MAX_DELTA_T
-        do t = 0, MAX_DELTA_T - 1
+        ! We define t_noise as the first time at which the correlator errors become dominated by noise (for at least 2 time seperations, so that cfn(t_noise) and cfn(t_noise+1) are noise dominated)
+        ! We then accept windows up to and including t_noise, so t_end = t_noise
+        t_noise = MAX_DELTA_T
+        cfn_noise_dominated = .false.
+        do t = 0, MAX_DELTA_T
             ! Calculate error in correlation function at this time
             cfn_error = jacknife_error(cfn(t,:), cfn_avg(t))
 
@@ -1873,12 +1877,20 @@ module analysis
             ! Check cfn_error is not zero
             if (abs(cfn_error) < epsilon(1.0_real64)) cycle
 
-            ! Save time if cfn(t)=0 is statistically significant
+            ! Save time if cfn(t-1)=0 and cfn(t)=0 are statistically significant
             if (abs(cfn_avg(t)) / cfn_error < cfn_error_cutoff_) then
-                t_end = t
-                exit
+                if (cfn_noise_dominated) then
+                    t_noise = t-1
+                    exit
+                else
+                    cfn_noise_dominated = .true.
+                endif
+            else
+                ! Remove noise dominated flag if present and cfn(t) is not noise dominated
+                if (cfn_noise_dominated) cfn_noise_dominated = .false.
             endif
         enddo
+        t_end = t_noise
 
         !! Find t_start as the earliest window where effective masses (t_start+1, t_start+2, t_start+3) are well approximated by a plateau
         ! Get effective mass covariance matrix
