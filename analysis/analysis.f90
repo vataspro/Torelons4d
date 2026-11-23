@@ -654,13 +654,12 @@ module analysis
     end function
 
     ! Calculate effective masses and errors from normalised correlation functions
-    subroutine get_effective_masses(cfn, cfn_avg, effective_mass_avg, effective_mass_error, fit_mode)
+    subroutine get_effective_masses(cfn, cfn_avg, effective_mass, effective_mass_avg, effective_mass_error, fit_mode)
         implicit none
         real(real64), intent(in) :: cfn(:,:), cfn_avg(:)
-        real(real64), intent(out) :: effective_mass_avg(:), effective_mass_error(:)
+        real(real64), intent(out) :: effective_mass(:,:), effective_mass_avg(:), effective_mass_error(:)
         logical, intent(in), optional :: fit_mode
 
-        real(real64), allocatable :: effective_mass_bins(:,:)
         integer :: dt, bin
 
         ! Check dimensions
@@ -676,6 +675,12 @@ module analysis
             error stop
         endif
 
+        if (any(shape(effective_mass) /= [MAX_DELTA_T, NUM_BINS])) then
+            write(*, '(a, a)') "[Error][get_effective_masses]    effective_mass_avg must have shape", &
+            " [MAX_DELTA_T, NUM_BINS]"
+            error stop
+        endif
+
         if (any(shape(effective_mass_avg) /= [MAX_DELTA_T])) then
             write(*, '(a, a)') "[Error][get_effective_masses]    effective_mass_avg must have shape", &
             " [MAX_DELTA_T]"
@@ -688,9 +693,6 @@ module analysis
             error stop
         endif
 
-        ! Allocate effective mass array
-        allocate(effective_mass_bins(MAX_DELTA_T, NUM_BINS))
-
         ! Calculate effective masses for all time steps and states
         ! Use effective mass mode requested - default to cosh fit
         if (present(fit_mode) .and. .not.fit_mode) then
@@ -699,14 +701,14 @@ module analysis
             enddo
 
             do concurrent (dt = 1:MAX_DELTA_T-1, bin = 1:NUM_BINS)
-                effective_mass_bins(dt, bin) = get_effective_mass_exact(cfn(dt:dt+2, bin))
+                effective_mass(dt, bin) = get_effective_mass_exact(cfn(dt:dt+2, bin))
             enddo
 
             effective_mass_avg(MAX_DELTA_T) = get_effective_mass_exact(&
             [cfn_avg(MAX_DELTA_T-1), cfn_avg(MAX_DELTA_T), cfn_avg(MAX_DELTA_T-1)])
 
             do concurrent (bin = 1:NUM_BINS)
-                effective_mass_bins(MAX_DELTA_T, bin) = get_effective_mass_exact(&
+                effective_mass(MAX_DELTA_T, bin) = get_effective_mass_exact(&
                 [cfn(MAX_DELTA_T-1, bin), cfn(MAX_DELTA_T, bin), cfn(MAX_DELTA_T-1, bin)])
             enddo
         else
@@ -715,21 +717,23 @@ module analysis
             enddo
 
             do concurrent (dt = 1:MAX_DELTA_T, bin = 1:NUM_BINS)
-                effective_mass_bins(dt, bin) = get_effective_mass_fit(cfn(dt:dt+1, bin), dt)
+                effective_mass(dt, bin) = get_effective_mass_fit(cfn(dt:dt+1, bin), dt)
             enddo
         endif
 
         ! Calculate errors on effective masses
         do concurrent (dt = 1:MAX_DELTA_T)
-            effective_mass_error(dt) = jacknife_error(effective_mass_bins(dt, :), effective_mass_avg(dt))
+            effective_mass_error(dt) = jacknife_error(effective_mass(dt, :), effective_mass_avg(dt))
         enddo
     end subroutine
 
     ! Get effective masses for all states
-    subroutine get_effective_masses_all_states(cfn, cfn_avg, effective_mass_avg, effective_mass_error, fit_mode)
+    subroutine get_effective_masses_all_states(cfn, cfn_avg, &
+        effective_mass, effective_mass_avg, effective_mass_error, fit_mode)
         implicit none
         real(real64), intent(in) :: cfn(:,:,:), cfn_avg(:,:)
-        real(real64), allocatable, intent(out) :: effective_mass_avg(:,:), effective_mass_error(:,:)
+        real(real64), allocatable, intent(out) :: effective_mass(:,:,:), effective_mass_avg(:,:), &
+        effective_mass_error(:,:)
         logical, intent(in), optional :: fit_mode
 
         integer :: i
@@ -748,16 +752,17 @@ module analysis
         endif
 
         ! Allocate effecive mass arrays
-        allocate(effective_mass_avg(MAX_DELTA_T, NUM_STATES), effective_mass_error(MAX_DELTA_T, NUM_STATES))
+        allocate(effective_mass(MAX_DELTA_T, NUM_BINS, NUM_STATES), &
+        effective_mass_avg(MAX_DELTA_T, NUM_STATES), effective_mass_error(MAX_DELTA_T, NUM_STATES))
 
         ! Calculate effective masses
         do i = 1, NUM_STATES
             if (present(fit_mode)) then
                 call get_effective_masses(cfn(:,:,i), cfn_avg(:,i), &
-                effective_mass_avg(:,i), effective_mass_error(:,i), fit_mode)
+                effective_mass(:,:,i), effective_mass_avg(:,i), effective_mass_error(:,i), fit_mode)
             else
                 call get_effective_masses(cfn(:,:,i), cfn_avg(:,i), &
-                effective_mass_avg(:,i), effective_mass_error(:,i))
+                effective_mass(:,:,i), effective_mass_avg(:,i), effective_mass_error(:,i))
             endif
         enddo
     end subroutine
@@ -768,7 +773,7 @@ module analysis
         real(real64), intent(in) :: cfn(:,:), cfn_avg(:)
         logical, intent(in), optional :: fit_mode
 
-        real(real64), allocatable :: effective_mass_avg(:), effective_mass_errors(:), &
+        real(real64), allocatable :: effective_mass(:,:), effective_mass_avg(:), effective_mass_errors(:), &
         cfn_norm(:,:), cfn_avg_norm(:), cfn_error(:)
         integer :: i, b, delta_t
 
@@ -777,7 +782,8 @@ module analysis
         cfn_error(size(cfn_avg)), effective_mass_avg(size(cfn_avg)-1), effective_mass_errors(size(cfn_avg)-1))
 
         ! Calculate effective masses and errors
-        call get_effective_masses(cfn, cfn_avg, effective_mass_avg, effective_mass_errors, fit_mode)
+        call get_effective_masses(cfn, cfn_avg, &
+        effective_mass, effective_mass_avg, effective_mass_errors, fit_mode)
 
         ! Normalise cfn bins
         cfn_avg_norm = cfn_avg / cfn_avg(1)
@@ -1957,6 +1963,141 @@ module analysis
             info = 1
         endif
     end subroutine
+
+    ! Output fitted masses for all states in windows found
+    subroutine output_fitted_masses(cfn, cfn_avg, effective_mass, effective_mass_avg, &
+        mass_bound, mass_bound_avg)
+        implicit none
+
+        real(real64), intent(in) :: cfn(0:,:,:), cfn_avg(0:,:), &
+        effective_mass(:,:,:), effective_mass_avg(:,:), &
+        mass_bound(:,:), mass_bound_avg(:)
+
+        real(real64) :: covariance_matrix(0:MAX_DELTA_T, 0:MAX_DELTA_T)
+        real(real64), allocatable :: fitted_masses(:,:), fitted_mass_errors(:,:), chi2_fit(:,:), &
+        fitted_mass_bins(:), chi2_fit_bins(:), chi2_fit_errors(:,:)
+        integer :: state, i, t_start, t_end, error_code, t_min, t_max, bin, window_size, dof
+
+        ! Check dimensions
+        if (any(shape(mass_bound) /= [NUM_STATES, NUM_BINS])) then
+            write(*, '(a)') "[Error][output_fitted_masses]    mass_bound must have shape [NUM_STATES, NUM_BINS]"
+            error stop
+        endif
+
+        if (size(mass_bound_avg) /= NUM_STATES) then
+            write(*, '(a)') "[Error][output_fitted_masses]    mass_bound_avg must have size NUM_STATES"
+            error stop
+        endif
+
+        if (any(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS, NUM_STATES])) then
+            write(*, '(a, a)') "[Error][output_fitted_masses]    cfn must have shape", &
+            " [MAX_DELTA_T+1, NUM_BINS, NUM_STATES]"
+            error stop
+        endif
+
+        if (any(shape(cfn_avg) /= [MAX_DELTA_T+1, NUM_STATES])) then
+            write(*, '(a, a)') "[Error][output_fitted_masses]    cfn_avg must have shape", &
+            " [MAX_DELTA_T+1, NUM_STATES]"
+            error stop
+        endif
+
+        if (any(shape(effective_mass_avg) /= [MAX_DELTA_T, NUM_STATES])) then
+            write(*, '(a, a)') "[Error][output_fitted_masses]    effective_mass_avg must have shape", &
+            " [MAX_DELTA_T, NUM_STATES]"
+            error stop
+        endif
+
+        if (any(shape(effective_mass) /= [MAX_DELTA_T, NUM_BINS, NUM_STATES])) then
+            write(*, '(a, a)') "[Error][output_fitted_masses]    effective_mass must have shape", &
+            " [MAX_DELTA_T, NUM_BINS, NUM_STATES]"
+            error stop
+        endif
+
+        ! Allocate conatiner for fitted mass and chi-squared bins
+        allocate(fitted_mass_bins(NUM_BINS), chi2_fit_bins(NUM_BINS))
+
+        ! Repeat analysis for all states
+        state = 0
+        do i = NUM_STATES, 1, -1
+            ! Get limits on candidate windows
+            call find_window_limits(&
+                cfn(:,:,i), &
+                cfn_avg(:,i), &
+                effective_mass(:,:,i), &
+                effective_mass_avg(:,i), &
+                t_start, &
+                t_end, &
+                reduced_chi_squared_cutoff=5.0_real64, &
+                slope_error_cutoff=3.0_real64, &
+                cfn_error_cutoff=1.0_real64, &
+                info=error_code&
+            )
+
+            ! Test if at least one suitable candidate window was found
+            if (error_code == 1) then
+                write(*, '(a, i0, a)') "State ", state, ": no candidate windows found"
+                cycle
+            endif
+
+            ! Allocate all fit parameter arrays
+            allocate(fitted_masses(t_start:t_end-2, t_start+2:t_end), &
+            fitted_mass_errors(t_start:t_end-2, t_start+2:t_end), &
+            chi2_fit(t_start:t_end-2, t_start+2:t_end), &
+            chi2_fit_errors(t_start:t_end-2, t_start+2:t_end))
+
+            ! Get covariance matrix for this state
+            call get_covariance_matrix(cfn(:,:,i), cfn_avg(:,i), covariance_matrix)
+
+            ! Iterate over all allowed windows
+            do t_max = t_start + 2, t_end
+                do t_min = t_start, t_end - 2
+                    ! Fit full dataset to cosh function over this window
+                    call fit_cfn(&
+                        t_min, &
+                        t_max, &
+                        cfn_avg(:,i), &
+                        covariance_matrix, &
+                        mass_bound_avg(i), &
+                        fitted_masses(t_min, t_max), &
+                        chi2_fit(t_min, t_max), &
+                        course_scan_size=500&
+                    )
+
+                    ! Fit all jackknife bins to cosh function over this window
+                    do bin = 1, NUM_BINS
+                        call fit_cfn(&
+                            t_min, &
+                            t_max, &
+                            cfn(:,bin,i), &
+                            covariance_matrix, &
+                            mass_bound(i,bin), &
+                            fitted_mass_bins(bin), &
+                            chi2_fit_bins(bin), &
+                            course_scan_size=500&
+                        )
+                    enddo
+
+                    ! Get chi-squared / dof
+                    window_size = t_max - t_min + 1
+                    dof = window_size - 2
+                    chi2_fit(t_min, t_max) = chi2_fit(t_min, t_max) / real(dof, kind=real64)
+                    chi2_fit_bins = chi2_fit_bins / real(dof, kind=real64)
+
+                    ! Estimate errors on fitted masses and reduced chi-squared from jackknife fits
+                    fitted_mass_errors(t_min, t_max) &
+                    = jacknife_error(fitted_mass_bins, fitted_masses(t_min, t_max))
+                    chi2_fit_errors(t_min, t_max) &
+                    = jacknife_error(chi2_fit_bins, chi2_fit(t_min, t_max))
+                enddo
+            enddo
+
+            ! Deallocate fit parameter arrays
+            deallocate(fitted_masses, fitted_mass_errors, chi2_fit)
+
+            ! Increment state counter
+            state = state + 1
+        enddo
+    end subroutine
 end module
 
 
@@ -1985,7 +2126,7 @@ program analyse_lines
     complex(real64), allocatable :: vevs(:,:), corr_matrix(:,:,:,:), vevs_avg(:), corr_matrix_avg(:,:,:), &
     eigenvectors(:,:,:), eigenvectors_avg(:,:)
     real(real64), allocatable :: mass_upper_bound(:,:), mass_upper_bound_avg(:), &
-    cfn(:,:,:), cfn_avg(:,:), cfn_error(:,:), m_eff(:,:), m_eff_error(:,:)
+    cfn(:,:,:), cfn_avg(:,:), cfn_error(:,:), m_eff(:,:,:), m_eff_avg(:,:), m_eff_error(:,:)
 
     ! Loop variables
     integer :: i
@@ -2265,9 +2406,9 @@ program analyse_lines
     cfn, cfn_avg, cfn_error)
 
     ! Calculate effective masses for states
-    call get_effective_masses_all_states(cfn, cfn_avg, m_eff, m_eff_error, use_fit_mode)
+    call get_effective_masses_all_states(cfn, cfn_avg, m_eff, m_eff_avg, m_eff_error, use_fit_mode)
 
     ! Output correlation functions and effective masses with errors to console
-    call output_results(cfn_avg, cfn_error, m_eff, m_eff_error, &
+    call output_results(cfn_avg, cfn_error, m_eff_avg, m_eff_error, &
     mass_upper_bound, mass_upper_bound_avg, max_dt=max_dt)
 end program
