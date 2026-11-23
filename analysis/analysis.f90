@@ -1799,6 +1799,147 @@ module analysis
             endif
         endif
     end subroutine
+
+    ! Find the earliest and latest possible window times for fitting a cosh curve to the data
+    ! The earliest time, t_start, is estimated by finding the earliest set of 3 consectutive effective masses that can be reliably approximated as lying on a plateau
+    ! The latest time, t_stop, is estimated as the time at which the correlatio function becomes dominated by noise
+    subroutine find_window_limits(cfn, cfn_avg, effective_mass, effective_mass_avg, &
+        t_start, t_end, reduced_chi_squared_cutoff, slope_error_cutoff, cfn_error_cutoff, info)
+        implicit none
+
+        real(real64), intent(in) :: cfn(0:,:), cfn_avg(0:), effective_mass(:,:), effective_mass_avg(:)
+        integer, intent(out) :: t_start, t_end
+        real(real64), intent(in), optional :: reduced_chi_squared_cutoff, slope_error_cutoff, cfn_error_cutoff
+        integer, intent(out), optional :: info
+
+        real(real64) :: reduced_chi_squared_cutoff_, slope_error_cutoff_, cfn_error_cutoff_, &
+        eigenvalues(3), eigenvectors(3,3), cfn_error, &
+        chi2_const, slope, slope_error, intercept, intercept_error, t_range(3)
+        real(real64), allocatable :: covariance_matrix(:,:)
+        integer :: t
+
+        ! Validation checks
+        if (any(shape(cfn) /= [MAX_DELTA_T+1, NUM_BINS])) then
+            write(*, '(a, 4x, a)') "[Error][find_window_limits]", &
+            "cfn must have shape [MAX_DELTA_T+1, NUM_BINS]"
+            error stop
+        endif
+        if (any(shape(cfn_avg) /= [MAX_DELTA_T+1])) then
+            write(*, '(a, 4x, a)') "[Error][find_window_limits]", &
+            "cfn_avg must have shape [MAX_DELTA_T+1]"
+            error stop
+        endif
+        if (any(shape(effective_mass) /= [MAX_DELTA_T, NUM_BINS])) then
+            write(*, '(a, 4x, a)') "[Error][find_window_limits]", &
+            "effective_mass must have shape [MAX_DELTA_T, NUM_BINS]"
+            error stop
+        endif
+        if (any(shape(effective_mass_avg) /= [MAX_DELTA_T])) then
+            write(*, '(a, 4x, a)') "[Error][find_window_limits]", &
+            "effective_mass_avg must have shape [MAX_DELTA_T]"
+            error stop
+        endif
+        if (any(shape(covariance_matrix) /= [MAX_DELTA_T+1, MAX_DELTA_T+1])) then
+            write(*, '(a, 4x, a)') "[Error][find_window_limits]", &
+            "covariance_matrix must have shape [MAX_DELTA_T+1, MAX_DELTA_T+1]"
+            error stop
+        endif
+
+        ! Set default cutoff values
+        if (present(reduced_chi_squared_cutoff)) then
+            reduced_chi_squared_cutoff_ = reduced_chi_squared_cutoff
+        else
+            reduced_chi_squared_cutoff_ = 5.0_real64
+        endif
+        if (present(slope_error_cutoff)) then
+            slope_error_cutoff_ = slope_error_cutoff
+        else
+            slope_error_cutoff_ = 3.0_real64
+        endif
+        if (present(cfn_error_cutoff)) then
+            cfn_error_cutoff_ = cfn_error_cutoff
+        else
+            cfn_error_cutoff_ = 1.0_real64
+        endif
+
+        !! Find t_end as the time at which the correlator becomes noise-dominated
+        t_end = MAX_DELTA_T
+        do t = 0, MAX_DELTA_T - 1
+            ! Calculate error in correlation function at this time
+            cfn_error = jacknife_error(cfn(t,:), cfn_avg(t))
+
+            ! Check cfn_error is finite
+            if (.not.ieee_is_finite(cfn_error)) then
+                write(*, '(a, 4x, a)') "[Error][find_window_limits]", &
+                "cfn_error is not finite"
+                error stop
+            endif
+
+            ! Check cfn_error is not zero
+            if (abs(cfn_error) < epsilon(1.0_real64)) cycle
+
+            ! Save time if cfn(t)=0 is statistically significant
+            if (abs(cfn_avg(t)) / cfn_error < cfn_error_cutoff_) then
+                t_end = t
+                exit
+            endif
+        enddo
+
+        !! Find t_start as the earliest window where effective masses (t_start+1, t_start+2, t_start+3) are well approximated by a plateau
+        ! Get effective mass covariance matrix
+        allocate(covariance_matrix(MAX_DELTA_T, MAX_DELTA_T))
+        call get_covariance_matrix(effective_mass, effective_mass_avg, covariance_matrix)
+
+        ! Initialise t_start as earliest date corresponding to an invalid window
+        t_start = t_end - 1
+
+        ! Loop over valid window start times to find earliest possible t_start = t-1
+        do t = 1, t_end - 1
+            ! Get eigendecomposition of 3x3 block of covariance matrix
+            call diagonalise_covariance_matrix(covariance_matrix, t, t+2, eigenvalues, eigenvectors, base=1)
+
+            ! Fit effective masses in range [t, t+2] to linear function and extract slope
+            t_range = real([t, t+1, t+2], kind=real64)
+            call linear_fit(&
+                t_range, &
+                effective_mass_avg(t:t+2), &
+                intercept, intercept_error, &
+                slope, slope_error, &
+                jackknife_bins=effective_mass(t:t+2, :), &
+                eigenvalues=eigenvalues, &
+                eigenvectors=eigenvectors&
+            )
+
+            ! Fit effective masses in range [t, t+2] to constant function and extract value
+            call constant_fit(&
+                effective_mass_avg(t:t+2), &
+                intercept, &
+                intercept_error, &
+                chi_squared=chi2_const, &
+                jackknife_bins=effective_mass(t:t+2, :), &
+                eigenvalues=eigenvalues, &
+                eigenvectors=eigenvectors&
+            )
+
+            ! Save time if reduced chi squared of constant fit and slope of linear fit meet requirements
+            if (chi2_const / 2.0_real64 < reduced_chi_squared_cutoff_ &
+                .and. abs(slope) / slope_error < slope_error_cutoff_) then
+                t_start = t-1
+                exit
+            endif
+        enddo
+
+        ! Check that a valid start time was found and raise an error if not
+        if (t_start < t_end - 1) then
+            if (present(info)) then
+                info = 0
+            endif
+        else
+            if (present(info)) then
+                info = 1
+            endif
+        endif
+    end subroutine
 end module
 
 
