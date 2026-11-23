@@ -1816,7 +1816,7 @@ module analysis
         eigenvalues(3), eigenvectors(3,3), cfn_error, &
         chi2_const, slope, slope_error, intercept, intercept_error, t_range(3)
         real(real64), allocatable :: covariance_matrix(:,:)
-        integer :: t, t_noise
+        integer :: t, t_noise, t_plateau
         logical :: cfn_noise_dominated
 
         ! Validation checks
@@ -1860,7 +1860,7 @@ module analysis
 
         !! Find t_end as the time at which the correlator becomes noise-dominated
         ! We define t_noise as the first time at which the correlator errors become dominated by noise (for at least 2 time seperations, so that cfn(t_noise) and cfn(t_noise+1) are noise dominated)
-        ! We then accept windows up to and including t_noise, so t_end = t_noise
+        ! We then accept windows up to and including t_noise+1, so t_end = t_noise+1
         t_noise = MAX_DELTA_T
         cfn_noise_dominated = .false.
         do t = 0, MAX_DELTA_T
@@ -1890,7 +1890,7 @@ module analysis
                 if (cfn_noise_dominated) cfn_noise_dominated = .false.
             endif
         enddo
-        t_end = t_noise
+        t_end = min(t_noise+1, MAX_DELTA_T)
 
         ! Check a valid end time has been found
         if (t_end < 2) then
@@ -1904,11 +1904,11 @@ module analysis
         allocate(covariance_matrix(MAX_DELTA_T, MAX_DELTA_T))
         call get_covariance_matrix(effective_mass, effective_mass_avg, covariance_matrix)
 
-        ! Initialise t_start as earliest date corresponding to an invalid window
-        t_start = t_end - 1
+        ! Initialise t_plateau as earliest time corresponding to an invalid window
+        t_plateau = t_end - 1
 
-        ! Loop over valid window start times to find earliest possible t_start = t-1
-        do t = 1, min(t_end - 1, MAX_DELTA_T - 2)
+        ! Loop over valid window start times to find earliest possible t_plateau
+        do t = 0, t_end - 2
             ! Get eigendecomposition of 3x3 block of covariance matrix
             call diagonalise_covariance_matrix(covariance_matrix, t, t+2, eigenvalues, eigenvectors, base=1)
 
@@ -1938,15 +1938,19 @@ module analysis
             ! Save time if reduced chi squared of constant fit and slope of linear fit meet requirements
             if (chi2_const / 2.0_real64 < reduced_chi_squared_cutoff_ &
                 .and. abs(slope) / slope_error < slope_error_cutoff_) then
-                t_start = t-1
+                t_plateau = t
                 exit
             endif
         enddo
 
-        ! If t_end = MAX_DELTA_T and we have not yet found a valid t_start, then we cannot evaluate the next window, as this would be [MAX_DELTA_T-1, MAX_DELTA_T+1, MAX_DELTA_T+1], and yet this would give a single valid window to fit over (if that window were to pass): [MAX_DELTA_T-2, MAX_DELTA_T-1, MAX_DELTA_T]. Therefore, if we are in this case, we automatically accept this single window by setting t_start = MAX_DELTA_T - 2
-        if (t_start == MAX_DELTA_T - 1) t_start = MAX_DELTA_T - 2
+        ! Set t_start as 2 time steps before plateau onset if a plateau has been found
+        if (t_plateau < t_end - 1) then
+            t_start = max(0, t_plateau - 2)
+        else
+            t_start = t_plateau
+        endif
 
-        ! Check that a valid start time was found and raise an error if not
+        !! Check that a valid start time was found and raise an error if not
         if (t_start < t_end - 1) then
             info = 0
         else
