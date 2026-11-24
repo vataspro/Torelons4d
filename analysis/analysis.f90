@@ -1462,10 +1462,10 @@ module analysis
         mass_loc = minloc(chi_squared_values, 1) - 1
 
         ! Output warning if this is an end-point of the search space
-        ! if (mass_loc == 0 .or. mass_loc == num_minima+1) then
-        !     write(*, '(a, 4x, a)') "[Warning][fit_cfn]", &
-        !     "Minimum chi-squared value found at boundary of input mass range"
-        ! endif
+        if (mass_loc == 0 .or. mass_loc == num_minima+1) then
+            write(*, '(a, 4x, a)') "[Warning][fit_cfn]", &
+            "Minimum chi-squared value found at boundary of input mass range"
+        endif
 
         ! Output mass and chi-squared values at this minimum
         mass = mass_values(mass_loc)
@@ -2061,7 +2061,7 @@ module analysis
                         t_max, &
                         cfn_avg(:,i), &
                         covariance_matrix, &
-                        mass_bound_avg(i), &
+                        maxval([mass_bound_avg(i), 2.0_real64*effective_mass_avg(t_min:t_max, i)]), &
                         fitted_masses(t_min, t_max), &
                         chi2_fit(t_min, t_max), &
                         course_scan_size=500&
@@ -2074,7 +2074,7 @@ module analysis
                             t_max, &
                             cfn(:,bin,i), &
                             covariance_matrix, &
-                            mass_bound(i,bin), &
+                            maxval([mass_bound(i, bin), 2.0_real64*effective_mass(t_min:t_max, bin, i)]), &
                             fitted_mass_bins(bin), &
                             chi2_fit_bins(bin), &
                             course_scan_size=500&
@@ -2111,7 +2111,7 @@ module analysis
             write(*, '(a)') "(Fitted mass) +- (error)"
             write(*, '(a)') "(Chi-squared / dof)"
             write(*, '(a)') "------------------------------------------------------------------"
-            print *, ""
+            write(*, '(a)') repeat("_", 18 + 21 * (t_end - t_start - 1))
             write(*, '(a, 4x, a)', advance='no') "t_max \ t_min", "|"
             do t_min = t_start, t_end - 2
                 write(*, '(9x, i2, 9x, a)', advance='no') t_min, "|"
